@@ -42,6 +42,11 @@ dev
 # docker-compose env files
 .env
 
+# local docker image / source export
+nextchat-local.tar
+nextchat-src.tar.gz
+*.docker.tar
+
 *.key
 *.key.pub
 
