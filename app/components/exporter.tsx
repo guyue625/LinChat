@@ -21,7 +21,6 @@ import {
 
 import CopyIcon from "../icons/copy.svg";
 import LoadingIcon from "../icons/three-dots.svg";
-import ChatGptIcon from "../icons/chatgpt.png";
 import ShareIcon from "../icons/share.svg";
 
 import DownloadIcon from "../icons/download.svg";
@@ -29,7 +28,6 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { MessageSelector, useMessageSelector } from "./message-selector";
 import { Avatar } from "./emoji";
 import dynamic from "next/dynamic";
-import NextImage from "next/image";
 
 import { toBlob, toPng } from "html-to-image";
 
@@ -515,18 +513,21 @@ export function ImagePreviewer(props: {
       >
         <div className={styles["chat-info"]}>
           <div className={clsx(styles["logo"], "no-dark")}>
-            <NextImage
-              src={ChatGptIcon.src}
-              alt="logo"
+            {/* Use plain img so export capture always works offline */}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/logo-dark.png"
+              alt="LinChat"
               width={50}
-              height={50}
+              height={54}
+              style={{ objectFit: "contain" }}
             />
           </div>
 
           <div>
-            <div className={styles["main-title"]}>NextChat</div>
+            <div className={styles["main-title"]}>LinChat</div>
             <div className={styles["sub-title"]}>
-              github.com/ChatGPTNextWeb/ChatGPT-Next-Web
+              Your personal AI assistant
             </div>
             <div className={styles["icons"]}>
               <MaskAvatar avatar={config.avatar} />

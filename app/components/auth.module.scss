@@ -65,7 +65,15 @@
 
   .auth-logo {
     margin-top: 10vh;
-    transform: scale(1.4);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    img {
+      width: 96px;
+      height: auto;
+      max-height: 110px;
+    }
   }
 
   .auth-title {

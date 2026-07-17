@@ -121,7 +121,7 @@ import { createTTSPlayer } from "../utils/audio";
 import { MsEdgeTTS, OUTPUT_FORMAT } from "../utils/ms_edge_tts";
 
 import { isEmpty } from "lodash-es";
-import { getModelProvider } from "../utils/model";
+import { filterModelsByProvider, getModelProvider } from "../utils/model";
 import { RealtimeChat } from "@/app/components/realtime-chat";
 import clsx from "clsx";
 import { getAvailableClientsCount, isMcpEnabled } from "../mcp/actions";
@@ -504,6 +504,7 @@ export function ChatActions(props: {
   setUserInput: (input: string) => void;
   setShowChatSidePanel: React.Dispatch<React.SetStateAction<boolean>>;
 }) {
+  const { setAttachImages, setUploading } = props;
   const config = useAppConfig();
   const navigate = useNavigate();
   const chatStore = useChatStore();
@@ -530,8 +531,12 @@ export function ChatActions(props: {
   const currentProviderName =
     session.mask.modelConfig?.providerName || ServiceProvider.OpenAI;
   const allModels = useAllModels();
+  const accessStore = useAccessStore();
+  const selectedProvider = accessStore.useCustomConfig
+    ? accessStore.provider
+    : undefined;
   const models = useMemo(() => {
-    const filteredModels = allModels.filter((m) => m.available);
+    const filteredModels = filterModelsByProvider(allModels, selectedProvider);
     const defaultModel = filteredModels.find((m) => m.isDefault);
 
     if (defaultModel) {
@@ -543,7 +548,7 @@ export function ChatActions(props: {
     } else {
       return filteredModels;
     }
-  }, [allModels]);
+  }, [allModels, selectedProvider]);
   const currentModelName = useMemo(() => {
     const model = models.find(
       (m) =>
@@ -573,13 +578,17 @@ export function ChatActions(props: {
     const show = isVisionModel(currentModel);
     setShowUploadImage(show);
     if (!show) {
-      props.setAttachImages([]);
-      props.setUploading(false);
+      setAttachImages([]);
+      setUploading(false);
     }
 
     // if current model is not available
     // switch to first available model
-    const isUnavailableModel = !models.some((m) => m.name === currentModel);
+    const isUnavailableModel = !models.some(
+      (m) =>
+        m.name === currentModel &&
+        m.provider?.providerName === currentProviderName,
+    );
     if (isUnavailableModel && models.length > 0) {
       // show next model to default model if exist
       let nextModel = models.find((model) => model.isDefault) || models[0];
@@ -594,7 +603,15 @@ export function ChatActions(props: {
           : nextModel.name,
       );
     }
-  }, [chatStore, currentModel, models, session]);
+  }, [
+    chatStore,
+    currentModel,
+    currentProviderName,
+    models,
+    setAttachImages,
+    setUploading,
+    session,
+  ]);
 
   return (
     <div className={styles["chat-input-actions"]}>

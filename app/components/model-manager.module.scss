@@ -1,0 +1,155 @@
+.meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 3px;
+}
+
+.providerBadge {
+  display: inline-flex;
+  align-items: center;
+  height: 22px;
+  padding: 0 8px;
+  border: 1px solid rgba(29, 147, 171, 0.45);
+  border-radius: 999px;
+  background: rgba(29, 147, 171, 0.08);
+  color: var(--primary);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.fetchButton {
+  min-height: 36px;
+  flex-shrink: 0;
+}
+
+.input,
+.editInput {
+  width: min(360px, 38vw);
+  max-width: none !important;
+  min-height: 38px !important;
+  text-align: left !important;
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+
+  &:hover {
+    border-color: rgba(29, 147, 171, 0.65);
+  }
+
+  &:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 2px rgba(29, 147, 171, 0.14);
+  }
+}
+
+.addActions,
+.rowActions,
+.editActions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.addActions {
+  width: min(470px, 48vw);
+
+  .input {
+    width: auto;
+    min-width: 0;
+    flex: 1;
+  }
+}
+
+.addButton {
+  min-height: 38px;
+  flex-shrink: 0;
+  padding: 0 13px !important;
+}
+
+.modelItem {
+  min-height: 42px;
+}
+
+.rowActions {
+  flex-shrink: 0;
+}
+
+.actionButton,
+.saveButton,
+.deleteButton {
+  width: 36px;
+  min-width: 36px;
+  height: 36px;
+  padding: 0 !important;
+}
+
+.actionButton {
+  background: transparent !important;
+}
+
+.deleteButton {
+  background: transparent !important;
+  color: rgba(239, 68, 68, 0.85) !important;
+
+  &:hover {
+    background: rgba(239, 68, 68, 0.08) !important;
+  }
+
+  path {
+    fill: rgba(239, 68, 68, 0.85) !important;
+  }
+}
+
+.editActions {
+  width: min(540px, 55vw);
+
+  .editInput {
+    width: auto;
+    min-width: 0;
+    flex: 1;
+  }
+}
+
+@media only screen and (max-width: 600px) {
+  .meta {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .fetchButton {
+    padding: 10px !important;
+  }
+
+  .input {
+    width: 44vw;
+  }
+
+  .addActions {
+    width: 44vw;
+    align-items: stretch;
+    flex-direction: column;
+
+    .input,
+    .addButton {
+      width: 100%;
+    }
+  }
+
+  .modelItem {
+    gap: 8px;
+  }
+
+  .editActions {
+    width: 48vw;
+    display: grid;
+    grid-template-columns: 1fr auto auto;
+
+    .editInput {
+      width: 100%;
+      grid-column: 1 / -1;
+    }
+  }
+}

@@ -519,8 +519,30 @@ const en: LocaleType = {
         },
       },
       CustomModel: {
-        Title: "Custom Models",
-        SubTitle: "Custom model options, seperated by comma",
+        Title: "Model List (name, alias)",
+        SubTitle:
+          "Add models for the current provider or fetch them from the upstream /models endpoint",
+        Name: "Model name",
+        Alias: "Model alias",
+        NamePlaceholder: "Model name, e.g. claude-3-5-sonnet-20241022",
+        AliasPlaceholder: "Model alias (optional)",
+        AliasOptional: "Alias (optional)",
+        NameHelp: "The model ID sent to the upstream API",
+        AliasHelp: "Only used for display; leave blank to show the model name",
+        Edit: "Edit model",
+        Save: "Save changes",
+        Cancel: "Cancel editing",
+        Add: "Add Model",
+        Remove: "Remove model",
+        Fetch: "Fetch from /models",
+        Fetching: "Fetching",
+        Empty: "No manually added models for this provider",
+        EmptyResponse: "The upstream returned no models",
+        Invalid: "Enter a valid model name without commas or equals signs",
+        ModelCount: (count: number) => `${count} configured model(s)`,
+        FetchSuccess: (count: number) =>
+          `Fetched ${count} model(s) from upstream`,
+        FetchFailed: (reason: string) => `Failed to fetch models: ${reason}`,
       },
       Google: {
         ApiKey: {

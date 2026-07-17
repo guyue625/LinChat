@@ -147,6 +147,14 @@
 
 .sidebar-logo {
   display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  img {
+    width: 44px;
+    height: auto;
+    max-height: 48px;
+  }
 }
 
 .sidebar-title-container {
