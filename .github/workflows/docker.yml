@@ -2,51 +2,65 @@ name: Publish Docker image
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - main
+      - dev
+    paths-ignore:
+      - "**.md"
+      - "docs/**"
   release:
     types: [published]
 
+env:
+  REGISTRY: ghcr.io
+  # 镜像名：ghcr.io/<仓库所有者小写>/nextchat
+  IMAGE_NAME: nextchat
+
 jobs:
   push_to_registry:
-    name: Push Docker image to Docker Hub
+    name: Build and push Docker image to GHCR
     runs-on: ubuntu-latest
-    steps:
-      -
-        name: Check out the repo
-        uses: actions/checkout@v3
-      -
-        name: Log in to Docker Hub
-        uses: docker/login-action@v2
-        with:
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
-      
-      - 
-        name: Extract metadata (tags, labels) for Docker
-        id: meta
-        uses: docker/metadata-action@v4
-        with:
-          images: yidadaa/chatgpt-next-web
-          tags: |
-            type=raw,value=latest
-            type=ref,event=tag
-      
-      - 
-        name: Set up QEMU
-        uses: docker/setup-qemu-action@v2
+    permissions:
+      contents: read
+      packages: write
 
-      - 
-        name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
-      
-      - 
-        name: Build and push Docker image
-        uses: docker/build-push-action@v4
+    steps:
+      - name: Check out the repo
+        uses: actions/checkout@v4
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata (tags, labels)
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=ref,event=branch
+            type=ref,event=tag
+            type=sha,prefix=sha-
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v6
         with:
           context: .
-          platforms: linux/amd64,linux/arm64
+          # 服务器若是常见 x86，可只保留 amd64 以加快构建；需要 ARM 再加 linux/arm64
+          platforms: linux/amd64
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
-            

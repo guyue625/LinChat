@@ -323,7 +323,9 @@ BASE_URL=https://b.nextweb.fun/api/proxy
 
 > Docker 版本需要在 20 及其以上，否则会提示找不到镜像。
 
-> ⚠️ 注意：docker 版本在大多数时间都会落后最新的版本 1 到 2 天，所以部署后会持续出现“存在更新”的提示，属于正常现象。
+> ⚠️ 注意：官方预构建镜像在大多数时间都会落后最新的版本 1 到 2 天，所以部署后会持续出现“存在更新”的提示，属于正常现象。
+
+#### 方式一：直接拉取官方镜像
 
 ```shell
 docker pull yidadaa/chatgpt-next-web
@@ -362,6 +364,205 @@ docker run -d -p 3000:3000 \
 ```
 
 如果你需要指定其他环境变量，请自行在上述命令中增加 `-e 环境变量=环境变量值` 来指定。
+
+#### 方式二：GitHub Actions 自动构建镜像（推荐，本机无 Docker）
+
+适用场景：本机没有 Docker，也不想在服务器上慢慢 `docker build`。  
+由 GitHub 云端编译，推送到 **GHCR**（GitHub 自带镜像仓库，**无需注册 Docker Hub**），服务器只负责 `docker pull` + `docker run`。
+
+**流程概览**
+
+```text
+本机改代码 → git push → GitHub Actions 自动 build → 推到 ghcr.io
+服务器：docker pull → docker run
+```
+
+**1. 推送代码并触发构建**
+
+工作流文件：`.github/workflows/docker.yml`。
+
+触发方式：
+
+- 推送到 `main` / `dev` 分支（自动）
+- 在 GitHub 网页：`Actions` → `Publish Docker image` → `Run workflow`（手动）
+- 发布 Release（自动）
+
+**2. 等待 Actions 成功**
+
+打开：`https://github.com/guyue625/NextChat/actions`  
+看到绿色勾即表示镜像已推送。
+
+镜像地址（所有者名会转为小写）：
+
+```text
+ghcr.io/guyue625/nextchat:latest   # main 分支
+ghcr.io/guyue625/nextchat:dev      # dev 分支
+```
+
+**3. 首次：把 GHCR 包设为 Public（否则服务器 pull 要登录）**
+
+1. 打开 GitHub 仓库 → 右侧 **Packages**（或头像 → Settings → Packages）
+2. 进入 `nextchat` 这个 package
+3. Package settings → Change visibility → **Public**
+
+若保持 Private，服务器需先登录：
+
+```shell
+# 在 GitHub → Settings → Developer settings → Personal access tokens 创建 PAT
+# 勾选 read:packages
+echo YOUR_GITHUB_PAT | docker login ghcr.io -u guyue625 --password-stdin
+```
+
+**4. 服务器拉取并运行**
+
+```shell
+docker pull ghcr.io/guyue625/nextchat:latest
+
+docker run -d --name nextchat -p 3000:3000 \
+  -e OPENAI_API_KEY=sk-xxxx \
+  -e CODE=页面访问密码 \
+  ghcr.io/guyue625/nextchat:latest
+```
+
+**5. 之后更新**
+
+本机：
+
+```shell
+git add .
+git commit -m "your message"
+git push
+```
+
+等 Actions 跑完后，服务器：
+
+```shell
+docker pull ghcr.io/guyue625/nextchat:latest
+docker stop nextchat && docker rm nextchat
+docker run -d --name nextchat -p 3000:3000 \
+  -e OPENAI_API_KEY=sk-xxxx \
+  -e CODE=页面访问密码 \
+  ghcr.io/guyue625/nextchat:latest
+```
+
+> 说明：构建在 GitHub 的机器上完成，一般比小带宽服务器本地 build 更稳、更快；服务器不再执行 `yarn install` / `yarn build`。
+
+#### 方式三：基于本仓库源码在服务器构建（本机无 Docker 时可选）
+
+适用场景：本机没有 Docker，或需要部署自己改过的代码。流程是 **本机导出源码 → 上传服务器 → 服务器 `docker build`**。
+
+**1. 本机打包源码**
+
+先确保改动已提交到 git（`git archive` 只会打进已提交的文件）：
+
+```shell
+git add .
+git commit -m "your message"
+yarn release:src
+```
+
+会在项目根目录生成 `nextchat-src.tar.gz`。
+
+**2. 上传到服务器**
+
+```shell
+scp nextchat-src.tar.gz root@你的服务器IP:/root/
+```
+
+**3. 服务器解压**
+
+> 重要：`git archive` 打出来的包**没有**顶层目录，文件会直接解压到当前目录。请先进入空目录再解压，并确认目录里有 `Dockerfile`。
+
+```shell
+mkdir -p /root/nextchat
+cd /root/nextchat
+tar -xzf /root/nextchat-src.tar.gz
+
+# 确认 Dockerfile 存在（必须看到这个文件）
+ls -la Dockerfile package.json
+```
+
+若 `ls` 提示没有 `Dockerfile`，说明当前目录不对或解压路径错了，**不要**继续 `docker build`。
+
+**4. 服务器构建镜像**
+
+```shell
+cd /root/nextchat
+docker build -t guyue625/nextchat:local .
+```
+
+首次构建可能需要数分钟（拉基础镜像、安装依赖、执行 `yarn build`）。
+
+**5. 运行容器**
+
+```shell
+docker run -d --name nextchat -p 3000:3000 \
+  -e OPENAI_API_KEY=sk-xxxx \
+  -e CODE=页面访问密码 \
+  guyue625/nextchat:local
+```
+
+浏览器访问：`http://服务器IP:3000`。
+
+**6. 更新部署**
+
+本机改代码并提交后重新打包上传，服务器上：
+
+```shell
+cd /root/nextchat
+rm -rf ./* ./.[!.]* 2>/dev/null || true
+tar -xzf /root/nextchat-src.tar.gz
+docker build -t guyue625/nextchat:local .
+docker stop nextchat && docker rm nextchat
+docker run -d --name nextchat -p 3000:3000 \
+  -e OPENAI_API_KEY=sk-xxxx \
+  -e CODE=页面访问密码 \
+  guyue625/nextchat:local
+```
+
+**常见问题：`open Dockerfile: no such file or directory`**
+
+表示 Docker 在**当前目录**找不到 `Dockerfile`（日志里 `transferring dockerfile: 2B` 也是同一类问题）。按下面排查：
+
+```shell
+# 你在哪个目录？
+pwd
+
+# 当前目录有没有 Dockerfile？
+ls -la
+
+# 若没有，到解压目录再构建
+cd /root/nextchat
+ls -la Dockerfile
+docker build -t guyue625/nextchat:local .
+```
+
+#### 方式四：服务器直接 git 拉取后构建
+
+服务器能访问 GitHub 时，可以跳过 scp 源码包：
+
+```shell
+git clone https://github.com/guyue625/NextChat.git
+cd NextChat
+docker build -t guyue625/nextchat:local .
+docker run -d --name nextchat -p 3000:3000 \
+  -e OPENAI_API_KEY=sk-xxxx \
+  -e CODE=页面访问密码 \
+  guyue625/nextchat:local
+```
+
+之后更新：
+
+```shell
+cd NextChat
+git pull
+docker build -t guyue625/nextchat:local .
+docker stop nextchat && docker rm nextchat
+docker run -d --name nextchat -p 3000:3000 \
+  -e OPENAI_API_KEY=sk-xxxx \
+  -e CODE=页面访问密码 \
+  guyue625/nextchat:local
+```
 
 ### 本地部署
 
