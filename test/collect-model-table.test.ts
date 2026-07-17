@@ -1,4 +1,8 @@
-import { collectModelTable, collectModels } from "../app/utils/model";
+import {
+  collectModelTable,
+  collectModels,
+  filterModelsByProvider,
+} from "../app/utils/model";
 import { DEFAULT_MODELS } from "../app/constant";
 
 describe("collectModelTable", () => {
@@ -47,5 +51,15 @@ describe("collectModels", () => {
   test("contains the built-in gpt-4 model", () => {
     const models = collectModels(DEFAULT_MODELS, "");
     expect(models.some((m) => m.name === "gpt-4")).toBe(true);
+  });
+
+  test("filters merged custom models by the selected provider", () => {
+    const models = collectModels(
+      DEFAULT_MODELS,
+      "-all,+grok-4.5@Anthropic,+gpt-5.5",
+    );
+    const anthropicModels = filterModelsByProvider(models, "Anthropic");
+
+    expect(anthropicModels.map((model) => model.name)).toEqual(["grok-4.5"]);
   });
 });

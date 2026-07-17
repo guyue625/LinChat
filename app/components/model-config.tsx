@@ -1,5 +1,9 @@
 import { ServiceProvider } from "@/app/constant";
-import { ModalConfigValidator, ModelConfig } from "../store";
+import {
+  ModalConfigValidator,
+  ModelConfig,
+  useAccessStore,
+} from "../store";
 
 import Locale from "../locales";
 import { InputRange } from "./input-range";
@@ -7,19 +11,66 @@ import { ListItem, Select } from "./ui-lib";
 import { useAllModels } from "../utils/hooks";
 import { groupBy } from "lodash-es";
 import styles from "./model-config.module.scss";
-import { getModelProvider } from "../utils/model";
+import { filterModelsByProvider, getModelProvider } from "../utils/model";
+import { useEffect, useMemo } from "react";
 
 export function ModelConfigList(props: {
   modelConfig: ModelConfig;
   updateConfig: (updater: (config: ModelConfig) => void) => void;
 }) {
   const allModels = useAllModels();
-  const groupModels = groupBy(
-    allModels.filter((v) => v.available),
-    "provider.providerName",
+  const accessStore = useAccessStore();
+  const selectedProvider = accessStore.useCustomConfig
+    ? accessStore.provider
+    : undefined;
+  const selectableModels = useMemo(
+    () => filterModelsByProvider(allModels, selectedProvider),
+    [allModels, selectedProvider],
   );
+  const groupModels = groupBy(selectableModels, "provider.providerName");
   const value = `${props.modelConfig.model}@${props.modelConfig?.providerName}`;
   const compressModelValue = `${props.modelConfig.compressModel}@${props.modelConfig?.compressProviderName}`;
+
+  useEffect(() => {
+    const nextModel = selectableModels[0];
+    if (!nextModel) return;
+
+    const hasCurrentModel = selectableModels.some(
+      (model) =>
+        model.name === props.modelConfig.model &&
+        model.provider?.providerName === props.modelConfig.providerName,
+    );
+    const hasCurrentCompressModel =
+      !props.modelConfig.compressModel ||
+      selectableModels.some(
+        (model) =>
+          model.name === props.modelConfig.compressModel &&
+          model.provider?.providerName ===
+            props.modelConfig.compressProviderName,
+      );
+
+    if (hasCurrentModel && hasCurrentCompressModel) return;
+
+    props.updateConfig((config) => {
+      if (!hasCurrentModel) {
+        config.model = ModalConfigValidator.model(nextModel.name);
+        config.providerName = nextModel.provider
+          ?.providerName as ServiceProvider;
+      }
+      if (!hasCurrentCompressModel) {
+        config.compressModel = ModalConfigValidator.model(nextModel.name);
+        config.compressProviderName = nextModel.provider
+          ?.providerName as ServiceProvider;
+      }
+    });
+  }, [
+    props.modelConfig.compressModel,
+    props.modelConfig.compressProviderName,
+    props.modelConfig.model,
+    props.modelConfig.providerName,
+    props.updateConfig,
+    selectableModels,
+  ]);
 
   return (
     <>
@@ -259,13 +310,11 @@ export function ModelConfigList(props: {
             });
           }}
         >
-          {allModels
-            .filter((v) => v.available)
-            .map((v, i) => (
-              <option value={`${v.name}@${v.provider?.providerName}`} key={i}>
-                {v.displayName}({v.provider?.providerName})
-              </option>
-            ))}
+          {selectableModels.map((v, i) => (
+            <option value={`${v.name}@${v.provider?.providerName}`} key={i}>
+              {v.displayName}({v.provider?.providerName})
+            </option>
+          ))}
         </Select>
       </ListItem>
     </>

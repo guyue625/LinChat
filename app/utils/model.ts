@@ -193,6 +193,24 @@ export function collectModelsWithDefaultModel(
   return allModels;
 }
 
+/**
+ * Keep only available models and, when specified, models belonging to the
+ * selected service provider. The provider name is intentionally matched
+ * exactly because it is also used to choose the request protocol.
+ */
+export function filterModelsByProvider<
+  T extends {
+    available: boolean;
+    provider?: { providerName: string };
+  },
+>(models: readonly T[], providerName?: string): T[] {
+  return models.filter(
+    (model) =>
+      model.available &&
+      (!providerName || model.provider?.providerName === providerName),
+  );
+}
+
 export function isModelAvailableInServer(
   customModels: string,
   modelName: string,
