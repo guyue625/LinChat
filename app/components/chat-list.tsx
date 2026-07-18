@@ -1,4 +1,6 @@
 import DeleteIcon from "../icons/delete.svg";
+import RenameIcon from "../icons/rename.svg";
+import ChatIcon from "../icons/chat.svg";
 
 import styles from "./home.module.scss";
 import {
@@ -15,14 +17,14 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { Path } from "../constant";
 import { MaskAvatar } from "./mask";
 import { Mask } from "../store/mask";
-import { useRef, useEffect } from "react";
-import { showConfirm } from "./ui-lib";
-import { useMobileScreen } from "../utils";
+import { useRef, useEffect, useState } from "react";
+import { createPortal } from "react-dom";
+import { showConfirm, showPrompt } from "./ui-lib";
 import clsx from "clsx";
 
 export function ChatItem(props: {
   onClick?: () => void;
-  onDelete?: () => void;
+  onOpenMenu?: (position: { x: number; y: number }) => void;
   title: string;
   count: number;
   selected: boolean;
@@ -42,6 +44,14 @@ export function ChatItem(props: {
   }, [props.selected]);
 
   const { pathname: currentPath } = useLocation();
+
+  const openMenuFromTrigger = (event: React.MouseEvent<HTMLButtonElement>) => {
+    event.preventDefault();
+    event.stopPropagation();
+    const rect = event.currentTarget.getBoundingClientRect();
+    props.onOpenMenu?.({ x: rect.right - 8, y: rect.bottom + 4 });
+  };
+
   return (
     <Draggable
       draggableId={`${props.id}`}
@@ -56,6 +66,11 @@ export function ChatItem(props: {
               (currentPath === Path.Chat || currentPath === Path.Home),
           })}
           onClick={props.onClick}
+          onContextMenu={(event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            props.onOpenMenu?.({ x: event.clientX, y: event.clientY });
+          }}
           ref={(ele) => {
             draggableRef.current = ele;
             provided.innerRef(ele);
@@ -80,21 +95,22 @@ export function ChatItem(props: {
             </div>
           ) : (
             <div className={styles["chat-item-compact"]}>
-              <span className={styles["chat-item-hash"]}>#</span>
+              <span className={styles["chat-item-icon"]}>
+                <ChatIcon />
+              </span>
               <div className={styles["chat-item-title"]}>{props.title}</div>
             </div>
           )}
 
-          <div
-            className={styles["chat-item-delete"]}
-            onClickCapture={(e) => {
-              props.onDelete?.();
-              e.preventDefault();
-              e.stopPropagation();
-            }}
+          <button
+            type="button"
+            className={styles["chat-item-menu-trigger"]}
+            aria-label={Locale.ChatItem.MoreActions}
+            title={Locale.ChatItem.MoreActions}
+            onClick={openMenuFromTrigger}
           >
-            <DeleteIcon />
-          </div>
+            <span aria-hidden="true">•••</span>
+          </button>
         </div>
       )}
     </Draggable>
@@ -112,7 +128,11 @@ export function ChatList(props: { narrow?: boolean; maskId?: string }) {
   );
   const chatStore = useChatStore();
   const navigate = useNavigate();
-  const isMobileScreen = useMobileScreen();
+  const [menu, setMenu] = useState<{
+    storeIndex: number;
+    x: number;
+    y: number;
+  }>();
 
   const visibleSessions = sessions
     .map((session, storeIndex) => ({ session, storeIndex }))
@@ -134,6 +154,58 @@ export function ChatList(props: { narrow?: boolean; maskId?: string }) {
     }
 
     moveSession(source.index, destination.index);
+  };
+
+  useEffect(() => {
+    if (!menu) return;
+
+    const closeMenu = () => setMenu(undefined);
+    const closeMenuOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") closeMenu();
+    };
+
+    window.addEventListener("pointerdown", closeMenu);
+    window.addEventListener("blur", closeMenu);
+    window.addEventListener("resize", closeMenu);
+    window.addEventListener("keydown", closeMenuOnEscape);
+
+    return () => {
+      window.removeEventListener("pointerdown", closeMenu);
+      window.removeEventListener("blur", closeMenu);
+      window.removeEventListener("resize", closeMenu);
+      window.removeEventListener("keydown", closeMenuOnEscape);
+    };
+  }, [menu]);
+
+  const selectedMenuSession = menu ? sessions.at(menu.storeIndex) : undefined;
+  const menuWidth = 168;
+  const menuHeight = 92;
+  const menuPosition = menu
+    ? {
+        left: Math.max(8, Math.min(menu.x, window.innerWidth - menuWidth - 8)),
+        top: Math.max(8, Math.min(menu.y, window.innerHeight - menuHeight - 8)),
+      }
+    : undefined;
+
+  const renameSession = async () => {
+    if (!menu || !selectedMenuSession) return;
+    const storeIndex = menu.storeIndex;
+    const currentTitle = selectedMenuSession.topic;
+    setMenu(undefined);
+    const nextTitle = await showPrompt(Locale.Chat.Rename, currentTitle, 1);
+    const normalizedTitle = nextTitle?.trim();
+    if (normalizedTitle) {
+      chatStore.renameSession(storeIndex, normalizedTitle);
+    }
+  };
+
+  const deleteSession = async () => {
+    if (!menu) return;
+    const storeIndex = menu.storeIndex;
+    setMenu(undefined);
+    if (await showConfirm(Locale.Home.DeleteChat)) {
+      chatStore.deleteSession(storeIndex);
+    }
   };
 
   return (
@@ -159,13 +231,8 @@ export function ChatList(props: { narrow?: boolean; maskId?: string }) {
                     selectSession(storeIndex);
                     navigate(Path.Chat);
                   }}
-                  onDelete={async () => {
-                    if (
-                      (!props.narrow && !isMobileScreen) ||
-                      (await showConfirm(Locale.Home.DeleteChat))
-                    ) {
-                      chatStore.deleteSession(storeIndex);
-                    }
+                  onOpenMenu={({ x, y }) => {
+                    setMenu({ storeIndex, x, y });
                   }}
                   narrow={props.narrow}
                   mask={item.mask}
@@ -176,6 +243,33 @@ export function ChatList(props: { narrow?: boolean; maskId?: string }) {
           </div>
         )}
       </Droppable>
+      {menu &&
+        selectedMenuSession &&
+        menuPosition &&
+        createPortal(
+          <div
+            className={styles["chat-item-context-menu"]}
+            role="menu"
+            aria-label={Locale.ChatItem.MoreActions}
+            style={menuPosition}
+            onPointerDown={(event) => event.stopPropagation()}
+          >
+            <button type="button" role="menuitem" onClick={renameSession}>
+              <RenameIcon />
+              <span>{Locale.Chat.Rename}</span>
+            </button>
+            <button
+              type="button"
+              role="menuitem"
+              className={styles["chat-item-context-menu-danger"]}
+              onClick={deleteSession}
+            >
+              <DeleteIcon />
+              <span>{Locale.Chat.Actions.Delete}</span>
+            </button>
+          </div>,
+          document.body,
+        )}
     </DragDropContext>
   );
 }

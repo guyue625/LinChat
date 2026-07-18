@@ -84,6 +84,8 @@ export interface ChatStat {
 export interface ChatSession {
   id: string;
   topic: string;
+  /** Prevent automatic title generation from overwriting a user rename. */
+  topicManuallyEdited?: boolean;
 
   memoryPrompt: string;
   messages: ChatMessage[];
@@ -248,6 +250,7 @@ export const useChatStore = createPersistStore(
         const newSession = createEmptySession();
 
         newSession.topic = currentSession.topic;
+        newSession.topicManuallyEdited = currentSession.topicManuallyEdited;
         // 深拷贝消息
         newSession.messages = currentSession.messages.map((msg) => ({
           ...msg,
@@ -318,7 +321,9 @@ export const useChatStore = createPersistStore(
               ...mask.modelConfig,
             },
           };
-          session.topic = mask.name;
+          // Like Lobe, assistant topics also start neutral and are named from
+          // the first meaningful exchange instead of repeating the assistant name.
+          session.topic = DEFAULT_TOPIC;
         }
 
         set((state) => ({
@@ -332,6 +337,18 @@ export const useChatStore = createPersistStore(
         const limit = (x: number) => (x + n) % n;
         const i = get().currentSessionIndex;
         get().selectSession(limit(i + delta));
+      },
+
+      renameSession(index: number, topic: string) {
+        const normalizedTopic = topic.trim();
+        const session = get().sessions.at(index);
+        if (!session || !normalizedTopic) return;
+
+        get().updateTargetSession(session, (session) => {
+          session.topic = normalizedTopic;
+          session.topicManuallyEdited = true;
+          session.lastUpdate = Date.now();
+        });
       },
 
       deleteSession(index: number) {
@@ -682,14 +699,25 @@ export const useChatStore = createPersistStore(
         // remove error messages if any
         const messages = session.messages;
 
-        // should summarize topic after chating more than 50 words
-        const SUMMARIZE_MIN_LEN = 50;
+        // Generate a concise title after the first meaningful user exchange.
+        // Legacy assistant topics used the mask name as their placeholder, so
+        // treat that value as untitled unless the user has explicitly renamed it.
+        const firstMeaningfulUserMessage = messages.find(
+          (message) =>
+            message.role === "user" &&
+            getMessageTextContent(message).trim().length >= 4,
+        );
+        const usesAutomaticPlaceholder =
+          session.topic === DEFAULT_TOPIC ||
+          (!session.topicManuallyEdited && session.topic === session.mask.name);
         if (
           (config.enableAutoGenerateTitle &&
-            session.topic === DEFAULT_TOPIC &&
-            countMessages(messages) >= SUMMARIZE_MIN_LEN) ||
+            !session.topicManuallyEdited &&
+            usesAutomaticPlaceholder &&
+            Boolean(firstMeaningfulUserMessage)) ||
           refreshTitle
         ) {
+          const topicAtRequest = session.topic;
           const startIndex = Math.max(
             0,
             messages.length - modelConfig.historyMessageCount,
@@ -714,12 +742,19 @@ export const useChatStore = createPersistStore(
             },
             onFinish(message, responseRes) {
               if (responseRes?.status === 200) {
-                get().updateTargetSession(
-                  session,
-                  (session) =>
-                    (session.topic =
-                      message.length > 0 ? trimTopic(message) : DEFAULT_TOPIC),
-                );
+                get().updateTargetSession(session, (session) => {
+                  // A rename made while the title request was in flight wins.
+                  if (
+                    session.topicManuallyEdited &&
+                    session.topic !== topicAtRequest
+                  ) {
+                    return;
+                  }
+
+                  session.topic =
+                    message.length > 0 ? trimTopic(message) : DEFAULT_TOPIC;
+                  session.topicManuallyEdited = false;
+                });
               }
             },
           });

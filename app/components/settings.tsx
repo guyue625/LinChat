@@ -1,4 +1,5 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, type ReactNode } from "react";
+import clsx from "clsx";
 
 import styles from "./settings.module.scss";
 
@@ -14,6 +15,12 @@ import EyeIcon from "../icons/eye.svg";
 import DownloadIcon from "../icons/download.svg";
 import UploadIcon from "../icons/upload.svg";
 import ConfigIcon from "../icons/config.svg";
+import SettingsIcon from "../icons/settings.svg";
+import BrainIcon from "../icons/brain.svg";
+import PaletteIcon from "../icons/palette.svg";
+import VoiceIcon from "../icons/voice.svg";
+import RobotIcon from "../icons/robot.svg";
+import HistoryIcon from "../icons/history.svg";
 import ConfirmIcon from "../icons/confirm.svg";
 
 import ConnectionIcon from "../icons/connection.svg";
@@ -33,6 +40,7 @@ import {
 } from "./ui-lib";
 import { ModelConfigList } from "./model-config";
 import { ModelManager } from "./model-manager";
+import { ProviderConfig } from "./provider-config";
 
 import { IconButton } from "./button";
 import {
@@ -53,16 +61,6 @@ import Locale, {
 import { copyToClipboard, clientUpdate, semverCompare } from "../utils";
 import Link from "next/link";
 import {
-  Anthropic,
-  Azure,
-  Baidu,
-  Tencent,
-  ByteDance,
-  Alibaba,
-  Moonshot,
-  XAI,
-  Google,
-  GoogleSafetySettingsThreshold,
   OPENAI_BASE_URL,
   Path,
   RELEASE_URL,
@@ -70,18 +68,12 @@ import {
   ServiceProvider,
   SlotID,
   UPDATE_URL,
-  Stability,
-  Iflytek,
   SAAS_CHAT_URL,
-  ChatGLM,
-  DeepSeek,
-  SiliconFlow,
-  AI302,
 } from "../constant";
 import { Prompt, SearchService, usePromptStore } from "../store/prompt";
 import { ErrorBoundary } from "./error";
 import { InputRange } from "./input-range";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Avatar, AvatarPicker } from "./emoji";
 import { getClientConfig } from "../config/client";
 import { useSyncStore } from "../store/sync";
@@ -252,7 +244,7 @@ function DangerItems() {
   const appConfig = useAppConfig();
 
   return (
-    <List>
+    <List className={styles["settings-list"]}>
       <ListItem
         title={Locale.Settings.Danger.Reset.Title}
         subTitle={Locale.Settings.Danger.Reset.SubTitle}
@@ -347,7 +339,7 @@ function SyncConfigModal(props: { onClose?: () => void }) {
           />,
         ]}
       >
-        <List>
+        <List className={styles["settings-list"]}>
           <ListItem
             title={Locale.Settings.Sync.Config.SyncType.Title}
             subTitle={Locale.Settings.Sync.Config.SyncType.SubTitle}
@@ -404,7 +396,7 @@ function SyncConfigModal(props: { onClose?: () => void }) {
 
         {syncStore.provider === ProviderType.WebDAV && (
           <>
-            <List>
+            <List className={styles["settings-list"]}>
               <ListItem title={Locale.Settings.Sync.Config.WebDav.Endpoint}>
                 <Input
                   as="input"
@@ -448,7 +440,7 @@ function SyncConfigModal(props: { onClose?: () => void }) {
         )}
 
         {syncStore.provider === ProviderType.UpStash && (
-          <List>
+          <List className={styles["settings-list"]}>
             <ListItem title={Locale.Settings.Sync.Config.UpStash.Endpoint}>
               <Input
                 as="input"
@@ -519,7 +511,7 @@ function SyncItems() {
 
   return (
     <>
-      <List>
+      <List className={styles["settings-list"]}>
         <ListItem
           title={Locale.Settings.Sync.CloudState}
           subTitle={
@@ -589,8 +581,68 @@ function SyncItems() {
   );
 }
 
+export type SettingsCategory =
+  | "general"
+  | "model"
+  | "appearance"
+  | "voice"
+  | "assistants"
+  | "data";
+
+const SETTINGS_CATEGORY_IDS: SettingsCategory[] = [
+  "general",
+  "model",
+  "appearance",
+  "voice",
+  "assistants",
+  "data",
+];
+
+function isSettingsCategory(value: string | null): value is SettingsCategory {
+  return SETTINGS_CATEGORY_IDS.includes(value as SettingsCategory);
+}
+
 export function Settings() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const requestedCategory = searchParams.get("tab");
+  const activeCategory: SettingsCategory = isSettingsCategory(requestedCategory)
+    ? requestedCategory
+    : "general";
+  const categories = [
+    {
+      id: "general",
+      icon: <SettingsIcon />,
+      ...Locale.Settings.Category.General,
+    },
+    { id: "model", icon: <BrainIcon />, ...Locale.Settings.Category.Model },
+    {
+      id: "appearance",
+      icon: <PaletteIcon />,
+      ...Locale.Settings.Category.Appearance,
+    },
+    { id: "voice", icon: <VoiceIcon />, ...Locale.Settings.Category.Voice },
+    {
+      id: "assistants",
+      icon: <RobotIcon />,
+      ...Locale.Settings.Category.Assistants,
+    },
+    { id: "data", icon: <HistoryIcon />, ...Locale.Settings.Category.Data },
+  ] satisfies Array<{
+    id: SettingsCategory;
+    icon: ReactNode;
+    Title: string;
+    SubTitle: string;
+  }>;
+  const activeCategoryMeta =
+    categories.find((category) => category.id === activeCategory) ??
+    categories[0];
+
+  const selectCategory = (category: SettingsCategory) => {
+    const nextParams = new URLSearchParams(searchParams);
+    nextParams.set("tab", category);
+    setSearchParams(nextParams);
+  };
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const config = useAppConfig();
   const updateConfig = config.update;
@@ -746,1229 +798,590 @@ export function Settings() {
       </ListItem>
     );
 
-  const openAIConfigComponent = accessStore.provider ===
-    ServiceProvider.OpenAI && (
-    <>
-      <ListItem
-        title={Locale.Settings.Access.OpenAI.Endpoint.Title}
-        subTitle={Locale.Settings.Access.OpenAI.Endpoint.SubTitle}
-      >
-        <Input
-          as="input"
-          aria-label={Locale.Settings.Access.OpenAI.Endpoint.Title}
-          type="text"
-          value={accessStore.openaiUrl}
-          placeholder={OPENAI_BASE_URL}
-          onChange={(e) =>
-            accessStore.update(
-              (access) => (access.openaiUrl = e.currentTarget.value),
-            )
-          }
-        />
-      </ListItem>
-      <ListItem
-        title={Locale.Settings.Access.OpenAI.ApiKey.Title}
-        subTitle={Locale.Settings.Access.OpenAI.ApiKey.SubTitle}
-      >
-        <PasswordInput
-          aria={Locale.Settings.ShowPassword}
-          aria-label={Locale.Settings.Access.OpenAI.ApiKey.Title}
-          value={accessStore.openaiApiKey}
-          type="text"
-          placeholder={Locale.Settings.Access.OpenAI.ApiKey.Placeholder}
-          onChange={(e) => {
-            accessStore.update(
-              (access) => (access.openaiApiKey = e.currentTarget.value),
-            );
-          }}
-        />
-      </ListItem>
-    </>
-  );
-
-  const azureConfigComponent = accessStore.provider ===
-    ServiceProvider.Azure && (
-    <>
-      <ListItem
-        title={Locale.Settings.Access.Azure.Endpoint.Title}
-        subTitle={
-          Locale.Settings.Access.Azure.Endpoint.SubTitle + Azure.ExampleEndpoint
-        }
-      >
-        <Input
-          as="input"
-          aria-label={Locale.Settings.Access.Azure.Endpoint.Title}
-          type="text"
-          value={accessStore.azureUrl}
-          placeholder={Azure.ExampleEndpoint}
-          onChange={(e) =>
-            accessStore.update(
-              (access) => (access.azureUrl = e.currentTarget.value),
-            )
-          }
-        />
-      </ListItem>
-      <ListItem
-        title={Locale.Settings.Access.Azure.ApiKey.Title}
-        subTitle={Locale.Settings.Access.Azure.ApiKey.SubTitle}
-      >
-        <PasswordInput
-          aria-label={Locale.Settings.Access.Azure.ApiKey.Title}
-          value={accessStore.azureApiKey}
-          type="text"
-          placeholder={Locale.Settings.Access.Azure.ApiKey.Placeholder}
-          onChange={(e) => {
-            accessStore.update(
-              (access) => (access.azureApiKey = e.currentTarget.value),
-            );
-          }}
-        />
-      </ListItem>
-      <ListItem
-        title={Locale.Settings.Access.Azure.ApiVerion.Title}
-        subTitle={Locale.Settings.Access.Azure.ApiVerion.SubTitle}
-      >
-        <Input
-          as="input"
-          aria-label={Locale.Settings.Access.Azure.ApiVerion.Title}
-          type="text"
-          value={accessStore.azureApiVersion}
-          placeholder="2023-08-01-preview"
-          onChange={(e) =>
-            accessStore.update(
-              (access) => (access.azureApiVersion = e.currentTarget.value),
-            )
-          }
-        />
-      </ListItem>
-    </>
-  );
-
-  const googleConfigComponent = accessStore.provider ===
-    ServiceProvider.Google && (
-    <>
-      <ListItem
-        title={Locale.Settings.Access.Google.Endpoint.Title}
-        subTitle={
-          Locale.Settings.Access.Google.Endpoint.SubTitle +
-          Google.ExampleEndpoint
-        }
-      >
-        <Input
-          as="input"
-          aria-label={Locale.Settings.Access.Google.Endpoint.Title}
-          type="text"
-          value={accessStore.googleUrl}
-          placeholder={Google.ExampleEndpoint}
-          onChange={(e) =>
-            accessStore.update(
-              (access) => (access.googleUrl = e.currentTarget.value),
-            )
-          }
-        />
-      </ListItem>
-      <ListItem
-        title={Locale.Settings.Access.Google.ApiKey.Title}
-        subTitle={Locale.Settings.Access.Google.ApiKey.SubTitle}
-      >
-        <PasswordInput
-          aria-label={Locale.Settings.Access.Google.ApiKey.Title}
-          value={accessStore.googleApiKey}
-          type="text"
-          placeholder={Locale.Settings.Access.Google.ApiKey.Placeholder}
-          onChange={(e) => {
-            accessStore.update(
-              (access) => (access.googleApiKey = e.currentTarget.value),
-            );
-          }}
-        />
-      </ListItem>
-      <ListItem
-        title={Locale.Settings.Access.Google.ApiVersion.Title}
-        subTitle={Locale.Settings.Access.Google.ApiVersion.SubTitle}
-      >
-        <Input
-          as="input"
-          aria-label={Locale.Settings.Access.Google.ApiVersion.Title}
-          type="text"
-          value={accessStore.googleApiVersion}
-          placeholder="2023-08-01-preview"
-          onChange={(e) =>
-            accessStore.update(
-              (access) => (access.googleApiVersion = e.currentTarget.value),
-            )
-          }
-        />
-      </ListItem>
-      <ListItem
-        title={Locale.Settings.Access.Google.GoogleSafetySettings.Title}
-        subTitle={Locale.Settings.Access.Google.GoogleSafetySettings.SubTitle}
-      >
-        <Select
-          aria-label={Locale.Settings.Access.Google.GoogleSafetySettings.Title}
-          value={accessStore.googleSafetySettings}
-          onChange={(e) => {
-            accessStore.update(
-              (access) =>
-                (access.googleSafetySettings = e.target
-                  .value as GoogleSafetySettingsThreshold),
-            );
-          }}
-        >
-          {Object.entries(GoogleSafetySettingsThreshold).map(([k, v]) => (
-            <option value={v} key={k}>
-              {k}
-            </option>
-          ))}
-        </Select>
-      </ListItem>
-    </>
-  );
-
-  const anthropicConfigComponent = accessStore.provider ===
-    ServiceProvider.Anthropic && (
-    <>
-      <ListItem
-        title={Locale.Settings.Access.Anthropic.Endpoint.Title}
-        subTitle={
-          Locale.Settings.Access.Anthropic.Endpoint.SubTitle +
-          Anthropic.ExampleEndpoint
-        }
-      >
-        <Input
-          as="input"
-          aria-label={Locale.Settings.Access.Anthropic.Endpoint.Title}
-          type="text"
-          value={accessStore.anthropicUrl}
-          placeholder={Anthropic.ExampleEndpoint}
-          onChange={(e) =>
-            accessStore.update(
-              (access) => (access.anthropicUrl = e.currentTarget.value),
-            )
-          }
-        />
-      </ListItem>
-      <ListItem
-        title={Locale.Settings.Access.Anthropic.ApiKey.Title}
-        subTitle={Locale.Settings.Access.Anthropic.ApiKey.SubTitle}
-      >
-        <PasswordInput
-          aria-label={Locale.Settings.Access.Anthropic.ApiKey.Title}
-          value={accessStore.anthropicApiKey}
-          type="text"
-          placeholder={Locale.Settings.Access.Anthropic.ApiKey.Placeholder}
-          onChange={(e) => {
-            accessStore.update(
-              (access) => (access.anthropicApiKey = e.currentTarget.value),
-            );
-          }}
-        />
-      </ListItem>
-      <ListItem
-        title={Locale.Settings.Access.Anthropic.ApiVerion.Title}
-        subTitle={Locale.Settings.Access.Anthropic.ApiVerion.SubTitle}
-      >
-        <Input
-          as="input"
-          aria-label={Locale.Settings.Access.Anthropic.ApiVerion.Title}
-          type="text"
-          value={accessStore.anthropicApiVersion}
-          placeholder={Anthropic.Vision}
-          onChange={(e) =>
-            accessStore.update(
-              (access) => (access.anthropicApiVersion = e.currentTarget.value),
-            )
-          }
-        />
-      </ListItem>
-    </>
-  );
-
-  const baiduConfigComponent = accessStore.provider ===
-    ServiceProvider.Baidu && (
-    <>
-      <ListItem
-        title={Locale.Settings.Access.Baidu.Endpoint.Title}
-        subTitle={Locale.Settings.Access.Baidu.Endpoint.SubTitle}
-      >
-        <Input
-          as="input"
-          aria-label={Locale.Settings.Access.Baidu.Endpoint.Title}
-          type="text"
-          value={accessStore.baiduUrl}
-          placeholder={Baidu.ExampleEndpoint}
-          onChange={(e) =>
-            accessStore.update(
-              (access) => (access.baiduUrl = e.currentTarget.value),
-            )
-          }
-        />
-      </ListItem>
-      <ListItem
-        title={Locale.Settings.Access.Baidu.ApiKey.Title}
-        subTitle={Locale.Settings.Access.Baidu.ApiKey.SubTitle}
-      >
-        <PasswordInput
-          aria-label={Locale.Settings.Access.Baidu.ApiKey.Title}
-          value={accessStore.baiduApiKey}
-          type="text"
-          placeholder={Locale.Settings.Access.Baidu.ApiKey.Placeholder}
-          onChange={(e) => {
-            accessStore.update(
-              (access) => (access.baiduApiKey = e.currentTarget.value),
-            );
-          }}
-        />
-      </ListItem>
-      <ListItem
-        title={Locale.Settings.Access.Baidu.SecretKey.Title}
-        subTitle={Locale.Settings.Access.Baidu.SecretKey.SubTitle}
-      >
-        <PasswordInput
-          aria-label={Locale.Settings.Access.Baidu.SecretKey.Title}
-          value={accessStore.baiduSecretKey}
-          type="text"
-          placeholder={Locale.Settings.Access.Baidu.SecretKey.Placeholder}
-          onChange={(e) => {
-            accessStore.update(
-              (access) => (access.baiduSecretKey = e.currentTarget.value),
-            );
-          }}
-        />
-      </ListItem>
-    </>
-  );
-
-  const tencentConfigComponent = accessStore.provider ===
-    ServiceProvider.Tencent && (
-    <>
-      <ListItem
-        title={Locale.Settings.Access.Tencent.Endpoint.Title}
-        subTitle={Locale.Settings.Access.Tencent.Endpoint.SubTitle}
-      >
-        <Input
-          as="input"
-          aria-label={Locale.Settings.Access.Tencent.Endpoint.Title}
-          type="text"
-          value={accessStore.tencentUrl}
-          placeholder={Tencent.ExampleEndpoint}
-          onChange={(e) =>
-            accessStore.update(
-              (access) => (access.tencentUrl = e.currentTarget.value),
-            )
-          }
-        />
-      </ListItem>
-      <ListItem
-        title={Locale.Settings.Access.Tencent.ApiKey.Title}
-        subTitle={Locale.Settings.Access.Tencent.ApiKey.SubTitle}
-      >
-        <PasswordInput
-          aria-label={Locale.Settings.Access.Tencent.ApiKey.Title}
-          value={accessStore.tencentSecretId}
-          type="text"
-          placeholder={Locale.Settings.Access.Tencent.ApiKey.Placeholder}
-          onChange={(e) => {
-            accessStore.update(
-              (access) => (access.tencentSecretId = e.currentTarget.value),
-            );
-          }}
-        />
-      </ListItem>
-      <ListItem
-        title={Locale.Settings.Access.Tencent.SecretKey.Title}
-        subTitle={Locale.Settings.Access.Tencent.SecretKey.SubTitle}
-      >
-        <PasswordInput
-          aria-label={Locale.Settings.Access.Tencent.SecretKey.Title}
-          value={accessStore.tencentSecretKey}
-          type="text"
-          placeholder={Locale.Settings.Access.Tencent.SecretKey.Placeholder}
-          onChange={(e) => {
-            accessStore.update(
-              (access) => (access.tencentSecretKey = e.currentTarget.value),
-            );
-          }}
-        />
-      </ListItem>
-    </>
-  );
-
-  const byteDanceConfigComponent = accessStore.provider ===
-    ServiceProvider.ByteDance && (
-    <>
-      <ListItem
-        title={Locale.Settings.Access.ByteDance.Endpoint.Title}
-        subTitle={
-          Locale.Settings.Access.ByteDance.Endpoint.SubTitle +
-          ByteDance.ExampleEndpoint
-        }
-      >
-        <Input
-          as="input"
-          aria-label={Locale.Settings.Access.ByteDance.Endpoint.Title}
-          type="text"
-          value={accessStore.bytedanceUrl}
-          placeholder={ByteDance.ExampleEndpoint}
-          onChange={(e) =>
-            accessStore.update(
-              (access) => (access.bytedanceUrl = e.currentTarget.value),
-            )
-          }
-        />
-      </ListItem>
-      <ListItem
-        title={Locale.Settings.Access.ByteDance.ApiKey.Title}
-        subTitle={Locale.Settings.Access.ByteDance.ApiKey.SubTitle}
-      >
-        <PasswordInput
-          aria-label={Locale.Settings.Access.ByteDance.ApiKey.Title}
-          value={accessStore.bytedanceApiKey}
-          type="text"
-          placeholder={Locale.Settings.Access.ByteDance.ApiKey.Placeholder}
-          onChange={(e) => {
-            accessStore.update(
-              (access) => (access.bytedanceApiKey = e.currentTarget.value),
-            );
-          }}
-        />
-      </ListItem>
-    </>
-  );
-
-  const alibabaConfigComponent = accessStore.provider ===
-    ServiceProvider.Alibaba && (
-    <>
-      <ListItem
-        title={Locale.Settings.Access.Alibaba.Endpoint.Title}
-        subTitle={
-          Locale.Settings.Access.Alibaba.Endpoint.SubTitle +
-          Alibaba.ExampleEndpoint
-        }
-      >
-        <Input
-          as="input"
-          aria-label={Locale.Settings.Access.Alibaba.Endpoint.Title}
-          type="text"
-          value={accessStore.alibabaUrl}
-          placeholder={Alibaba.ExampleEndpoint}
-          onChange={(e) =>
-            accessStore.update(
-              (access) => (access.alibabaUrl = e.currentTarget.value),
-            )
-          }
-        />
-      </ListItem>
-      <ListItem
-        title={Locale.Settings.Access.Alibaba.ApiKey.Title}
-        subTitle={Locale.Settings.Access.Alibaba.ApiKey.SubTitle}
-      >
-        <PasswordInput
-          aria-label={Locale.Settings.Access.Alibaba.ApiKey.Title}
-          value={accessStore.alibabaApiKey}
-          type="text"
-          placeholder={Locale.Settings.Access.Alibaba.ApiKey.Placeholder}
-          onChange={(e) => {
-            accessStore.update(
-              (access) => (access.alibabaApiKey = e.currentTarget.value),
-            );
-          }}
-        />
-      </ListItem>
-    </>
-  );
-
-  const moonshotConfigComponent = accessStore.provider ===
-    ServiceProvider.Moonshot && (
-    <>
-      <ListItem
-        title={Locale.Settings.Access.Moonshot.Endpoint.Title}
-        subTitle={
-          Locale.Settings.Access.Moonshot.Endpoint.SubTitle +
-          Moonshot.ExampleEndpoint
-        }
-      >
-        <Input
-          as="input"
-          aria-label={Locale.Settings.Access.Moonshot.Endpoint.Title}
-          type="text"
-          value={accessStore.moonshotUrl}
-          placeholder={Moonshot.ExampleEndpoint}
-          onChange={(e) =>
-            accessStore.update(
-              (access) => (access.moonshotUrl = e.currentTarget.value),
-            )
-          }
-        />
-      </ListItem>
-      <ListItem
-        title={Locale.Settings.Access.Moonshot.ApiKey.Title}
-        subTitle={Locale.Settings.Access.Moonshot.ApiKey.SubTitle}
-      >
-        <PasswordInput
-          aria-label={Locale.Settings.Access.Moonshot.ApiKey.Title}
-          value={accessStore.moonshotApiKey}
-          type="text"
-          placeholder={Locale.Settings.Access.Moonshot.ApiKey.Placeholder}
-          onChange={(e) => {
-            accessStore.update(
-              (access) => (access.moonshotApiKey = e.currentTarget.value),
-            );
-          }}
-        />
-      </ListItem>
-    </>
-  );
-
-  const deepseekConfigComponent = accessStore.provider ===
-    ServiceProvider.DeepSeek && (
-    <>
-      <ListItem
-        title={Locale.Settings.Access.DeepSeek.Endpoint.Title}
-        subTitle={
-          Locale.Settings.Access.DeepSeek.Endpoint.SubTitle +
-          DeepSeek.ExampleEndpoint
-        }
-      >
-        <Input
-          as="input"
-          aria-label={Locale.Settings.Access.DeepSeek.Endpoint.Title}
-          type="text"
-          value={accessStore.deepseekUrl}
-          placeholder={DeepSeek.ExampleEndpoint}
-          onChange={(e) =>
-            accessStore.update(
-              (access) => (access.deepseekUrl = e.currentTarget.value),
-            )
-          }
-        />
-      </ListItem>
-      <ListItem
-        title={Locale.Settings.Access.DeepSeek.ApiKey.Title}
-        subTitle={Locale.Settings.Access.DeepSeek.ApiKey.SubTitle}
-      >
-        <PasswordInput
-          aria-label={Locale.Settings.Access.DeepSeek.ApiKey.Title}
-          value={accessStore.deepseekApiKey}
-          type="text"
-          placeholder={Locale.Settings.Access.DeepSeek.ApiKey.Placeholder}
-          onChange={(e) => {
-            accessStore.update(
-              (access) => (access.deepseekApiKey = e.currentTarget.value),
-            );
-          }}
-        />
-      </ListItem>
-    </>
-  );
-
-  const XAIConfigComponent = accessStore.provider === ServiceProvider.XAI && (
-    <>
-      <ListItem
-        title={Locale.Settings.Access.XAI.Endpoint.Title}
-        subTitle={
-          Locale.Settings.Access.XAI.Endpoint.SubTitle + XAI.ExampleEndpoint
-        }
-      >
-        <Input
-          as="input"
-          aria-label={Locale.Settings.Access.XAI.Endpoint.Title}
-          type="text"
-          value={accessStore.xaiUrl}
-          placeholder={XAI.ExampleEndpoint}
-          onChange={(e) =>
-            accessStore.update(
-              (access) => (access.xaiUrl = e.currentTarget.value),
-            )
-          }
-        />
-      </ListItem>
-      <ListItem
-        title={Locale.Settings.Access.XAI.ApiKey.Title}
-        subTitle={Locale.Settings.Access.XAI.ApiKey.SubTitle}
-      >
-        <PasswordInput
-          aria-label={Locale.Settings.Access.XAI.ApiKey.Title}
-          value={accessStore.xaiApiKey}
-          type="text"
-          placeholder={Locale.Settings.Access.XAI.ApiKey.Placeholder}
-          onChange={(e) => {
-            accessStore.update(
-              (access) => (access.xaiApiKey = e.currentTarget.value),
-            );
-          }}
-        />
-      </ListItem>
-    </>
-  );
-
-  const chatglmConfigComponent = accessStore.provider ===
-    ServiceProvider.ChatGLM && (
-    <>
-      <ListItem
-        title={Locale.Settings.Access.ChatGLM.Endpoint.Title}
-        subTitle={
-          Locale.Settings.Access.ChatGLM.Endpoint.SubTitle +
-          ChatGLM.ExampleEndpoint
-        }
-      >
-        <Input
-          as="input"
-          aria-label={Locale.Settings.Access.ChatGLM.Endpoint.Title}
-          type="text"
-          value={accessStore.chatglmUrl}
-          placeholder={ChatGLM.ExampleEndpoint}
-          onChange={(e) =>
-            accessStore.update(
-              (access) => (access.chatglmUrl = e.currentTarget.value),
-            )
-          }
-        />
-      </ListItem>
-      <ListItem
-        title={Locale.Settings.Access.ChatGLM.ApiKey.Title}
-        subTitle={Locale.Settings.Access.ChatGLM.ApiKey.SubTitle}
-      >
-        <PasswordInput
-          aria-label={Locale.Settings.Access.ChatGLM.ApiKey.Title}
-          value={accessStore.chatglmApiKey}
-          type="text"
-          placeholder={Locale.Settings.Access.ChatGLM.ApiKey.Placeholder}
-          onChange={(e) => {
-            accessStore.update(
-              (access) => (access.chatglmApiKey = e.currentTarget.value),
-            );
-          }}
-        />
-      </ListItem>
-    </>
-  );
-  const siliconflowConfigComponent = accessStore.provider ===
-    ServiceProvider.SiliconFlow && (
-    <>
-      <ListItem
-        title={Locale.Settings.Access.SiliconFlow.Endpoint.Title}
-        subTitle={
-          Locale.Settings.Access.SiliconFlow.Endpoint.SubTitle +
-          SiliconFlow.ExampleEndpoint
-        }
-      >
-        <Input
-          as="input"
-          aria-label={Locale.Settings.Access.SiliconFlow.Endpoint.Title}
-          type="text"
-          value={accessStore.siliconflowUrl}
-          placeholder={SiliconFlow.ExampleEndpoint}
-          onChange={(e) =>
-            accessStore.update(
-              (access) => (access.siliconflowUrl = e.currentTarget.value),
-            )
-          }
-        />
-      </ListItem>
-      <ListItem
-        title={Locale.Settings.Access.SiliconFlow.ApiKey.Title}
-        subTitle={Locale.Settings.Access.SiliconFlow.ApiKey.SubTitle}
-      >
-        <PasswordInput
-          aria-label={Locale.Settings.Access.SiliconFlow.ApiKey.Title}
-          value={accessStore.siliconflowApiKey}
-          type="text"
-          placeholder={Locale.Settings.Access.SiliconFlow.ApiKey.Placeholder}
-          onChange={(e) => {
-            accessStore.update(
-              (access) => (access.siliconflowApiKey = e.currentTarget.value),
-            );
-          }}
-        />
-      </ListItem>
-    </>
-  );
-
-  const stabilityConfigComponent = accessStore.provider ===
-    ServiceProvider.Stability && (
-    <>
-      <ListItem
-        title={Locale.Settings.Access.Stability.Endpoint.Title}
-        subTitle={
-          Locale.Settings.Access.Stability.Endpoint.SubTitle +
-          Stability.ExampleEndpoint
-        }
-      >
-        <Input
-          as="input"
-          aria-label={Locale.Settings.Access.Stability.Endpoint.Title}
-          type="text"
-          value={accessStore.stabilityUrl}
-          placeholder={Stability.ExampleEndpoint}
-          onChange={(e) =>
-            accessStore.update(
-              (access) => (access.stabilityUrl = e.currentTarget.value),
-            )
-          }
-        />
-      </ListItem>
-      <ListItem
-        title={Locale.Settings.Access.Stability.ApiKey.Title}
-        subTitle={Locale.Settings.Access.Stability.ApiKey.SubTitle}
-      >
-        <PasswordInput
-          aria-label={Locale.Settings.Access.Stability.ApiKey.Title}
-          value={accessStore.stabilityApiKey}
-          type="text"
-          placeholder={Locale.Settings.Access.Stability.ApiKey.Placeholder}
-          onChange={(e) => {
-            accessStore.update(
-              (access) => (access.stabilityApiKey = e.currentTarget.value),
-            );
-          }}
-        />
-      </ListItem>
-    </>
-  );
-  const lflytekConfigComponent = accessStore.provider ===
-    ServiceProvider.Iflytek && (
-    <>
-      <ListItem
-        title={Locale.Settings.Access.Iflytek.Endpoint.Title}
-        subTitle={
-          Locale.Settings.Access.Iflytek.Endpoint.SubTitle +
-          Iflytek.ExampleEndpoint
-        }
-      >
-        <Input
-          as="input"
-          aria-label={Locale.Settings.Access.Iflytek.Endpoint.Title}
-          type="text"
-          value={accessStore.iflytekUrl}
-          placeholder={Iflytek.ExampleEndpoint}
-          onChange={(e) =>
-            accessStore.update(
-              (access) => (access.iflytekUrl = e.currentTarget.value),
-            )
-          }
-        />
-      </ListItem>
-      <ListItem
-        title={Locale.Settings.Access.Iflytek.ApiKey.Title}
-        subTitle={Locale.Settings.Access.Iflytek.ApiKey.SubTitle}
-      >
-        <PasswordInput
-          aria-label={Locale.Settings.Access.Iflytek.ApiKey.Title}
-          value={accessStore.iflytekApiKey}
-          type="text"
-          placeholder={Locale.Settings.Access.Iflytek.ApiKey.Placeholder}
-          onChange={(e) => {
-            accessStore.update(
-              (access) => (access.iflytekApiKey = e.currentTarget.value),
-            );
-          }}
-        />
-      </ListItem>
-
-      <ListItem
-        title={Locale.Settings.Access.Iflytek.ApiSecret.Title}
-        subTitle={Locale.Settings.Access.Iflytek.ApiSecret.SubTitle}
-      >
-        <PasswordInput
-          aria-label={Locale.Settings.Access.Iflytek.ApiSecret.Title}
-          value={accessStore.iflytekApiSecret}
-          type="text"
-          placeholder={Locale.Settings.Access.Iflytek.ApiSecret.Placeholder}
-          onChange={(e) => {
-            accessStore.update(
-              (access) => (access.iflytekApiSecret = e.currentTarget.value),
-            );
-          }}
-        />
-      </ListItem>
-    </>
-  );
-
-  const ai302ConfigComponent = accessStore.provider ===
-    ServiceProvider["302.AI"] && (
-    <>
-      <ListItem
-        title={Locale.Settings.Access.AI302.Endpoint.Title}
-        subTitle={
-          Locale.Settings.Access.AI302.Endpoint.SubTitle + AI302.ExampleEndpoint
-        }
-      >
-        <Input
-          as="input"
-          aria-label={Locale.Settings.Access.AI302.Endpoint.Title}
-          type="text"
-          value={accessStore.ai302Url}
-          placeholder={AI302.ExampleEndpoint}
-          onChange={(e) =>
-            accessStore.update(
-              (access) => (access.ai302Url = e.currentTarget.value),
-            )
-          }
-        />
-      </ListItem>
-      <ListItem
-        title={Locale.Settings.Access.AI302.ApiKey.Title}
-        subTitle={Locale.Settings.Access.AI302.ApiKey.SubTitle}
-      >
-        <PasswordInput
-          aria-label={Locale.Settings.Access.AI302.ApiKey.Title}
-          value={accessStore.ai302ApiKey}
-          type="text"
-          placeholder={Locale.Settings.Access.AI302.ApiKey.Placeholder}
-          onChange={(e) => {
-            accessStore.update(
-              (access) => (access.ai302ApiKey = e.currentTarget.value),
-            );
-          }}
-        />
-      </ListItem>
-    </>
-  );
-
   return (
     <ErrorBoundary>
-      <div className="window-header" data-tauri-drag-region>
-        <div className="window-header-title">
-          <div className="window-header-main-title">
-            {Locale.Settings.Title}
+      <div
+        className={clsx("window-header", styles["settings-header"])}
+        data-tauri-drag-region
+      >
+        <div className={styles["settings-header-brand"]}>
+          <div className={styles["settings-header-icon"]} aria-hidden="true">
+            <SettingsIcon />
           </div>
-          <div className="window-header-sub-title">
-            {Locale.Settings.SubTitle}
+          <div className="window-header-title">
+            <div className="window-header-main-title">
+              {Locale.Settings.Title}
+            </div>
+            <div className="window-header-sub-title">
+              {Locale.Settings.SubTitle}
+            </div>
           </div>
         </div>
-        <div className="window-actions">
-          <div className="window-action-button"></div>
-          <div className="window-action-button"></div>
-          <div className="window-action-button">
-            <IconButton
-              aria={Locale.UI.Close}
-              icon={<CloseIcon />}
-              onClick={() => navigate(Path.Home)}
-              bordered
-            />
-          </div>
+        <div className={styles["settings-close"]}>
+          <IconButton
+            aria={Locale.UI.Close}
+            icon={<CloseIcon />}
+            onClick={() => navigate(Path.Home)}
+            bordered
+          />
         </div>
       </div>
       <div className={styles["settings"]}>
-        <List>
-          <ListItem title={Locale.Settings.Avatar}>
-            <Popover
-              onClose={() => setShowEmojiPicker(false)}
-              content={
-                <AvatarPicker
-                  onEmojiClick={(avatar: string) => {
-                    updateConfig((config) => (config.avatar = avatar));
-                    setShowEmojiPicker(false);
-                  }}
-                />
-              }
-              open={showEmojiPicker}
-            >
-              <div
-                aria-label={Locale.Settings.Avatar}
-                tabIndex={0}
-                className={styles.avatar}
-                onClick={() => {
-                  setShowEmojiPicker(!showEmojiPicker);
-                }}
+        <aside className={styles["settings-sidebar"]}>
+          <nav
+            className={styles["settings-nav"]}
+            aria-label={Locale.Settings.Category.Navigation}
+          >
+            {categories.map((category) => (
+              <button
+                type="button"
+                key={category.id}
+                className={
+                  category.id === activeCategory
+                    ? styles["settings-nav-item-active"]
+                    : styles["settings-nav-item"]
+                }
+                aria-current={
+                  category.id === activeCategory ? "page" : undefined
+                }
+                title={category.SubTitle}
+                onClick={() => selectCategory(category.id)}
               >
-                <Avatar avatar={config.avatar} />
-              </div>
-            </Popover>
-          </ListItem>
+                <span
+                  className={styles["settings-nav-icon"]}
+                  aria-hidden="true"
+                >
+                  {category.icon}
+                </span>
+                <span className={styles["settings-nav-copy"]}>
+                  <strong>{category.Title}</strong>
+                  <small>{category.SubTitle}</small>
+                </span>
+              </button>
+            ))}
+          </nav>
+          <div className={styles["settings-sidebar-footer"]}>
+            <span className={styles["settings-version-dot"]}></span>
+            <span>
+              {Locale.Settings.Update.Version(currentVersion ?? "unknown")}
+            </span>
+          </div>
+        </aside>
 
-          <ListItem
-            title={Locale.Settings.Update.Version(currentVersion ?? "unknown")}
-            subTitle={
-              checkingUpdate
-                ? Locale.Settings.Update.IsChecking
-                : hasNewVersion
-                ? Locale.Settings.Update.FoundUpdate(remoteId ?? "ERROR")
-                : Locale.Settings.Update.IsLatest
-            }
-          >
-            {checkingUpdate ? (
-              <LoadingIcon />
-            ) : hasNewVersion ? (
-              clientConfig?.isApp ? (
-                <IconButton
-                  icon={<ResetIcon></ResetIcon>}
-                  text={Locale.Settings.Update.GoToUpdate}
-                  onClick={() => clientUpdate()}
-                />
-              ) : (
-                <Link href={updateUrl} target="_blank" className="link">
-                  {Locale.Settings.Update.GoToUpdate}
-                </Link>
-              )
-            ) : (
-              <IconButton
-                icon={<ResetIcon></ResetIcon>}
-                text={Locale.Settings.Update.CheckUpdate}
-                onClick={() => checkUpdate(true)}
-              />
-            )}
-          </ListItem>
-
-          <ListItem title={Locale.Settings.SendKey}>
+        <main className={styles["settings-content"]}>
+          <div className={styles["settings-mobile-category"]}>
+            <label htmlFor="settings-category-select">
+              {Locale.Settings.Category.Navigation}
+            </label>
             <Select
-              aria-label={Locale.Settings.SendKey}
-              value={config.submitKey}
-              onChange={(e) => {
-                updateConfig(
-                  (config) =>
-                    (config.submitKey = e.target.value as any as SubmitKey),
-                );
-              }}
+              id="settings-category-select"
+              value={activeCategory}
+              onChange={(event) =>
+                selectCategory(event.currentTarget.value as SettingsCategory)
+              }
             >
-              {Object.values(SubmitKey).map((v) => (
-                <option value={v} key={v}>
-                  {v}
+              {categories.map((category) => (
+                <option key={category.id} value={category.id}>
+                  {category.Title}
                 </option>
               ))}
             </Select>
-          </ListItem>
+          </div>
 
-          <ListItem title={Locale.Settings.Theme}>
-            <Select
-              aria-label={Locale.Settings.Theme}
-              value={config.theme}
-              onChange={(e) => {
-                updateConfig(
-                  (config) => (config.theme = e.target.value as any as Theme),
-                );
-              }}
-            >
-              {Object.values(Theme).map((v) => (
-                <option value={v} key={v}>
-                  {v}
-                </option>
-              ))}
-            </Select>
-          </ListItem>
-
-          <ListItem title={Locale.Settings.Lang.Name}>
-            <Select
-              aria-label={Locale.Settings.Lang.Name}
-              value={getLang()}
-              onChange={(e) => {
-                changeLang(e.target.value as any);
-              }}
-            >
-              {AllLangs.map((lang) => (
-                <option value={lang} key={lang}>
-                  {ALL_LANG_OPTIONS[lang]}
-                </option>
-              ))}
-            </Select>
-          </ListItem>
-
-          <ListItem
-            title={Locale.Settings.FontSize.Title}
-            subTitle={Locale.Settings.FontSize.SubTitle}
-          >
-            <InputRange
-              aria={Locale.Settings.FontSize.Title}
-              title={`${config.fontSize ?? 14}px`}
-              value={config.fontSize}
-              min="12"
-              max="40"
-              step="1"
-              onChange={(e) =>
-                updateConfig(
-                  (config) =>
-                    (config.fontSize = Number.parseInt(e.currentTarget.value)),
-                )
-              }
-            ></InputRange>
-          </ListItem>
-
-          <ListItem
-            title={Locale.Settings.FontFamily.Title}
-            subTitle={Locale.Settings.FontFamily.SubTitle}
-          >
-            <Input
-              as="input"
-              aria-label={Locale.Settings.FontFamily.Title}
-              type="text"
-              value={config.fontFamily}
-              placeholder={Locale.Settings.FontFamily.Placeholder}
-              onChange={(e) =>
-                updateConfig(
-                  (config) => (config.fontFamily = e.currentTarget.value),
-                )
-              }
-            />
-          </ListItem>
-
-          <ListItem
-            title={Locale.Settings.AutoGenerateTitle.Title}
-            subTitle={Locale.Settings.AutoGenerateTitle.SubTitle}
-          >
-            <input
-              aria-label={Locale.Settings.AutoGenerateTitle.Title}
-              type="checkbox"
-              checked={config.enableAutoGenerateTitle}
-              onChange={(e) =>
-                updateConfig(
-                  (config) =>
-                    (config.enableAutoGenerateTitle = e.currentTarget.checked),
-                )
-              }
-            ></input>
-          </ListItem>
-
-          <ListItem
-            title={Locale.Settings.SendPreviewBubble.Title}
-            subTitle={Locale.Settings.SendPreviewBubble.SubTitle}
-          >
-            <input
-              aria-label={Locale.Settings.SendPreviewBubble.Title}
-              type="checkbox"
-              checked={config.sendPreviewBubble}
-              onChange={(e) =>
-                updateConfig(
-                  (config) =>
-                    (config.sendPreviewBubble = e.currentTarget.checked),
-                )
-              }
-            ></input>
-          </ListItem>
-
-          <ListItem
-            title={Locale.Mask.Config.Artifacts.Title}
-            subTitle={Locale.Mask.Config.Artifacts.SubTitle}
-          >
-            <input
-              aria-label={Locale.Mask.Config.Artifacts.Title}
-              type="checkbox"
-              checked={config.enableArtifacts}
-              onChange={(e) =>
-                updateConfig(
-                  (config) =>
-                    (config.enableArtifacts = e.currentTarget.checked),
-                )
-              }
-            ></input>
-          </ListItem>
-          <ListItem
-            title={Locale.Mask.Config.CodeFold.Title}
-            subTitle={Locale.Mask.Config.CodeFold.SubTitle}
-          >
-            <input
-              aria-label={Locale.Mask.Config.CodeFold.Title}
-              type="checkbox"
-              checked={config.enableCodeFold}
-              data-testid="enable-code-fold-checkbox"
-              onChange={(e) =>
-                updateConfig(
-                  (config) => (config.enableCodeFold = e.currentTarget.checked),
-                )
-              }
-            ></input>
-          </ListItem>
-        </List>
-
-        <SyncItems />
-
-        <List>
-          <ListItem
-            title={Locale.Settings.Mask.Splash.Title}
-            subTitle={Locale.Settings.Mask.Splash.SubTitle}
-          >
-            <input
-              aria-label={Locale.Settings.Mask.Splash.Title}
-              type="checkbox"
-              checked={!config.dontShowMaskSplashScreen}
-              onChange={(e) =>
-                updateConfig(
-                  (config) =>
-                    (config.dontShowMaskSplashScreen =
-                      !e.currentTarget.checked),
-                )
-              }
-            ></input>
-          </ListItem>
-
-          <ListItem
-            title={Locale.Settings.Mask.Builtin.Title}
-            subTitle={Locale.Settings.Mask.Builtin.SubTitle}
-          >
-            <input
-              aria-label={Locale.Settings.Mask.Builtin.Title}
-              type="checkbox"
-              checked={config.hideBuiltinMasks}
-              onChange={(e) =>
-                updateConfig(
-                  (config) =>
-                    (config.hideBuiltinMasks = e.currentTarget.checked),
-                )
-              }
-            ></input>
-          </ListItem>
-        </List>
-
-        <List>
-          <ListItem
-            title={Locale.Settings.Prompt.Disable.Title}
-            subTitle={Locale.Settings.Prompt.Disable.SubTitle}
-          >
-            <input
-              aria-label={Locale.Settings.Prompt.Disable.Title}
-              type="checkbox"
-              checked={config.disablePromptHint}
-              onChange={(e) =>
-                updateConfig(
-                  (config) =>
-                    (config.disablePromptHint = e.currentTarget.checked),
-                )
-              }
-            ></input>
-          </ListItem>
-
-          <ListItem
-            title={Locale.Settings.Prompt.List}
-            subTitle={Locale.Settings.Prompt.ListCount(
-              builtinCount,
-              customCount,
-            )}
-          >
-            <IconButton
-              aria={Locale.Settings.Prompt.List + Locale.Settings.Prompt.Edit}
-              icon={<EditIcon />}
-              text={Locale.Settings.Prompt.Edit}
-              onClick={() => setShowPromptModal(true)}
-            />
-          </ListItem>
-        </List>
-
-        <List id={SlotID.CustomModel}>
-          {saasStartComponent}
-          {accessCodeComponent}
-
-          {!accessStore.hideUserApiKey && (
-            <>
-              {useCustomConfigComponent}
-
-              {accessStore.useCustomConfig && (
+          <header className={styles["settings-section-header"]}>
+            <div className={styles["settings-section-icon"]} aria-hidden="true">
+              {activeCategoryMeta.icon}
+            </div>
+            <div>
+              <h1>{activeCategoryMeta.Title}</h1>
+              <p>{activeCategoryMeta.SubTitle}</p>
+            </div>
+          </header>
+          {(activeCategory === "general" ||
+            activeCategory === "appearance") && (
+            <List className={styles["settings-list"]}>
+              {activeCategory === "general" && (
                 <>
+                  <ListItem title={Locale.Settings.Avatar}>
+                    <Popover
+                      onClose={() => setShowEmojiPicker(false)}
+                      content={
+                        <AvatarPicker
+                          onEmojiClick={(avatar: string) => {
+                            updateConfig((config) => (config.avatar = avatar));
+                            setShowEmojiPicker(false);
+                          }}
+                        />
+                      }
+                      open={showEmojiPicker}
+                    >
+                      <div
+                        aria-label={Locale.Settings.Avatar}
+                        role="button"
+                        tabIndex={0}
+                        className={styles.avatar}
+                        onClick={() => {
+                          setShowEmojiPicker(!showEmojiPicker);
+                        }}
+                        onKeyDown={(event) => {
+                          if (event.key === "Enter" || event.key === " ") {
+                            event.preventDefault();
+                            setShowEmojiPicker(!showEmojiPicker);
+                          }
+                        }}
+                      >
+                        <Avatar avatar={config.avatar} />
+                      </div>
+                    </Popover>
+                  </ListItem>
+
                   <ListItem
-                    title={Locale.Settings.Access.Provider.Title}
-                    subTitle={Locale.Settings.Access.Provider.SubTitle}
+                    title={Locale.Settings.Update.Version(
+                      currentVersion ?? "unknown",
+                    )}
+                    subTitle={
+                      checkingUpdate
+                        ? Locale.Settings.Update.IsChecking
+                        : hasNewVersion
+                        ? Locale.Settings.Update.FoundUpdate(
+                            remoteId ?? "ERROR",
+                          )
+                        : Locale.Settings.Update.IsLatest
+                    }
                   >
+                    {checkingUpdate ? (
+                      <LoadingIcon />
+                    ) : hasNewVersion ? (
+                      clientConfig?.isApp ? (
+                        <IconButton
+                          icon={<ResetIcon></ResetIcon>}
+                          text={Locale.Settings.Update.GoToUpdate}
+                          onClick={() => clientUpdate()}
+                        />
+                      ) : (
+                        <Link href={updateUrl} target="_blank" className="link">
+                          {Locale.Settings.Update.GoToUpdate}
+                        </Link>
+                      )
+                    ) : (
+                      <IconButton
+                        icon={<ResetIcon></ResetIcon>}
+                        text={Locale.Settings.Update.CheckUpdate}
+                        onClick={() => checkUpdate(true)}
+                      />
+                    )}
+                  </ListItem>
+
+                  <ListItem title={Locale.Settings.SendKey}>
                     <Select
-                      aria-label={Locale.Settings.Access.Provider.Title}
-                      value={accessStore.provider}
+                      aria-label={Locale.Settings.SendKey}
+                      value={config.submitKey}
                       onChange={(e) => {
-                        accessStore.update(
-                          (access) =>
-                            (access.provider = e.target
-                              .value as ServiceProvider),
+                        updateConfig(
+                          (config) =>
+                            (config.submitKey = e.target
+                              .value as any as SubmitKey),
                         );
                       }}
                     >
-                      {Object.entries(ServiceProvider).map(([k, v]) => (
-                        <option value={v} key={k}>
-                          {k}
+                      {Object.values(SubmitKey).map((v) => (
+                        <option value={v} key={v}>
+                          {v}
+                        </option>
+                      ))}
+                    </Select>
+                  </ListItem>
+                </>
+              )}
+              {activeCategory === "appearance" && (
+                <>
+                  <ListItem title={Locale.Settings.Theme}>
+                    <Select
+                      aria-label={Locale.Settings.Theme}
+                      value={config.theme}
+                      onChange={(e) => {
+                        updateConfig(
+                          (config) =>
+                            (config.theme = e.target.value as any as Theme),
+                        );
+                      }}
+                    >
+                      {Object.values(Theme).map((v) => (
+                        <option value={v} key={v}>
+                          {v}
                         </option>
                       ))}
                     </Select>
                   </ListItem>
 
-                  {openAIConfigComponent}
-                  {azureConfigComponent}
-                  {googleConfigComponent}
-                  {anthropicConfigComponent}
-                  {baiduConfigComponent}
-                  {byteDanceConfigComponent}
-                  {alibabaConfigComponent}
-                  {tencentConfigComponent}
-                  {moonshotConfigComponent}
-                  {deepseekConfigComponent}
-                  {stabilityConfigComponent}
-                  {lflytekConfigComponent}
-                  {XAIConfigComponent}
-                  {chatglmConfigComponent}
-                  {siliconflowConfigComponent}
-                  {ai302ConfigComponent}
+                  <ListItem title={Locale.Settings.Lang.Name}>
+                    <Select
+                      aria-label={Locale.Settings.Lang.Name}
+                      value={getLang()}
+                      onChange={(e) => {
+                        changeLang(e.target.value as any);
+                      }}
+                    >
+                      {AllLangs.map((lang) => (
+                        <option value={lang} key={lang}>
+                          {ALL_LANG_OPTIONS[lang]}
+                        </option>
+                      ))}
+                    </Select>
+                  </ListItem>
+
+                  <ListItem
+                    title={Locale.Settings.FontSize.Title}
+                    subTitle={Locale.Settings.FontSize.SubTitle}
+                  >
+                    <InputRange
+                      aria={Locale.Settings.FontSize.Title}
+                      title={`${config.fontSize ?? 14}px`}
+                      value={config.fontSize}
+                      min="12"
+                      max="40"
+                      step="1"
+                      onChange={(e) =>
+                        updateConfig(
+                          (config) =>
+                            (config.fontSize = Number.parseInt(
+                              e.currentTarget.value,
+                            )),
+                        )
+                      }
+                    ></InputRange>
+                  </ListItem>
+
+                  <ListItem
+                    title={Locale.Settings.FontFamily.Title}
+                    subTitle={Locale.Settings.FontFamily.SubTitle}
+                  >
+                    <Input
+                      as="input"
+                      aria-label={Locale.Settings.FontFamily.Title}
+                      type="text"
+                      value={config.fontFamily}
+                      placeholder={Locale.Settings.FontFamily.Placeholder}
+                      onChange={(e) =>
+                        updateConfig(
+                          (config) =>
+                            (config.fontFamily = e.currentTarget.value),
+                        )
+                      }
+                    />
+                  </ListItem>
                 </>
               )}
+              {activeCategory === "general" && (
+                <>
+                  <ListItem
+                    title={Locale.Settings.AutoGenerateTitle.Title}
+                    subTitle={Locale.Settings.AutoGenerateTitle.SubTitle}
+                  >
+                    <input
+                      aria-label={Locale.Settings.AutoGenerateTitle.Title}
+                      type="checkbox"
+                      checked={config.enableAutoGenerateTitle}
+                      onChange={(e) =>
+                        updateConfig(
+                          (config) =>
+                            (config.enableAutoGenerateTitle =
+                              e.currentTarget.checked),
+                        )
+                      }
+                    ></input>
+                  </ListItem>
+
+                  <ListItem
+                    title={Locale.Settings.SendPreviewBubble.Title}
+                    subTitle={Locale.Settings.SendPreviewBubble.SubTitle}
+                  >
+                    <input
+                      aria-label={Locale.Settings.SendPreviewBubble.Title}
+                      type="checkbox"
+                      checked={config.sendPreviewBubble}
+                      onChange={(e) =>
+                        updateConfig(
+                          (config) =>
+                            (config.sendPreviewBubble =
+                              e.currentTarget.checked),
+                        )
+                      }
+                    ></input>
+                  </ListItem>
+
+                  <ListItem
+                    title={Locale.Mask.Config.Artifacts.Title}
+                    subTitle={Locale.Mask.Config.Artifacts.SubTitle}
+                  >
+                    <input
+                      aria-label={Locale.Mask.Config.Artifacts.Title}
+                      type="checkbox"
+                      checked={config.enableArtifacts}
+                      onChange={(e) =>
+                        updateConfig(
+                          (config) =>
+                            (config.enableArtifacts = e.currentTarget.checked),
+                        )
+                      }
+                    ></input>
+                  </ListItem>
+                  <ListItem
+                    title={Locale.Mask.Config.CodeFold.Title}
+                    subTitle={Locale.Mask.Config.CodeFold.SubTitle}
+                  >
+                    <input
+                      aria-label={Locale.Mask.Config.CodeFold.Title}
+                      type="checkbox"
+                      checked={config.enableCodeFold}
+                      data-testid="enable-code-fold-checkbox"
+                      onChange={(e) =>
+                        updateConfig(
+                          (config) =>
+                            (config.enableCodeFold = e.currentTarget.checked),
+                        )
+                      }
+                    ></input>
+                  </ListItem>
+                </>
+              )}
+            </List>
+          )}
+
+          {activeCategory === "data" && (
+            <>
+              <h2 className={styles["settings-card-title"]}>
+                {Locale.Settings.Section.Sync}
+              </h2>
+              <SyncItems />
             </>
           )}
 
-          {!shouldHideBalanceQuery && !clientConfig?.isApp ? (
-            <ListItem
-              title={Locale.Settings.Usage.Title}
-              subTitle={
-                showUsage
-                  ? loadingUsage
-                    ? Locale.Settings.Usage.IsChecking
-                    : Locale.Settings.Usage.SubTitle(
-                        usage?.used ?? "[?]",
-                        usage?.subscription ?? "[?]",
+          {activeCategory === "assistants" && (
+            <>
+              <h2 className={styles["settings-card-title"]}>
+                {Locale.Settings.Section.Assistants}
+              </h2>
+              <List className={styles["settings-list"]}>
+                <ListItem
+                  title={Locale.Settings.Mask.Splash.Title}
+                  subTitle={Locale.Settings.Mask.Splash.SubTitle}
+                >
+                  <input
+                    aria-label={Locale.Settings.Mask.Splash.Title}
+                    type="checkbox"
+                    checked={!config.dontShowMaskSplashScreen}
+                    onChange={(e) =>
+                      updateConfig(
+                        (config) =>
+                          (config.dontShowMaskSplashScreen =
+                            !e.currentTarget.checked),
                       )
-                  : Locale.Settings.Usage.NoAccess
-              }
-            >
-              {!showUsage || loadingUsage ? (
-                <div />
-              ) : (
-                <IconButton
-                  icon={<ResetIcon></ResetIcon>}
-                  text={Locale.Settings.Usage.Check}
-                  onClick={() => checkUsage(true)}
+                    }
+                  ></input>
+                </ListItem>
+
+                <ListItem
+                  title={Locale.Settings.Mask.Builtin.Title}
+                  subTitle={Locale.Settings.Mask.Builtin.SubTitle}
+                >
+                  <input
+                    aria-label={Locale.Settings.Mask.Builtin.Title}
+                    type="checkbox"
+                    checked={config.hideBuiltinMasks}
+                    onChange={(e) =>
+                      updateConfig(
+                        (config) =>
+                          (config.hideBuiltinMasks = e.currentTarget.checked),
+                      )
+                    }
+                  ></input>
+                </ListItem>
+              </List>
+
+              <h2 className={styles["settings-card-title"]}>
+                {Locale.Settings.Section.Prompts}
+              </h2>
+              <List className={styles["settings-list"]}>
+                <ListItem
+                  title={Locale.Settings.Prompt.Disable.Title}
+                  subTitle={Locale.Settings.Prompt.Disable.SubTitle}
+                >
+                  <input
+                    aria-label={Locale.Settings.Prompt.Disable.Title}
+                    type="checkbox"
+                    checked={config.disablePromptHint}
+                    onChange={(e) =>
+                      updateConfig(
+                        (config) =>
+                          (config.disablePromptHint = e.currentTarget.checked),
+                      )
+                    }
+                  ></input>
+                </ListItem>
+
+                <ListItem
+                  title={Locale.Settings.Prompt.List}
+                  subTitle={Locale.Settings.Prompt.ListCount(
+                    builtinCount,
+                    customCount,
+                  )}
+                >
+                  <IconButton
+                    aria={
+                      Locale.Settings.Prompt.List + Locale.Settings.Prompt.Edit
+                    }
+                    icon={<EditIcon />}
+                    text={Locale.Settings.Prompt.Edit}
+                    onClick={() => setShowPromptModal(true)}
+                  />
+                </ListItem>
+              </List>
+            </>
+          )}
+
+          {activeCategory === "model" && (
+            <>
+              <h2 className={styles["settings-card-title"]}>
+                {Locale.Settings.Section.Provider}
+              </h2>
+              <List className={styles["settings-list"]} id={SlotID.CustomModel}>
+                {saasStartComponent}
+                {accessCodeComponent}
+
+                {!accessStore.hideUserApiKey && (
+                  <>
+                    {useCustomConfigComponent}
+
+                    {accessStore.useCustomConfig && (
+                      <>
+                        <ListItem
+                          title={Locale.Settings.Access.Provider.Title}
+                          subTitle={Locale.Settings.Access.Provider.SubTitle}
+                        >
+                          <Select
+                            aria-label={Locale.Settings.Access.Provider.Title}
+                            value={accessStore.provider}
+                            onChange={(e) => {
+                              accessStore.update(
+                                (access) =>
+                                  (access.provider = e.target
+                                    .value as ServiceProvider),
+                              );
+                            }}
+                          >
+                            {Object.entries(ServiceProvider).map(([k, v]) => (
+                              <option value={v} key={k}>
+                                {k}
+                              </option>
+                            ))}
+                          </Select>
+                        </ListItem>
+                        <ProviderConfig />
+                      </>
+                    )}
+                  </>
+                )}
+
+                {!shouldHideBalanceQuery && !clientConfig?.isApp ? (
+                  <ListItem
+                    title={Locale.Settings.Usage.Title}
+                    subTitle={
+                      showUsage
+                        ? loadingUsage
+                          ? Locale.Settings.Usage.IsChecking
+                          : Locale.Settings.Usage.SubTitle(
+                              usage?.used ?? "[?]",
+                              usage?.subscription ?? "[?]",
+                            )
+                        : Locale.Settings.Usage.NoAccess
+                    }
+                  >
+                    {!showUsage || loadingUsage ? (
+                      <div />
+                    ) : (
+                      <IconButton
+                        icon={<ResetIcon></ResetIcon>}
+                        text={Locale.Settings.Usage.Check}
+                        onClick={() => checkUsage(true)}
+                      />
+                    )}
+                  </ListItem>
+                ) : null}
+
+                <ModelManager
+                  customModels={config.customModels}
+                  onChange={(customModels) =>
+                    config.update(
+                      (config) => (config.customModels = customModels),
+                    )
+                  }
                 />
-              )}
-            </ListItem>
-          ) : null}
+              </List>
 
-          <ModelManager
-            customModels={config.customModels}
-            onChange={(customModels) =>
-              config.update((config) => (config.customModels = customModels))
-            }
-          />
-        </List>
+              <h2 className={styles["settings-card-title"]}>
+                {Locale.Settings.Section.DefaultModel}
+              </h2>
+              <List className={styles["settings-list"]}>
+                <ModelConfigList
+                  modelConfig={config.modelConfig}
+                  updateConfig={(updater) => {
+                    const modelConfig = { ...config.modelConfig };
+                    updater(modelConfig);
+                    config.update(
+                      (config) => (config.modelConfig = modelConfig),
+                    );
+                  }}
+                />
+              </List>
+            </>
+          )}
 
-        <List>
-          <ModelConfigList
-            modelConfig={config.modelConfig}
-            updateConfig={(updater) => {
-              const modelConfig = { ...config.modelConfig };
-              updater(modelConfig);
-              config.update((config) => (config.modelConfig = modelConfig));
-            }}
-          />
-        </List>
+          {shouldShowPromptModal && (
+            <UserPromptModal onClose={() => setShowPromptModal(false)} />
+          )}
+          {activeCategory === "voice" && (
+            <>
+              <h2 className={styles["settings-card-title"]}>
+                {Locale.Settings.Section.Realtime}
+              </h2>
+              <List className={styles["settings-list"]}>
+                <RealtimeConfigList
+                  realtimeConfig={config.realtimeConfig}
+                  updateConfig={(updater) => {
+                    const realtimeConfig = { ...config.realtimeConfig };
+                    updater(realtimeConfig);
+                    config.update(
+                      (config) => (config.realtimeConfig = realtimeConfig),
+                    );
+                  }}
+                />
+              </List>
+              <h2 className={styles["settings-card-title"]}>
+                {Locale.Settings.Section.TTS}
+              </h2>
+              <List className={styles["settings-list"]}>
+                <TTSConfigList
+                  ttsConfig={config.ttsConfig}
+                  updateConfig={(updater) => {
+                    const ttsConfig = { ...config.ttsConfig };
+                    updater(ttsConfig);
+                    config.update((config) => (config.ttsConfig = ttsConfig));
+                  }}
+                />
+              </List>
+            </>
+          )}
 
-        {shouldShowPromptModal && (
-          <UserPromptModal onClose={() => setShowPromptModal(false)} />
-        )}
-        <List>
-          <RealtimeConfigList
-            realtimeConfig={config.realtimeConfig}
-            updateConfig={(updater) => {
-              const realtimeConfig = { ...config.realtimeConfig };
-              updater(realtimeConfig);
-              config.update(
-                (config) => (config.realtimeConfig = realtimeConfig),
-              );
-            }}
-          />
-        </List>
-        <List>
-          <TTSConfigList
-            ttsConfig={config.ttsConfig}
-            updateConfig={(updater) => {
-              const ttsConfig = { ...config.ttsConfig };
-              updater(ttsConfig);
-              config.update((config) => (config.ttsConfig = ttsConfig));
-            }}
-          />
-        </List>
-
-        <DangerItems />
+          {activeCategory === "data" && (
+            <>
+              <h2 className={styles["settings-card-title-danger"]}>
+                {Locale.Settings.Section.Danger}
+              </h2>
+              <DangerItems />
+            </>
+          )}
+        </main>
       </div>
     </ErrorBoundary>
   );

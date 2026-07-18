@@ -1003,56 +1003,101 @@
 .chat-empty {
   display: flex;
   flex: 1;
-  width: min(720px, 100%);
-  min-height: 420px;
+  width: min(700px, 100%);
+  min-height: 460px;
   margin: 0 auto;
-  padding: 72px 0 40px;
+  padding: clamp(42px, 8vh, 92px) 0 28px;
+  box-sizing: border-box;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-end;
   text-align: center;
+}
+
+.chat-empty-state .chat-body {
+  display: flex;
+  flex-direction: column;
+  padding-bottom: 20px;
+}
+
+.chat-empty-state .chat-input-panel {
+  width: min(760px, calc(100% - 40px));
+  margin-bottom: 20px;
+  border-color: color-mix(in srgb, var(--black) 10%, transparent);
+  box-shadow: 0 12px 34px rgba(0, 0, 0, 0.07);
 }
 
 .chat-empty-avatar {
   display: grid;
-  width: 64px;
-  height: 64px;
-  margin-bottom: 20px;
+  width: 62px;
+  height: 62px;
+  margin-bottom: 18px;
   place-items: center;
   border: 1px solid color-mix(in srgb, var(--black) 8%, transparent);
-  border-radius: 20px;
-  background: color-mix(in srgb, var(--black) 4%, var(--white));
-  box-shadow: 0 14px 38px rgba(0, 0, 0, 0.07);
+  border-radius: 18px;
+  background: color-mix(in srgb, var(--black) 3%, var(--white));
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.06);
 }
 
-.chat-empty h2 {
+.chat-empty-copy {
+  width: min(620px, 100%);
+}
+
+.chat-empty h1 {
   margin: 0;
   color: var(--black);
-  font-size: 24px;
-  letter-spacing: -0.025em;
+  font-size: clamp(24px, 3vw, 32px);
+  line-height: 1.18;
+  letter-spacing: -0.035em;
+  overflow-wrap: anywhere;
 }
 
-.chat-empty p {
-  margin: 9px 0 24px;
+.chat-empty-copy p {
+  max-width: 560px;
+  margin: 10px auto 0;
   color: var(--black);
   font-size: 14px;
-  opacity: 0.48;
+  line-height: 1.7;
+  opacity: 0.5;
+}
+
+.chat-empty-copy strong {
+  display: block;
+  margin-top: 16px;
+  color: var(--black);
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.65;
 }
 
 .chat-empty-suggestions {
-  display: grid;
-  width: min(620px, 100%);
-  grid-template-columns: repeat(3, 1fr);
-  gap: 10px;
+  display: flex;
+  width: min(640px, 100%);
+  margin-top: 24px;
+  flex-direction: column;
+  gap: 7px;
+  text-align: left;
+}
+
+.chat-empty-suggestions-label {
+  padding: 0 3px 4px;
+  color: var(--black);
+  font-size: 12px;
+  font-weight: 600;
+  opacity: 0.42;
 }
 
 .chat-empty-suggestions button {
-  min-height: 70px;
-  padding: 13px 15px;
-  border: 1px solid color-mix(in srgb, var(--black) 9%, transparent);
-  border-radius: 13px;
+  min-height: 46px;
+  padding: 10px 13px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  border: 1px solid color-mix(in srgb, var(--black) 8%, transparent);
+  border-radius: 11px;
   color: var(--black);
-  background: transparent;
+  background: color-mix(in srgb, var(--white) 96%, var(--gray));
   cursor: pointer;
   font: inherit;
   font-size: 13px;
@@ -1064,22 +1109,37 @@
 }
 
 .chat-empty-suggestions button:hover {
-  border-color: color-mix(in srgb, var(--primary) 38%, transparent);
-  background: color-mix(in srgb, var(--black) 4%, var(--white));
-  transform: translateY(-2px);
+  border-color: color-mix(in srgb, var(--primary) 30%, transparent);
+  background: color-mix(in srgb, var(--primary) 5%, var(--white));
+  transform: translateY(-1px);
+}
+
+.chat-empty-suggestions button > span:last-child {
+  flex: 0 0 auto;
+  color: var(--primary);
+  font-size: 15px;
+  opacity: 0;
+  transform: translate(-3px, 3px);
+  transition: all 0.18s ease;
+}
+
+.chat-empty-suggestions button:hover > span:last-child {
+  opacity: 0.7;
+  transform: translate(0, 0);
 }
 
 @media only screen and (max-width: 600px) {
   .chat-empty {
-    min-height: 360px;
-    padding-top: 34px;
-  }
-
-  .chat-empty-suggestions {
-    grid-template-columns: 1fr;
+    min-height: 400px;
+    padding: 28px 0 18px;
   }
 
   .chat-empty-suggestions button {
     min-height: 52px;
+  }
+
+  .chat-empty-state .chat-input-panel {
+    width: calc(100% - 20px);
+    margin-bottom: 10px;
   }
 }

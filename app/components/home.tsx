@@ -6,7 +6,6 @@ import { useEffect, useState } from "react";
 import styles from "./home.module.scss";
 
 import { BrandLogo } from "./brand-logo";
-import LoadingIcon from "../icons/three-dots.svg";
 
 import { getCSSVar, useMobileScreen } from "../utils";
 
@@ -32,10 +31,47 @@ import clsx from "clsx";
 import { initializeMcpSystem, isMcpEnabled } from "../mcp/actions";
 
 export function Loading(props: { noLogo?: boolean }) {
+  const isInitialLoading = !props.noLogo;
+
   return (
-    <div className={clsx("no-dark", styles["loading-content"])}>
-      {!props.noLogo && <BrandLogo width={64} height={68} />}
-      <LoadingIcon />
+    <div
+      className={clsx(styles["loading-content"], {
+        [styles["loading-content-full"]]: isInitialLoading,
+        [styles["loading-content-inline"]]: !isInitialLoading,
+      })}
+      role="status"
+      aria-live="polite"
+      aria-label="LinChat is loading"
+      aria-busy="true"
+    >
+      {isInitialLoading && (
+        <div className={styles["loading-stage"]}>
+          <div className={styles["loading-logo-shell"]} aria-hidden="true">
+            <BrandLogo
+              className={styles["loading-logo"]}
+              width={58}
+              height={62}
+            />
+          </div>
+          <div className={styles["loading-brand"]}>LinChat</div>
+          <div className={styles["loading-caption"]}>
+            Preparing your workspace
+          </div>
+          <LoadingDots />
+        </div>
+      )}
+
+      {!isInitialLoading && <LoadingDots />}
+    </div>
+  );
+}
+
+function LoadingDots() {
+  return (
+    <div className={styles["loading-dots"]} aria-hidden="true">
+      <span></span>
+      <span></span>
+      <span></span>
     </div>
   );
 }
@@ -153,9 +189,17 @@ const loadAsyncGoogleFont = () => {
   document.head.appendChild(linkEl);
 };
 
-export function WindowContent(props: { children: React.ReactNode }) {
+export function WindowContent(props: {
+  children: React.ReactNode;
+  fullWidth?: boolean;
+}) {
   return (
-    <div className={styles["window-content"]} id={SlotID.AppBody}>
+    <div
+      className={clsx(styles["window-content"], {
+        [styles["window-content-full"]]: props.fullWidth,
+      })}
+      id={SlotID.AppBody}
+    >
       {props?.children}
     </div>
   );
@@ -166,6 +210,7 @@ function Screen() {
   const location = useLocation();
   const isArtifact = location.pathname.includes(Path.Artifacts);
   const isHome = location.pathname === Path.Home;
+  const isSettings = location.pathname === Path.Settings;
   const isAuth = location.pathname === Path.Auth;
   const isSd = location.pathname === Path.Sd;
   const isSdNew = location.pathname === Path.SdNew;
@@ -191,12 +236,14 @@ function Screen() {
     if (isSdNew) return <Sd />;
     return (
       <>
-        <SideBar
-          className={clsx({
-            [styles["sidebar-show"]]: isHome,
-          })}
-        />
-        <WindowContent>
+        {!isSettings && (
+          <SideBar
+            className={clsx({
+              [styles["sidebar-show"]]: isHome,
+            })}
+          />
+        )}
+        <WindowContent fullWidth={isSettings}>
           <Routes>
             <Route path={Path.Home} element={<WorkspaceHome />} />
             <Route path={Path.NewChat} element={<NewChat />} />

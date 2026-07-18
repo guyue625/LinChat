@@ -32,6 +32,7 @@ const en: LocaleType = {
   },
   ChatItem: {
     ChatItemCount: (count: number) => `${count} messages`,
+    MoreActions: "More actions",
   },
   Chat: {
     SubTitle: (count: number) => `${count} messages`,
@@ -163,6 +164,40 @@ const en: LocaleType = {
     Title: "Settings",
     SubTitle: "All Settings",
     ShowPassword: "ShowPassword",
+    Category: {
+      Navigation: "Settings categories",
+      General: {
+        Title: "General",
+        SubTitle: "Common preferences and chat behavior",
+      },
+      Model: {
+        Title: "Models & Providers",
+        SubTitle: "Provider access, default models, and generation parameters",
+      },
+      Appearance: {
+        Title: "Appearance",
+        SubTitle: "Theme, language, and typography",
+      },
+      Voice: { Title: "Voice", SubTitle: "Realtime voice and text-to-speech" },
+      Assistants: {
+        Title: "Assistants & Prompts",
+        SubTitle: "Assistant entry points and prompt management",
+      },
+      Data: {
+        Title: "Data & Privacy",
+        SubTitle: "Sync, backup, and local data management",
+      },
+    },
+    Section: {
+      Sync: "Sync & Backup",
+      Assistants: "Assistant Preferences",
+      Prompts: "Prompts",
+      Provider: "Provider Access",
+      DefaultModel: "Default Model & Parameters",
+      Realtime: "Realtime Voice",
+      TTS: "Text-to-Speech",
+      Danger: "Danger Zone",
+    },
     Danger: {
       Reset: {
         Title: "Reset All Settings",

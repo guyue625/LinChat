@@ -15,6 +15,7 @@ import ChatIcon from "../icons/chat.svg";
 import LeftIcon from "../icons/left.svg";
 import CollapseIcon from "../icons/sidebar-collapse.svg";
 import NotificationIcon from "../icons/notification.svg";
+import DownIcon from "../icons/down.svg";
 import { EmojiAvatar } from "./emoji";
 import {
   assistantToMask,
@@ -243,6 +244,9 @@ export function SideBar(props: { className?: string }) {
   const chatStore = useChatStore();
   const activeMaskId = chatStore.currentSession().mask.id;
   const [mcpEnabled, setMcpEnabled] = useState(false);
+  const [recentExpanded, setRecentExpanded] = useState(true);
+  const [assistantsExpanded, setAssistantsExpanded] = useState(true);
+  const [topicsExpanded, setTopicsExpanded] = useState(true);
 
   const openAssistant = (assistant: (typeof FEATURED_ASSISTANTS)[number]) => {
     const maskId = `featured-${assistant.key}`;
@@ -333,6 +337,14 @@ export function SideBar(props: { className?: string }) {
             </button>
             <button
               className={styles["assistant-workspace-action"]}
+              onClick={() => navigate(Path.SearchChat)}
+              title="搜索话题"
+            >
+              <DiscoveryIcon />
+              {!shouldNarrow && <span>搜索话题</span>}
+            </button>
+            <button
+              className={styles["assistant-workspace-action"]}
               onClick={() => navigate(Path.Masks)}
               title="助理档案"
             >
@@ -341,9 +353,23 @@ export function SideBar(props: { className?: string }) {
             </button>
           </div>
           {!shouldNarrow && (
-            <div className={styles["sidebar-section-label"]}>话题</div>
+            <button
+              type="button"
+              className={styles["sidebar-section-label"]}
+              onClick={() => setTopicsExpanded((expanded) => !expanded)}
+              aria-expanded={topicsExpanded}
+            >
+              <DownIcon
+                className={clsx({
+                  [styles["sidebar-section-collapsed"]]: !topicsExpanded,
+                })}
+              />
+              <span>话题</span>
+            </button>
           )}
-          <ChatList narrow={shouldNarrow} maskId={activeMaskId} />
+          {(shouldNarrow || topicsExpanded) && (
+            <ChatList narrow={shouldNarrow} maskId={activeMaskId} />
+          )}
         </SideBarBody>
         <SideBarTail
           primaryAction={
@@ -464,41 +490,69 @@ export function SideBar(props: { className?: string }) {
           </button>
         </nav>
         {!shouldNarrow && (
-          <div className={styles["sidebar-section-label"]}>最近</div>
+          <button
+            type="button"
+            className={styles["sidebar-section-label"]}
+            onClick={() => setRecentExpanded((expanded) => !expanded)}
+            aria-expanded={recentExpanded}
+          >
+            <DownIcon
+              className={clsx({
+                [styles["sidebar-section-collapsed"]]: !recentExpanded,
+              })}
+            />
+            <span>最近</span>
+          </button>
         )}
-        <ChatList narrow={shouldNarrow} />
+        {(shouldNarrow || recentExpanded) && <ChatList narrow={shouldNarrow} />}
         <div className={styles["assistant-shortcuts"]}>
           {!shouldNarrow && (
-            <div className={styles["sidebar-section-label"]}>助理</div>
-          )}
-          {FEATURED_ASSISTANTS.map((assistant) => (
             <button
-              key={assistant.key}
-              className={clsx(styles["assistant-shortcut"], {
-                [styles["sidebar-entry-active"]]:
-                  location.pathname === Path.Chat &&
-                  activeMaskId === `featured-${assistant.key}`,
-              })}
-              title={assistant.name}
-              onClick={() => openAssistant(assistant)}
+              type="button"
+              className={styles["sidebar-section-label"]}
+              onClick={() => setAssistantsExpanded((expanded) => !expanded)}
+              aria-expanded={assistantsExpanded}
             >
-              <span>
-                <EmojiAvatar avatar={assistant.avatar} size={18} />
-              </span>
-              {!shouldNarrow && <em>{assistant.name}</em>}
+              <DownIcon
+                className={clsx({
+                  [styles["sidebar-section-collapsed"]]: !assistantsExpanded,
+                })}
+              />
+              <span>助理</span>
             </button>
-          ))}
-          <button
-            className={clsx(styles["assistant-shortcut"], {
-              [styles["sidebar-entry-active"]]:
-                location.pathname === Path.Masks ||
-                location.pathname === Path.NewChat,
-            })}
-            onClick={() => navigate(Path.Masks)}
-          >
-            <span className={styles["assistant-add"]}>＋</span>
-            {!shouldNarrow && <em>创建助理</em>}
-          </button>
+          )}
+          {(shouldNarrow || assistantsExpanded) && (
+            <>
+              {FEATURED_ASSISTANTS.map((assistant) => (
+                <button
+                  key={assistant.key}
+                  className={clsx(styles["assistant-shortcut"], {
+                    [styles["sidebar-entry-active"]]:
+                      location.pathname === Path.Chat &&
+                      activeMaskId === `featured-${assistant.key}`,
+                  })}
+                  title={assistant.name}
+                  onClick={() => openAssistant(assistant)}
+                >
+                  <span>
+                    <EmojiAvatar avatar={assistant.avatar} size={18} />
+                  </span>
+                  {!shouldNarrow && <em>{assistant.name}</em>}
+                </button>
+              ))}
+              <button
+                className={clsx(styles["assistant-shortcut"], {
+                  [styles["sidebar-entry-active"]]:
+                    location.pathname === Path.Masks ||
+                    location.pathname === Path.NewChat,
+                })}
+                onClick={() => navigate(Path.Masks)}
+              >
+                <span className={styles["assistant-add"]}>＋</span>
+                {!shouldNarrow && <em>创建助理</em>}
+              </button>
+            </>
+          )}
         </div>
       </SideBarBody>
       <SideBarTail

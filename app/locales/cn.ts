@@ -31,6 +31,7 @@ const cn = {
   },
   ChatItem: {
     ChatItemCount: (count: number) => `${count} 条对话`,
+    MoreActions: "更多操作",
   },
   Chat: {
     SubTitle: (count: number) => `共 ${count} 条对话`,
@@ -161,6 +162,28 @@ const cn = {
     Title: "设置",
     SubTitle: "所有设置选项",
     ShowPassword: "显示密码",
+    Category: {
+      Navigation: "设置分类",
+      General: { Title: "通用", SubTitle: "常用偏好与对话行为" },
+      Model: {
+        Title: "模型与服务商",
+        SubTitle: "服务接入、默认模型与生成参数",
+      },
+      Appearance: { Title: "外观", SubTitle: "主题、语言和字体显示" },
+      Voice: { Title: "语音", SubTitle: "实时语音与文字转语音" },
+      Assistants: { Title: "助理与提示词", SubTitle: "助理入口和提示词管理" },
+      Data: { Title: "数据与隐私", SubTitle: "同步、备份和数据管理" },
+    },
+    Section: {
+      Sync: "同步与备份",
+      Assistants: "助理偏好",
+      Prompts: "提示词",
+      Provider: "服务商接入",
+      DefaultModel: "默认模型与参数",
+      Realtime: "实时语音",
+      TTS: "文字转语音",
+      Danger: "危险操作",
+    },
 
     Danger: {
       Reset: {
