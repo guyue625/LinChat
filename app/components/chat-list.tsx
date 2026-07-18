@@ -1,6 +1,7 @@
 import DeleteIcon from "../icons/delete.svg";
 import RenameIcon from "../icons/rename.svg";
-import ChatIcon from "../icons/chat.svg";
+import TopicIcon from "../icons/topic.svg";
+import MoreIcon from "../icons/more-horizontal.svg";
 
 import styles from "./home.module.scss";
 import {
@@ -96,7 +97,7 @@ export function ChatItem(props: {
           ) : (
             <div className={styles["chat-item-compact"]}>
               <span className={styles["chat-item-icon"]}>
-                <ChatIcon />
+                <TopicIcon />
               </span>
               <div className={styles["chat-item-title"]}>{props.title}</div>
             </div>
@@ -109,7 +110,7 @@ export function ChatItem(props: {
             title={Locale.ChatItem.MoreActions}
             onClick={openMenuFromTrigger}
           >
-            <span aria-hidden="true">•••</span>
+            <MoreIcon />
           </button>
         </div>
       )}

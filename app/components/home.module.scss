@@ -221,7 +221,7 @@
   flex: 0 0 17px;
   display: grid;
   place-items: center;
-  color: color-mix(in srgb, var(--black) 55%, transparent);
+  color: var(--black);
 }
 
 .chat-item-icon svg {
@@ -264,20 +264,13 @@
   border: 0;
   border-radius: 7px;
   color: var(--black);
-  background: color-mix(in srgb, var(--second) 90%, transparent);
+  background: color-mix(in srgb, var(--black) 5%, var(--second));
   opacity: 0;
   cursor: pointer;
   transform: translateY(-50%);
   transition:
     opacity 0.16s ease,
     background 0.16s ease;
-}
-
-.chat-item-menu-trigger span {
-  margin-top: -5px;
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: -1px;
 }
 
 .chat-item:hover > .chat-item-menu-trigger,
@@ -364,12 +357,18 @@
 }
 
 .narrow-sidebar {
-  padding: 14px;
+  padding: 10px 10px 8px;
+
+  .sidebar-header {
+    min-height: 44px;
+    padding: 0 0 14px;
+  }
 
   .sidebar-title,
   .sidebar-sub-title {
     display: none;
   }
+
   .sidebar-logo {
     position: relative;
     display: flex;
@@ -379,17 +378,23 @@
   .sidebar-header-bar {
     flex-direction: column;
 
-    .sidebar-bar-button {
-      &:not(:last-child) {
-        margin-right: 0;
-        margin-bottom: 10px;
-      }
+    .sidebar-bar-button:not(:last-child) {
+      margin-right: 0;
+      margin-bottom: 8px;
+    }
+  }
+
+  .sidebar-body {
+    scrollbar-width: none;
+
+    &::-webkit-scrollbar {
+      display: none;
     }
   }
 
   .chat-item {
-    width: 44px;
-    min-height: 44px;
+    width: 40px;
+    min-height: 40px;
     margin: 0 auto 4px;
     padding: 0;
     display: grid;
@@ -404,27 +409,27 @@
 
   .chat-item-selected {
     border-color: transparent;
-    background: color-mix(in srgb, var(--primary) 14%, transparent);
+    background: color-mix(in srgb, var(--primary) 16%, transparent);
   }
 
   .chat-item-selected:hover {
-    background: color-mix(in srgb, var(--primary) 18%, transparent);
+    background: color-mix(in srgb, var(--primary) 21%, transparent);
   }
 
   .chat-item-narrow {
-    width: 36px;
-    height: 36px;
+    width: 34px;
+    height: 34px;
     padding: 0;
     display: grid;
     place-items: center;
     position: relative;
-    line-height: 0;
     color: var(--black);
+    line-height: 0;
     transform: none;
 
     .chat-item-avatar {
-      width: 30px;
-      height: 30px;
+      width: 28px;
+      height: 28px;
       display: grid;
       place-items: center;
       position: static;
@@ -440,26 +445,28 @@
   .workspace-nav-item,
   .assistant-shortcut,
   .assistant-workspace-action {
-    width: 44px;
-    height: 44px;
+    width: 40px;
+    height: 40px;
+    min-height: 40px;
     margin-inline: auto;
     padding: 0;
     justify-content: center;
     gap: 0;
+    border-radius: 10px;
   }
 
   .assistant-shortcut span {
-    width: 32px;
-    height: 32px;
-    flex-basis: 32px;
-    font-size: 19px;
+    width: 30px;
+    height: 30px;
+    flex-basis: 30px;
+    font-size: 18px;
   }
 
   .workspace-nav-item svg,
   .assistant-workspace-action svg {
-    width: 20px;
-    height: 20px;
-    opacity: 0.9;
+    width: 19px;
+    height: 19px;
+    opacity: 1;
   }
 
   .sidebar-drag {
@@ -472,30 +479,54 @@
     width: 100%;
   }
 
+  .assistant-workspace-menu {
+    gap: 4px;
+    margin: 0 0 10px;
+  }
+
+  .assistant-shortcuts {
+    margin-top: 8px;
+    padding-top: 8px;
+  }
+
   .sidebar-tail {
     flex-direction: column-reverse;
     align-items: center;
+    gap: 8px;
+    padding-top: 10px;
+  }
 
-    .sidebar-actions {
-      flex-direction: column-reverse;
-      align-items: center;
+  .sidebar-actions {
+    width: 40px;
+    flex-direction: column-reverse;
+    align-items: center;
+    gap: 8px;
+  }
 
-      .sidebar-action {
-        margin-right: 0;
-        margin-top: 15px;
-      }
-    }
+  .sidebar-action {
+    width: 40px;
+    height: 40px;
+    margin: 0 !important;
+  }
+
+  .sidebar-tail button {
+    width: 40px;
+    height: 40px;
+    min-height: 40px;
+    padding: 0;
+    border-color: transparent;
+    background: transparent;
   }
 }
-
 .sidebar-tail {
   display: flex;
   justify-content: space-between;
-  padding-top: 20px;
+  padding-top: 14px;
 }
 
 .sidebar-actions {
   display: inline-flex;
+  align-items: center;
 }
 
 .sidebar-action:not(:last-child) {
@@ -822,7 +853,7 @@
 
 .assistant-workspace-menu {
   display: grid;
-  gap: 2px;
+  gap: 3px;
   margin: 2px 0 10px;
 }
 
@@ -830,26 +861,32 @@
   width: 100%;
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 11px;
   box-sizing: border-box;
-  padding: 7px 9px;
+  min-height: 40px;
+  padding: 9px 10px;
   border: 0;
   border-radius: 8px;
   color: var(--black);
   background: transparent;
   cursor: pointer;
   font-size: 13px;
+  font-weight: 500;
   text-align: left;
 }
 
-.assistant-workspace-action:hover {
+.assistant-workspace-action:hover,
+.assistant-workspace-action:focus-visible {
+  outline: 0;
   background: var(--hover-color);
 }
 
 .assistant-workspace-action svg {
-  width: 17px;
-  height: 17px;
-  flex: 0 0 17px;
+  width: 18px;
+  height: 18px;
+  flex: 0 0 18px;
+  color: currentColor;
+  filter: none !important;
 }
 
 /* Lobe-style application shell: use the full viewport instead of a floating window. */
@@ -880,30 +917,124 @@
   width: 34px;
   height: 34px;
   padding: 0;
-  border: 0;
+  border: 1px solid transparent;
   border-radius: 9px;
   color: var(--black);
   background: transparent;
   box-shadow: none;
-  opacity: 0.58;
+  opacity: 1;
+  transition:
+    color 0.16s ease,
+    border-color 0.16s ease,
+    background 0.16s ease;
 }
 
-.sidebar-utility-actions button:hover {
+.sidebar-utility-actions button:hover,
+.sidebar-utility-actions button:focus-visible {
+  outline: 0;
+  border-color: color-mix(in srgb, var(--black) 12%, transparent);
+  color: var(--black);
   background: var(--hover-color);
-  opacity: 1;
 }
 
 .narrow-sidebar .sidebar-utility-actions {
+  width: 40px;
   justify-content: center;
+}
 
-  button {
-    width: 40px;
-    height: 40px;
-    opacity: 0.82;
-  }
+.narrow-sidebar .sidebar-utility-actions button {
+  width: 40px;
+  height: 40px;
+}
 
-  button svg {
-    width: 19px;
-    height: 19px;
-  }
+.chat-item-icon {
+  color: var(--black);
+}
+
+.chat-item-selected .chat-item-icon {
+  color: var(--primary);
+}
+
+.chat-item-menu-trigger {
+  color: var(--black);
+}
+
+.chat-item-menu-trigger:hover,
+.chat-item-menu-trigger:focus-visible {
+  outline: 0;
+  color: var(--black);
+  background: color-mix(in srgb, var(--black) 9%, var(--second));
+}
+
+.sidebar-section-label svg,
+.chat-item-icon svg,
+.chat-item-menu-trigger svg,
+.chat-item-context-menu button svg,
+.assistant-workspace-action svg,
+.sidebar-utility-actions button svg,
+.sidebar-tail button svg {
+  color: currentColor;
+  filter: none !important;
+}
+
+.chat-item-menu-trigger svg,
+.chat-item-context-menu button svg,
+.sidebar-utility-actions button svg,
+.sidebar-tail button svg {
+  width: 18px;
+  height: 18px;
+}
+
+.sidebar-section-label svg [stroke],
+.sidebar-section-label svg [style*="stroke"],
+.chat-item-context-menu button svg [stroke],
+.chat-item-context-menu button svg [style*="stroke"],
+.sidebar-utility-actions button svg [stroke],
+.sidebar-utility-actions button svg [style*="stroke"],
+.sidebar-tail button svg [stroke],
+.sidebar-tail button svg [style*="stroke"] {
+  stroke: currentColor !important;
+  stroke-opacity: 1 !important;
+}
+
+.chat-item-context-menu button svg [fill]:not([fill="none"]),
+.chat-item-context-menu button svg [style*="fill"],
+.sidebar-utility-actions button svg [fill]:not([fill="none"]),
+.sidebar-utility-actions button svg [style*="fill"],
+.sidebar-tail button svg [fill]:not([fill="none"]),
+.sidebar-tail button svg [style*="fill"] {
+  fill: currentColor !important;
+  fill-opacity: 1 !important;
+}
+
+.chat-item-context-menu {
+  padding: 6px;
+  border-color: color-mix(in srgb, var(--black) 14%, transparent);
+  background: color-mix(in srgb, var(--white) 96%, var(--gray));
+  box-shadow:
+    0 18px 48px rgba(0, 0, 0, 0.18),
+    0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.chat-item-context-menu button {
+  min-height: 40px;
+  gap: 9px;
+  border-radius: 8px;
+}
+
+.sidebar-tail button {
+  min-height: 36px;
+  border: 1px solid color-mix(in srgb, var(--black) 10%, transparent);
+  color: var(--black);
+  background: color-mix(in srgb, var(--black) 3%, var(--white));
+  box-shadow: none;
+  opacity: 1;
+}
+
+.sidebar-tail button:hover,
+.sidebar-tail button:focus-visible {
+  outline: 0;
+  color: var(--black);
+  border-color: color-mix(in srgb, var(--black) 16%, transparent);
+  background: var(--hover-color);
 }

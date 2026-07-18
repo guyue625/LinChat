@@ -11,9 +11,9 @@ import React, {
 
 import SendWhiteIcon from "../icons/send-white.svg";
 import BrainIcon from "../icons/brain.svg";
-import RenameIcon from "../icons/rename.svg";
+import RenameIcon from "../icons/edit.svg";
 import EditIcon from "../icons/rename.svg";
-import ExportIcon from "../icons/share.svg";
+import ExportIcon from "../icons/export-arrow.svg";
 import ReturnIcon from "../icons/return.svg";
 import CopyIcon from "../icons/copy.svg";
 import SpeakIcon from "../icons/speak.svg";
@@ -23,7 +23,7 @@ import LoadingButtonIcon from "../icons/loading.svg";
 import PromptIcon from "../icons/prompt.svg";
 import MaskIcon from "../icons/mask.svg";
 import ResetIcon from "../icons/reload.svg";
-import ReloadIcon from "../icons/reload.svg";
+import ReloadIcon from "../icons/refresh.svg";
 import BreakIcon from "../icons/break.svg";
 import SettingsIcon from "../icons/chat-settings.svg";
 import DeleteIcon from "../icons/clear.svg";
@@ -1845,8 +1845,11 @@ function _Chat() {
                 messages
                   // TODO
                   // .filter((m) => !m.isMcpResponse)
-                  .filter((message) => message.role !== "system")
                   .map((message, i) => {
+                    // Keep the original render index so context boundaries and
+                    // clear-context dividers stay aligned after hiding prompts.
+                    if (message.role === "system") return null;
+
                     const isUser = message.role === "user";
                     const isContext = i < context.length;
                     const showActions =

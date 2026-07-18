@@ -658,6 +658,40 @@
 .chat-input:focus {
 }
 
+.chat-input-actions .chat-input-action {
+  color: var(--black);
+  border-color: color-mix(in srgb, var(--black) 14%, transparent);
+  box-shadow: none;
+  filter: none !important;
+}
+
+.chat-input-actions .chat-input-action:hover,
+.chat-input-actions .chat-input-action:focus-visible {
+  color: var(--black);
+  border-color: color-mix(in srgb, var(--black) 24%, transparent);
+  background: var(--hover-color);
+  filter: none !important;
+}
+
+.chat-input-actions .chat-input-action svg {
+  width: 16px;
+  height: 16px;
+  color: currentColor;
+  filter: none !important;
+}
+
+.chat-input-actions .chat-input-action svg [stroke],
+.chat-input-actions .chat-input-action svg [style*="stroke"] {
+  stroke: currentColor !important;
+  stroke-opacity: 1 !important;
+}
+
+.chat-input-actions .chat-input-action svg [fill]:not([fill="none"]),
+.chat-input-actions .chat-input-action svg [style*="fill"] {
+  fill: currentColor !important;
+  fill-opacity: 1 !important;
+}
+
 .chat-input-send {
   background-color: var(--primary);
   color: white;
@@ -872,10 +906,48 @@
   opacity: 0.48;
 }
 
+.chat > :global(.window-header) :global(.window-actions) {
+  gap: 8px;
+}
+
+.chat > :global(.window-header) :global(.window-action-button) {
+  margin-left: 0;
+}
+
 .chat > :global(.window-header) :global(.window-action-button) button {
-  border-color: color-mix(in srgb, var(--black) 8%, transparent);
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 1px solid color-mix(in srgb, var(--black) 14%, transparent);
+  border-radius: 10px;
+  color: var(--black);
   background: transparent;
   box-shadow: none;
+  opacity: 1;
+  filter: none !important;
+  transition:
+    color 0.16s ease,
+    border-color 0.16s ease,
+    background 0.16s ease;
+}
+
+.chat > :global(.window-header) :global(.window-action-button) button:hover,
+.chat
+  > :global(.window-header)
+  :global(.window-action-button)
+  button:focus-visible {
+  outline: 0;
+  color: var(--black);
+  border-color: color-mix(in srgb, var(--black) 24%, transparent);
+  background: var(--hover-color);
+  filter: none !important;
+}
+
+.chat > :global(.window-header) :global(.window-action-button) button svg {
+  width: 18px;
+  height: 18px;
+  color: currentColor;
+  filter: none !important;
 }
 
 .chat-input-send {
