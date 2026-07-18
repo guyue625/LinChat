@@ -516,7 +516,7 @@ export function ImagePreviewer(props: {
             {/* Use plain img so export capture always works offline */}
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src="/logo-dark.png"
+              src="/logo.png"
               alt="LinChat"
               width={50}
               height={54}

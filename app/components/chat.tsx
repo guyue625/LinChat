@@ -1816,8 +1816,16 @@ function _Chat() {
                     [styles["chat-empty-assistant"]]: isAssistantSession,
                   })}
                 >
-                  <div className={styles["chat-empty-avatar"]}>
-                    <MaskAvatar avatar={session.mask.avatar} />
+                  <div
+                    className={clsx(styles["chat-empty-avatar"], {
+                      [styles["chat-empty-avatar-brand"]]:
+                        featuredAssistant?.isSystem,
+                    })}
+                  >
+                    <MaskAvatar
+                      avatar={featuredAssistant?.avatar ?? session.mask.avatar}
+                      size={featuredAssistant?.isSystem ? 62 : 54}
+                    />
                   </div>
                   <div className={styles["chat-empty-copy"]}>
                     <h1 title={emptyStateTitle}>{emptyStateTitle}</h1>
@@ -1926,7 +1934,10 @@ function _Chat() {
                                       <Avatar avatar="2699-fe0f" />
                                     ) : (
                                       <MaskAvatar
-                                        avatar={session.mask.avatar}
+                                        avatar={
+                                          featuredAssistant?.avatar ??
+                                          session.mask.avatar
+                                        }
                                         model={
                                           message.model ||
                                           session.mask.modelConfig.model

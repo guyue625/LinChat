@@ -13,7 +13,12 @@ import EyeIcon from "../icons/eye.svg";
 import CopyIcon from "../icons/copy.svg";
 import DragIcon from "../icons/drag.svg";
 
-import { DEFAULT_MASK_AVATAR, Mask, useMaskStore } from "../store/mask";
+import {
+  DEFAULT_MASK_AVATAR,
+  LEGACY_DEFAULT_MASK_AVATAR,
+  Mask,
+  useMaskStore,
+} from "../store/mask";
 import {
   ChatMessage,
   createMessage,
@@ -65,11 +70,20 @@ function reorder<T>(list: T[], startIndex: number, endIndex: number): T[] {
   return result;
 }
 
-export function MaskAvatar(props: { avatar: string; model?: ModelType }) {
-  return props.avatar !== DEFAULT_MASK_AVATAR ? (
-    <Avatar avatar={props.avatar} />
+export function MaskAvatar(props: {
+  avatar: string;
+  model?: ModelType;
+  size?: number;
+}) {
+  const avatar =
+    props.avatar === LEGACY_DEFAULT_MASK_AVATAR
+      ? DEFAULT_MASK_AVATAR
+      : props.avatar;
+
+  return avatar ? (
+    <Avatar avatar={avatar} size={props.size} />
   ) : (
-    <Avatar model={props.model} />
+    <Avatar model={props.model} size={props.size} />
   );
 }
 

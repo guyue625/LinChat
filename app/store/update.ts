@@ -106,7 +106,7 @@ export const useUpdateStore = createPersistStore(
                         window.__TAURI__?.notification.sendNotification({
                           title: "LinChat",
                           body: `${Locale.Settings.Update.IsLatest}`,
-                          icon: "/logo-dark.png",
+                          icon: "/logo.png",
                           sound: "Default",
                         });
                       } else {
@@ -116,7 +116,7 @@ export const useUpdateStore = createPersistStore(
                         window.__TAURI__?.notification.sendNotification({
                           title: "LinChat",
                           body: updateMessage,
-                          icon: "/logo-dark.png",
+                          icon: "/logo.png",
                           sound: "Default",
                         });
                         clientUpdate();

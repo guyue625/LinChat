@@ -50,7 +50,7 @@ export function Loading(props: { noLogo?: boolean }) {
             <BrandLogo
               className={styles["loading-logo"]}
               width={58}
-              height={62}
+              height={58}
             />
           </div>
           <div className={styles["loading-brand"]}>LinChat</div>

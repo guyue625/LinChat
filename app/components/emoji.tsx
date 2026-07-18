@@ -56,6 +56,8 @@ export function AvatarPicker(props: {
   );
 }
 
+const BRAND_AVATAR = "/logo.png";
+
 export function Avatar(props: {
   model?: ModelType;
   avatar?: string;
@@ -125,7 +127,7 @@ export function Avatar(props: {
     <div
       className={`user-avatar${
         isImageAvatar(props.avatar) ? " assistant-avatar" : ""
-      }`}
+      }${props.avatar === BRAND_AVATAR ? " brand-avatar" : ""}`}
     >
       {props.avatar && (
         <EmojiAvatar
@@ -151,7 +153,9 @@ export function EmojiAvatar(props: { avatar: string; size?: number }) {
         alt=""
         aria-hidden="true"
         draggable={false}
-        className="assistant-avatar-image"
+        className={`assistant-avatar-image${
+          props.avatar === BRAND_AVATAR ? " brand-avatar-image" : ""
+        }`}
       />
     );
   }

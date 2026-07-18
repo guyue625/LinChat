@@ -262,6 +262,16 @@ export function SideBar(props: { className?: string }) {
     );
 
     if (sessionIndex >= 0) {
+      const session = chatStore.sessions[sessionIndex];
+      const latestMask = assistantToMask(assistant);
+      chatStore.updateTargetSession(session, (target) => {
+        target.mask = {
+          ...target.mask,
+          avatar: latestMask.avatar,
+          name: latestMask.name,
+          context: latestMask.context,
+        };
+      });
       chatStore.selectSession(sessionIndex);
     } else {
       chatStore.newSession(assistantToMask(assistant));
@@ -281,13 +291,22 @@ export function SideBar(props: { className?: string }) {
   }, []);
 
   const currentMask = chatStore.currentSession().mask;
+  const currentFeaturedAssistant = FEATURED_ASSISTANTS.find(
+    (assistant) => `featured-${assistant.key}` === currentMask.id,
+  );
+  const currentMaskAvatar =
+    currentFeaturedAssistant?.avatar ?? currentMask.avatar;
   const isAssistantWorkspace =
     location.pathname === Path.Chat &&
     currentMask.name !== Locale.Store.DefaultTopic;
 
   if (isAssistantWorkspace) {
     const createAssistantTopic = () => {
-      chatStore.newSession(currentMask);
+      chatStore.newSession(
+        currentFeaturedAssistant
+          ? assistantToMask(currentFeaturedAssistant)
+          : currentMask,
+      );
       navigate(Path.Chat);
     };
 
@@ -300,8 +319,16 @@ export function SideBar(props: { className?: string }) {
         <SideBarHeader
           title={
             shouldNarrow ? undefined : (
-              <span className={styles["assistant-workspace-title"]}>
-                <EmojiAvatar avatar={currentMask.avatar} size={30} />
+              <span
+                className={clsx(styles["assistant-workspace-title"], {
+                  [styles["assistant-workspace-title-brand"]]:
+                    currentFeaturedAssistant?.isSystem,
+                })}
+              >
+                <EmojiAvatar
+                  avatar={currentMaskAvatar}
+                  size={currentFeaturedAssistant?.isSystem ? 34 : 30}
+                />
                 <span>{currentMask.name}</span>
               </span>
             )
@@ -527,6 +554,7 @@ export function SideBar(props: { className?: string }) {
                 <button
                   key={assistant.key}
                   className={clsx(styles["assistant-shortcut"], {
+                    [styles["assistant-shortcut-brand"]]: assistant.isSystem,
                     [styles["sidebar-entry-active"]]:
                       location.pathname === Path.Chat &&
                       activeMaskId === `featured-${assistant.key}`,
@@ -535,7 +563,10 @@ export function SideBar(props: { className?: string }) {
                   onClick={() => openAssistant(assistant)}
                 >
                   <span>
-                    <EmojiAvatar avatar={assistant.avatar} size={28} />
+                    <EmojiAvatar
+                      avatar={assistant.avatar}
+                      size={assistant.isSystem ? 36 : 28}
+                    />
                   </span>
                   {!shouldNarrow && <em>{assistant.name}</em>}
                 </button>

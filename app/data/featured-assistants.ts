@@ -10,19 +10,26 @@ export type FeaturedAssistant = {
   greeting: string;
   suggestions: string[];
   systemPrompt: string;
+  isSystem?: boolean;
+  pinned?: boolean;
 };
 
-export const FEATURED_ASSISTANTS: FeaturedAssistant[] = [
-  {
-    key: "general",
-    name: "Lin AI",
-    avatar: ASSISTANT_AVATARS.general,
-    description: "通用智能助理，帮你梳理问题、制定计划并完成日常工作。",
-    greeting: "今天想先完成什么？我可以帮你一起梳理。",
-    suggestions: ["帮我制定今天的工作计划", "总结一段内容", "一起分析一个问题"],
-    systemPrompt:
-      "你是 Lin AI，一位可靠、清晰且友好的通用智能助理。先理解目标，再给出结构化、可执行的回答。",
-  },
+export const LIN_AI_ASSISTANT: FeaturedAssistant = Object.freeze({
+  key: "general",
+  name: "Lin AI",
+  avatar: ASSISTANT_AVATARS.general,
+  description: "通用智能助理，帮你梳理问题、制定计划并完成日常工作。",
+  greeting: "今天想先完成什么？我可以帮你一起梳理。",
+  suggestions: ["帮我制定今天的工作计划", "总结一段内容", "一起分析一个问题"],
+  systemPrompt:
+    "你是 Lin AI，一位可靠、清晰且友好的通用智能助理。先理解目标，再给出结构化、可执行的回答。",
+  isSystem: true,
+  pinned: true,
+});
+
+// Lin AI is always the first assistant and is not stored in the deletable user mask list.
+export const FEATURED_ASSISTANTS: readonly FeaturedAssistant[] = Object.freeze([
+  LIN_AI_ASSISTANT,
   {
     key: "writer",
     name: "内容创作助手",
@@ -43,7 +50,7 @@ export const FEATURED_ASSISTANTS: FeaturedAssistant[] = [
     systemPrompt:
       "你是一位资深软件工程师和结对编程搭档。优先澄清约束，提供简洁、可靠、可测试的实现。",
   },
-];
+]);
 
 export function assistantToMask(assistant: FeaturedAssistant): Mask {
   return {

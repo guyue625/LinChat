@@ -403,11 +403,24 @@ pre {
   background: #fff;
 }
 
+.user-avatar.assistant-avatar.brand-avatar {
+  overflow: visible;
+  border-color: transparent;
+  background: transparent;
+  box-shadow: none;
+}
+
 .assistant-avatar-image {
   display: block;
   box-sizing: border-box;
   border-radius: 8px;
   background: #fff;
+  object-fit: contain;
+}
+
+.brand-avatar-image {
+  border-radius: 0;
+  background: transparent;
   object-fit: contain;
 }
 

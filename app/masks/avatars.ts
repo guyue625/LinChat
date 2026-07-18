@@ -19,7 +19,7 @@ export const ASSISTANT_AVATARS = {
   promptImprovement: `${ICON_BASE}/prompt-improvement.png`,
   can: `${ICON_BASE}/can.png`,
   expert: `${ICON_BASE}/expert.png`,
-  general: `${ICON_BASE}/friendly-guide.png`,
+  general: "/logo.png",
   contentWriter: `${ICON_BASE}/content-writer.png`,
   developer: `${ICON_BASE}/developer.png`,
 } as const;

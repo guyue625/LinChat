@@ -31,7 +31,8 @@ export type MaskState = typeof DEFAULT_MASK_STATE & {
   language?: Lang | undefined;
 };
 
-export const DEFAULT_MASK_AVATAR = "gpt-bot";
+export const DEFAULT_MASK_AVATAR = "/logo.png";
+export const LEGACY_DEFAULT_MASK_AVATAR = "gpt-bot";
 export const createEmptyMask = () =>
   ({
     id: nanoid(),

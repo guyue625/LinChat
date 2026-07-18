@@ -823,6 +823,18 @@
   border-radius: 9px;
   background: #fff;
 }
+.assistant-shortcut-brand span {
+  overflow: visible;
+  border-color: transparent;
+  background: transparent;
+}
+
+.assistant-shortcut-brand :global(.brand-avatar-image) {
+  width: 36px;
+  height: 36px;
+  max-width: none;
+}
+
 .assistant-shortcut em {
   min-width: 0;
   overflow: hidden;
@@ -842,6 +854,11 @@
   display: flex;
   align-items: center;
   gap: 9px;
+}
+
+.assistant-workspace-title-brand :global(.brand-avatar-image) {
+  width: 34px;
+  height: 34px;
 }
 
 .assistant-workspace-title > span:last-child {
