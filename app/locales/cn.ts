@@ -61,7 +61,7 @@ const cn = {
     },
     Commands: {
       new: "新建聊天",
-      newm: "从面具新建聊天",
+      newm: "从助理新建聊天",
       next: "下一个聊天",
       prev: "上一个聊天",
       clear: "清除上下文",
@@ -77,7 +77,7 @@ const cn = {
         dark: "深色模式",
       },
       Prompt: "快捷指令",
-      Masks: "所有面具",
+      Masks: "所有助理",
       Clear: "清除聊天",
       Settings: "对话设置",
       UploadImage: "上传图片",
@@ -96,7 +96,7 @@ const cn = {
     StopSpeak: "停止",
     Config: {
       Reset: "清除记忆",
-      SaveAs: "存为面具",
+      SaveAs: "存为助理",
     },
     IsContext: "预设提示词",
     ShortcutKey: {
@@ -121,8 +121,8 @@ const cn = {
       SubTitle: "可以导出 Markdown 文本或者 PNG 图片",
     },
     IncludeContext: {
-      Title: "包含面具上下文",
-      SubTitle: "是否在消息中展示面具上下文",
+      Title: "包含助理上下文",
+      SubTitle: "是否在消息中展示助理上下文",
     },
     Steps: {
       Select: "选取",
@@ -259,18 +259,18 @@ const cn = {
 
       LocalState: "本地数据",
       Overview: (overview: any) => {
-        return `${overview.chat} 次对话，${overview.message} 条消息，${overview.prompt} 条提示词，${overview.mask} 个面具`;
+        return `${overview.chat} 次对话，${overview.message} 条消息，${overview.prompt} 条提示词，${overview.mask} 个助理`;
       },
       ImportFailed: "导入失败",
     },
     Mask: {
       Splash: {
-        Title: "面具启动页",
-        SubTitle: "新建聊天时，展示面具启动页",
+        Title: "助理启动页",
+        SubTitle: "新建聊天时，展示助理启动页",
       },
       Builtin: {
-        Title: "隐藏内置面具",
-        SubTitle: "在所有面具列表中隐藏内置面具",
+        Title: "隐藏内置助理",
+        SubTitle: "在所有助理列表中隐藏内置助理",
       },
     },
     Prompt: {
@@ -707,7 +707,7 @@ const cn = {
       Title: "插件",
       SubTitle: (count: number) => `${count} 个插件`,
       Search: "搜索插件",
-      Create: "新建",
+      Create: "新建助理",
       Find: "您可以在Github上找到优秀的插件：",
     },
     Item: {
@@ -742,11 +742,11 @@ const cn = {
     },
   },
   Mask: {
-    Name: "面具",
+    Name: "助理",
     Page: {
-      Title: "预设角色面具",
-      SubTitle: (count: number) => `${count} 个预设角色定义`,
-      Search: "搜索角色面具",
+      Title: "助理中心",
+      SubTitle: (count: number) => `${count} 个助理`,
+      Search: "搜索助理",
       Create: "新建",
     },
     Item: {
@@ -758,14 +758,13 @@ const cn = {
       DeleteConfirm: "确认删除？",
     },
     EditModal: {
-      Title: (readonly: boolean) =>
-        `编辑预设面具 ${readonly ? "（只读）" : ""}`,
-      Download: "下载预设",
-      Clone: "克隆预设",
+      Title: (readonly: boolean) => `编辑助理 ${readonly ? "（只读）" : ""}`,
+      Download: "下载助理配置",
+      Clone: "复制助理",
     },
     Config: {
-      Avatar: "角色头像",
-      Name: "角色名称",
+      Avatar: "助理头像",
+      Name: "助理名称",
       Sync: {
         Title: "使用全局设置",
         SubTitle: "当前对话是否使用全局模型设置",
@@ -784,8 +783,8 @@ const cn = {
         SubTitle: "启用之后可以自动折叠/展开过长的代码块",
       },
       Share: {
-        Title: "分享此面具",
-        SubTitle: "生成此面具的直达链接",
+        Title: "分享此助理",
+        SubTitle: "生成此助理的直达链接",
         Action: "复制链接",
       },
     },
@@ -795,8 +794,8 @@ const cn = {
     Skip: "直接开始",
     NotShow: "不再展示",
     ConfirmNoShow: "确认禁用？禁用后可以随时在设置中重新启用。",
-    Title: "挑选一个面具",
-    SubTitle: "现在开始，与面具背后的灵魂思维碰撞",
+    Title: "挑选一个助理",
+    SubTitle: "选择适合当前任务的助理，立即开始对话",
     More: "查看全部",
   },
 

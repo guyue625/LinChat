@@ -5,13 +5,20 @@ import styles from "./home.module.scss";
 import { IconButton } from "./button";
 import SettingsIcon from "../icons/settings.svg";
 import GithubIcon from "../icons/github.svg";
-import { BrandLogo } from "./brand-logo";
 import AddIcon from "../icons/add.svg";
 import DeleteIcon from "../icons/delete.svg";
 import MaskIcon from "../icons/mask.svg";
 import McpIcon from "../icons/mcp.svg";
 import DragIcon from "../icons/drag.svg";
 import DiscoveryIcon from "../icons/discovery.svg";
+import ChatIcon from "../icons/chat.svg";
+import CollapseIcon from "../icons/sidebar-collapse.svg";
+import NotificationIcon from "../icons/notification.svg";
+import { EmojiAvatar } from "./emoji";
+import {
+  assistantToMask,
+  FEATURED_ASSISTANTS,
+} from "../data/featured-assistants";
 
 import Locale from "../locales";
 
@@ -29,7 +36,7 @@ import {
 import { Link, useNavigate } from "react-router-dom";
 import { isIOS, useMobileScreen } from "../utils";
 import dynamic from "next/dynamic";
-import { Selector, showConfirm } from "./ui-lib";
+import { Selector, showConfirm, showToast } from "./ui-lib";
 import clsx from "clsx";
 import { isMcpEnabled } from "../mcp/actions";
 
@@ -133,6 +140,7 @@ export function useDragSideBar() {
   return {
     onDragStart,
     shouldNarrow,
+    toggleSideBar,
   };
 }
 
@@ -226,7 +234,7 @@ export function SideBarTail(props: {
 
 export function SideBar(props: { className?: string }) {
   useHotKey();
-  const { onDragStart, shouldNarrow } = useDragSideBar();
+  const { onDragStart, shouldNarrow, toggleSideBar } = useDragSideBar();
   const [showDiscoverySelector, setshowDiscoverySelector] = useState(false);
   const navigate = useNavigate();
   const config = useAppConfig();
@@ -252,7 +260,24 @@ export function SideBar(props: { className?: string }) {
       <SideBarHeader
         title="LinChat"
         subTitle="Build your own AI assistant."
-        logo={<BrandLogo width={44} height={47} />}
+        logo={
+          <div className={styles["sidebar-utility-actions"]}>
+            <IconButton
+              icon={<CollapseIcon />}
+              aria={shouldNarrow ? "展开侧栏" : "收起侧栏"}
+              title={shouldNarrow ? "展开侧栏" : "收起侧栏"}
+              onClick={toggleSideBar}
+            />
+            {!shouldNarrow && (
+              <IconButton
+                icon={<NotificationIcon />}
+                aria="通知"
+                title="通知"
+                onClick={() => showToast("暂无新通知")}
+              />
+            )}
+          </div>
+        }
         shouldNarrow={shouldNarrow}
       >
         <div className={styles["sidebar-header-bar"]}>
@@ -307,12 +332,50 @@ export function SideBar(props: { className?: string }) {
       </SideBarHeader>
       <SideBarBody
         onClick={(e) => {
-          if (e.target === e.currentTarget) {
-            navigate(Path.Home);
-          }
+          if (e.target === e.currentTarget) navigate(Path.Home);
         }}
       >
+        <nav className={styles["workspace-nav"]}>
+          <button
+            className={styles["workspace-nav-item"]}
+            onClick={() => navigate(Path.Home)}
+          >
+            <ChatIcon />
+            {!shouldNarrow && <span>首页</span>}
+          </button>
+        </nav>
+        {!shouldNarrow && (
+          <div className={styles["sidebar-section-label"]}>最近</div>
+        )}
         <ChatList narrow={shouldNarrow} />
+        <div className={styles["assistant-shortcuts"]}>
+          {!shouldNarrow && (
+            <div className={styles["sidebar-section-label"]}>助理</div>
+          )}
+          {FEATURED_ASSISTANTS.map((assistant) => (
+            <button
+              key={assistant.key}
+              className={styles["assistant-shortcut"]}
+              title={assistant.name}
+              onClick={() => {
+                chatStore.newSession(assistantToMask(assistant));
+                navigate(Path.Chat);
+              }}
+            >
+              <span>
+                <EmojiAvatar avatar={assistant.avatar} size={18} />
+              </span>
+              {!shouldNarrow && <em>{assistant.name}</em>}
+            </button>
+          ))}
+          <button
+            className={styles["assistant-shortcut"]}
+            onClick={() => navigate(Path.Masks)}
+          >
+            <span className={styles["assistant-add"]}>＋</span>
+            {!shouldNarrow && <em>创建助理</em>}
+          </button>
+        </div>
       </SideBarBody>
       <SideBarTail
         primaryAction={

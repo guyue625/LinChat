@@ -48,6 +48,10 @@ const Settings = dynamic(async () => (await import("./settings")).Settings, {
   loading: () => <Loading noLogo />,
 });
 
+const WorkspaceHome = dynamic(
+  async () => (await import("./workspace-home")).WorkspaceHome,
+  { loading: () => <Loading noLogo /> },
+);
 const Chat = dynamic(async () => (await import("./chat")).Chat, {
   loading: () => <Loading noLogo />,
 });
@@ -194,7 +198,7 @@ function Screen() {
         />
         <WindowContent>
           <Routes>
-            <Route path={Path.Home} element={<Chat />} />
+            <Route path={Path.Home} element={<WorkspaceHome />} />
             <Route path={Path.NewChat} element={<NewChat />} />
             <Route path={Path.Masks} element={<MaskPage />} />
             <Route path={Path.Plugins} element={<PluginPage />} />

@@ -22,8 +22,6 @@ import LoadingIcon from "../icons/three-dots.svg";
 import LoadingButtonIcon from "../icons/loading.svg";
 import PromptIcon from "../icons/prompt.svg";
 import MaskIcon from "../icons/mask.svg";
-import MaxIcon from "../icons/max.svg";
-import MinIcon from "../icons/min.svg";
 import ResetIcon from "../icons/reload.svg";
 import ReloadIcon from "../icons/reload.svg";
 import BreakIcon from "../icons/break.svg";
@@ -114,7 +112,6 @@ import { useMaskStore } from "../store/mask";
 import { ChatCommandPrefix, useChatCommand, useCommand } from "../command";
 import { prettyObject } from "../utils/format";
 import { ExportMessageModal } from "./exporter";
-import { getClientConfig } from "../config/client";
 import { useAllModels } from "../utils/hooks";
 import { ClientApi, MultimodalContent } from "../client/api";
 import { createTTSPlayer } from "../utils/audio";
@@ -129,6 +126,12 @@ import { getAvailableClientsCount, isMcpEnabled } from "../mcp/actions";
 const localStorage = safeLocalStorage();
 
 const ttsPlayer = createTTSPlayer();
+
+const EMPTY_CHAT_SUGGESTIONS = [
+  "帮我梳理一下今天的工作",
+  "解释一个复杂问题",
+  "帮我从零开始写一份方案",
+];
 
 const Markdown = dynamic(async () => (await import("./markdown")).Markdown, {
   loading: () => <LoadingIcon />,
@@ -1453,10 +1456,7 @@ function _Chat() {
 
   const [showPromptModal, setShowPromptModal] = useState(false);
 
-  const clientConfig = useMemo(() => getClientConfig(), []);
-
   const autoFocus = !isMobileScreen; // wont auto focus on mobile screen
-  const showMaxIcon = !isMobileScreen && !clientConfig?.isApp;
 
   useCommand({
     fill: setUserInput,
@@ -1762,21 +1762,6 @@ function _Chat() {
                 }}
               />
             </div>
-            {showMaxIcon && (
-              <div className="window-action-button">
-                <IconButton
-                  icon={config.tightBorder ? <MinIcon /> : <MaxIcon />}
-                  bordered
-                  title={Locale.Chat.Actions.FullScreen}
-                  aria={Locale.Chat.Actions.FullScreen}
-                  onClick={() => {
-                    config.update(
-                      (config) => (config.tightBorder = !config.tightBorder),
-                    );
-                  }}
-                />
-              </div>
-            )}
           </div>
 
           <PromptToast
@@ -1797,6 +1782,26 @@ function _Chat() {
                 setAutoScroll(false);
               }}
             >
+              {messages.length === 0 && (
+                <section className={styles["chat-empty"]}>
+                  <div className={styles["chat-empty-avatar"]}>
+                    <MaskAvatar avatar={session.mask.avatar} />
+                  </div>
+                  <h2>{session.mask.name || "开始新对话"}</h2>
+                  <p>选择一个建议，或者在下方输入你的问题。</p>
+                  <div className={styles["chat-empty-suggestions"]}>
+                    {EMPTY_CHAT_SUGGESTIONS.map((suggestion) => (
+                      <button
+                        key={suggestion}
+                        type="button"
+                        onClick={() => doSubmit(suggestion)}
+                      >
+                        {suggestion}
+                      </button>
+                    ))}
+                  </div>
+                </section>
+              )}
               {messages
                 // TODO
                 // .filter((m) => !m.isMcpResponse)
@@ -2135,7 +2140,8 @@ function _Chat() {
                 )}
                 <IconButton
                   icon={<SendWhiteIcon />}
-                  text={Locale.Chat.Send}
+                  aria={Locale.Chat.Send}
+                  title={Locale.Chat.Send}
                   className={styles["chat-input-send"]}
                   type="primary"
                   onClick={() => doSubmit(userInput)}

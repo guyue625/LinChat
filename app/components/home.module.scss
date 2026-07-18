@@ -355,3 +355,111 @@
 .rtl-screen {
   direction: rtl;
 }
+
+.workspace-nav {
+  margin: 2px 0 18px;
+}
+.workspace-nav-item,
+.assistant-shortcut {
+  width: 100%;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  border: 0;
+  border-radius: 10px;
+  padding: 9px 11px;
+  color: var(--black);
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+}
+.workspace-nav-item {
+  background: color-mix(in srgb, var(--black) 7%, transparent);
+  font-weight: 600;
+}
+.workspace-nav-item:hover,
+.assistant-shortcut:hover {
+  background: var(--hover-color);
+}
+.workspace-nav-item svg {
+  width: 18px;
+  height: 18px;
+}
+.sidebar-section-label {
+  margin: 12px 10px 7px;
+  color: #8c8c93;
+  font-size: 12px;
+}
+.assistant-shortcuts {
+  margin-top: 18px;
+  padding-top: 4px;
+  border-top: var(--border-in-light);
+}
+.assistant-shortcut span {
+  width: 25px;
+  height: 25px;
+  flex: 0 0 25px;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--black) 5%, transparent);
+}
+.assistant-shortcut em {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: inherit;
+  font-style: normal;
+  font-size: 13px;
+}
+.assistant-add {
+  font-size: 18px;
+  color: #8c8c93;
+}
+
+/* Lobe-style application shell: use the full viewport instead of a floating window. */
+.container {
+  width: 100vw;
+  height: var(--full-height);
+  min-width: 0;
+  min-height: 0;
+  max-width: none;
+  max-height: none;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.sidebar {
+  background: color-mix(in srgb, var(--gray) 82%, var(--second));
+  box-shadow: inset -1px 0 color-mix(in srgb, var(--black) 9%, transparent);
+}
+
+.sidebar-utility-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.sidebar-utility-actions button {
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: 0;
+  border-radius: 9px;
+  color: var(--black);
+  background: transparent;
+  box-shadow: none;
+  opacity: 0.58;
+}
+
+.sidebar-utility-actions button:hover {
+  background: var(--hover-color);
+  opacity: 1;
+}
+
+.narrow-sidebar .sidebar-utility-actions {
+  justify-content: center;
+}

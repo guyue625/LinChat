@@ -106,3 +106,149 @@
     }
   }
 }
+
+/* Assistant center refresh: internal data remains Mask, presentation follows workspace UI. */
+.mask-page {
+  background: var(--white);
+}
+
+.mask-page > :global(.window-header) {
+  min-height: 68px;
+  padding: 12px clamp(20px, 3vw, 32px);
+  border-bottom-color: color-mix(in srgb, var(--black) 7%, transparent);
+}
+
+.mask-page > :global(.window-header) :global(.window-header-main-title) {
+  font-size: 18px;
+  font-weight: 650;
+  letter-spacing: -0.015em;
+}
+
+.mask-page > :global(.window-header) :global(.window-header-submai-title) {
+  margin-top: 2px;
+  color: var(--black);
+  font-size: 12px;
+  opacity: 0.48;
+}
+
+.mask-page .mask-page-body {
+  width: min(1080px, 100%);
+  margin: 0 auto;
+  padding: 32px clamp(20px, 4vw, 48px) 64px;
+  box-sizing: border-box;
+}
+
+.mask-page .mask-page-body .mask-filter {
+  height: 46px;
+  margin-bottom: 24px;
+}
+
+.mask-page .mask-page-body .mask-filter .search-bar,
+.mask-page .mask-page-body .mask-filter .mask-filter-lang {
+  border: 1px solid color-mix(in srgb, var(--black) 10%, transparent);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--black) 3%, var(--white));
+  box-shadow: none;
+}
+
+.mask-page .mask-page-body .mask-filter .search-bar {
+  padding: 0 15px;
+  color: var(--black);
+  font: inherit;
+}
+
+.mask-page .mask-page-body .mask-filter .mask-create {
+  min-width: 112px;
+  border-radius: 12px;
+}
+
+.mask-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.mask-page .mask-page-body .mask-item {
+  min-width: 0;
+  padding: 18px;
+  align-items: center;
+  border: 1px solid color-mix(in srgb, var(--black) 9%, transparent);
+  border-radius: 15px;
+  background: transparent;
+  transition:
+    transform 0.18s ease,
+    background 0.18s ease,
+    border-color 0.18s ease;
+}
+
+.mask-page .mask-page-body .mask-item:not(:last-child) {
+  border-bottom: 1px solid color-mix(in srgb, var(--black) 9%, transparent);
+}
+
+.mask-page .mask-page-body .mask-item:hover {
+  border-color: color-mix(in srgb, var(--primary) 34%, transparent);
+  background: color-mix(in srgb, var(--black) 3%, var(--white));
+  transform: translateY(-2px);
+}
+
+.mask-page .mask-page-body .mask-item .mask-header {
+  min-width: 0;
+}
+
+.mask-page .mask-page-body .mask-item .mask-header .mask-icon {
+  width: 44px;
+  height: 44px;
+  margin-right: 12px;
+  border: 1px solid color-mix(in srgb, var(--black) 8%, transparent);
+  border-radius: 13px;
+  background: color-mix(in srgb, var(--black) 4%, var(--white));
+}
+
+.mask-page .mask-page-body .mask-item .mask-header .mask-title {
+  min-width: 0;
+}
+
+.mask-page .mask-page-body .mask-item .mask-header .mask-title .mask-name {
+  overflow: hidden;
+  font-size: 14px;
+  font-weight: 650;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mask-page .mask-page-body .mask-item .mask-header .mask-title .mask-info {
+  margin-top: 5px;
+  color: var(--black);
+  opacity: 0.44;
+}
+
+.mask-page .mask-page-body .mask-item .mask-actions {
+  margin-left: 12px;
+  opacity: 0.58;
+}
+
+.mask-page .mask-page-body .mask-item:hover .mask-actions {
+  opacity: 1;
+}
+
+@media screen and (max-width: 820px) {
+  .mask-list {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media screen and (max-width: 600px) {
+  .mask-page .mask-page-body {
+    padding: 20px 14px 40px;
+  }
+
+  .mask-page .mask-page-body .mask-filter .mask-filter-lang {
+    display: none;
+  }
+
+  .mask-page .mask-page-body .mask-item {
+    margin-bottom: 0;
+    border-radius: 15px;
+    box-shadow: none;
+  }
+}
