@@ -241,11 +241,20 @@
   border: var(--border-in-light);
   border-radius: 10px;
   padding: 10px;
+  box-sizing: border-box;
   font-family: inherit;
   background-color: var(--white);
   color: var(--black);
-  resize: none;
   min-width: 50px;
+}
+
+textarea.input {
+  resize: none;
+}
+
+input.input {
+  min-height: 36px;
+  padding: 0 10px;
 }
 
 .select-with-icon {
@@ -336,4 +345,3 @@
     }
   }
 }
-

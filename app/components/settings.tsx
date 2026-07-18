@@ -110,7 +110,8 @@ function EditPromptModal(props: { id: string; onClose: () => void }) {
         ]}
       >
         <div className={styles["edit-prompt-modal"]}>
-          <input
+          <Input
+            as="input"
             type="text"
             value={prompt.title}
             readOnly={!prompt.isUser}
@@ -121,7 +122,7 @@ function EditPromptModal(props: { id: string; onClose: () => void }) {
                 (prompt) => (prompt.title = e.currentTarget.value),
               )
             }
-          ></input>
+          />
           <Input
             value={prompt.content}
             readOnly={!prompt.isUser}
@@ -184,13 +185,14 @@ function UserPromptModal(props: { onClose?: () => void }) {
         ]}
       >
         <div className={styles["user-prompt-modal"]}>
-          <input
+          <Input
+            as="input"
             type="text"
             className={styles["user-prompt-search"]}
             placeholder={Locale.Settings.Prompt.Modal.Search}
             value={searchInput}
             onInput={(e) => setSearchInput(e.currentTarget.value)}
-          ></input>
+          />
 
           <div className={styles["user-prompt-list"]}>
             {prompts.map((v, _) => (
@@ -386,7 +388,8 @@ function SyncConfigModal(props: { onClose?: () => void }) {
               title={Locale.Settings.Sync.Config.ProxyUrl.Title}
               subTitle={Locale.Settings.Sync.Config.ProxyUrl.SubTitle}
             >
-              <input
+              <Input
+                as="input"
                 type="text"
                 value={syncStore.proxyUrl}
                 onChange={(e) => {
@@ -394,7 +397,7 @@ function SyncConfigModal(props: { onClose?: () => void }) {
                     (config) => (config.proxyUrl = e.currentTarget.value),
                   );
                 }}
-              ></input>
+              />
             </ListItem>
           ) : null}
         </List>
@@ -403,7 +406,8 @@ function SyncConfigModal(props: { onClose?: () => void }) {
           <>
             <List>
               <ListItem title={Locale.Settings.Sync.Config.WebDav.Endpoint}>
-                <input
+                <Input
+                  as="input"
                   type="text"
                   value={syncStore.webdav.endpoint}
                   onChange={(e) => {
@@ -412,11 +416,12 @@ function SyncConfigModal(props: { onClose?: () => void }) {
                         (config.webdav.endpoint = e.currentTarget.value),
                     );
                   }}
-                ></input>
+                />
               </ListItem>
 
               <ListItem title={Locale.Settings.Sync.Config.WebDav.UserName}>
-                <input
+                <Input
+                  as="input"
                   type="text"
                   value={syncStore.webdav.username}
                   onChange={(e) => {
@@ -425,7 +430,7 @@ function SyncConfigModal(props: { onClose?: () => void }) {
                         (config.webdav.username = e.currentTarget.value),
                     );
                   }}
-                ></input>
+                />
               </ListItem>
               <ListItem title={Locale.Settings.Sync.Config.WebDav.Password}>
                 <PasswordInput
@@ -445,7 +450,8 @@ function SyncConfigModal(props: { onClose?: () => void }) {
         {syncStore.provider === ProviderType.UpStash && (
           <List>
             <ListItem title={Locale.Settings.Sync.Config.UpStash.Endpoint}>
-              <input
+              <Input
+                as="input"
                 type="text"
                 value={syncStore.upstash.endpoint}
                 onChange={(e) => {
@@ -454,11 +460,12 @@ function SyncConfigModal(props: { onClose?: () => void }) {
                       (config.upstash.endpoint = e.currentTarget.value),
                   );
                 }}
-              ></input>
+              />
             </ListItem>
 
             <ListItem title={Locale.Settings.Sync.Config.UpStash.UserName}>
-              <input
+              <Input
+                as="input"
                 type="text"
                 value={syncStore.upstash.username}
                 placeholder={STORAGE_KEY}
@@ -468,7 +475,7 @@ function SyncConfigModal(props: { onClose?: () => void }) {
                       (config.upstash.username = e.currentTarget.value),
                   );
                 }}
-              ></input>
+              />
             </ListItem>
             <ListItem title={Locale.Settings.Sync.Config.UpStash.Password}>
               <PasswordInput
@@ -746,7 +753,8 @@ export function Settings() {
         title={Locale.Settings.Access.OpenAI.Endpoint.Title}
         subTitle={Locale.Settings.Access.OpenAI.Endpoint.SubTitle}
       >
-        <input
+        <Input
+          as="input"
           aria-label={Locale.Settings.Access.OpenAI.Endpoint.Title}
           type="text"
           value={accessStore.openaiUrl}
@@ -756,7 +764,7 @@ export function Settings() {
               (access) => (access.openaiUrl = e.currentTarget.value),
             )
           }
-        ></input>
+        />
       </ListItem>
       <ListItem
         title={Locale.Settings.Access.OpenAI.ApiKey.Title}
@@ -787,7 +795,8 @@ export function Settings() {
           Locale.Settings.Access.Azure.Endpoint.SubTitle + Azure.ExampleEndpoint
         }
       >
-        <input
+        <Input
+          as="input"
           aria-label={Locale.Settings.Access.Azure.Endpoint.Title}
           type="text"
           value={accessStore.azureUrl}
@@ -797,7 +806,7 @@ export function Settings() {
               (access) => (access.azureUrl = e.currentTarget.value),
             )
           }
-        ></input>
+        />
       </ListItem>
       <ListItem
         title={Locale.Settings.Access.Azure.ApiKey.Title}
@@ -819,7 +828,8 @@ export function Settings() {
         title={Locale.Settings.Access.Azure.ApiVerion.Title}
         subTitle={Locale.Settings.Access.Azure.ApiVerion.SubTitle}
       >
-        <input
+        <Input
+          as="input"
           aria-label={Locale.Settings.Access.Azure.ApiVerion.Title}
           type="text"
           value={accessStore.azureApiVersion}
@@ -829,7 +839,7 @@ export function Settings() {
               (access) => (access.azureApiVersion = e.currentTarget.value),
             )
           }
-        ></input>
+        />
       </ListItem>
     </>
   );
@@ -844,7 +854,8 @@ export function Settings() {
           Google.ExampleEndpoint
         }
       >
-        <input
+        <Input
+          as="input"
           aria-label={Locale.Settings.Access.Google.Endpoint.Title}
           type="text"
           value={accessStore.googleUrl}
@@ -854,7 +865,7 @@ export function Settings() {
               (access) => (access.googleUrl = e.currentTarget.value),
             )
           }
-        ></input>
+        />
       </ListItem>
       <ListItem
         title={Locale.Settings.Access.Google.ApiKey.Title}
@@ -876,7 +887,8 @@ export function Settings() {
         title={Locale.Settings.Access.Google.ApiVersion.Title}
         subTitle={Locale.Settings.Access.Google.ApiVersion.SubTitle}
       >
-        <input
+        <Input
+          as="input"
           aria-label={Locale.Settings.Access.Google.ApiVersion.Title}
           type="text"
           value={accessStore.googleApiVersion}
@@ -886,7 +898,7 @@ export function Settings() {
               (access) => (access.googleApiVersion = e.currentTarget.value),
             )
           }
-        ></input>
+        />
       </ListItem>
       <ListItem
         title={Locale.Settings.Access.Google.GoogleSafetySettings.Title}
@@ -923,7 +935,8 @@ export function Settings() {
           Anthropic.ExampleEndpoint
         }
       >
-        <input
+        <Input
+          as="input"
           aria-label={Locale.Settings.Access.Anthropic.Endpoint.Title}
           type="text"
           value={accessStore.anthropicUrl}
@@ -933,7 +946,7 @@ export function Settings() {
               (access) => (access.anthropicUrl = e.currentTarget.value),
             )
           }
-        ></input>
+        />
       </ListItem>
       <ListItem
         title={Locale.Settings.Access.Anthropic.ApiKey.Title}
@@ -955,7 +968,8 @@ export function Settings() {
         title={Locale.Settings.Access.Anthropic.ApiVerion.Title}
         subTitle={Locale.Settings.Access.Anthropic.ApiVerion.SubTitle}
       >
-        <input
+        <Input
+          as="input"
           aria-label={Locale.Settings.Access.Anthropic.ApiVerion.Title}
           type="text"
           value={accessStore.anthropicApiVersion}
@@ -965,7 +979,7 @@ export function Settings() {
               (access) => (access.anthropicApiVersion = e.currentTarget.value),
             )
           }
-        ></input>
+        />
       </ListItem>
     </>
   );
@@ -977,7 +991,8 @@ export function Settings() {
         title={Locale.Settings.Access.Baidu.Endpoint.Title}
         subTitle={Locale.Settings.Access.Baidu.Endpoint.SubTitle}
       >
-        <input
+        <Input
+          as="input"
           aria-label={Locale.Settings.Access.Baidu.Endpoint.Title}
           type="text"
           value={accessStore.baiduUrl}
@@ -987,7 +1002,7 @@ export function Settings() {
               (access) => (access.baiduUrl = e.currentTarget.value),
             )
           }
-        ></input>
+        />
       </ListItem>
       <ListItem
         title={Locale.Settings.Access.Baidu.ApiKey.Title}
@@ -1031,7 +1046,8 @@ export function Settings() {
         title={Locale.Settings.Access.Tencent.Endpoint.Title}
         subTitle={Locale.Settings.Access.Tencent.Endpoint.SubTitle}
       >
-        <input
+        <Input
+          as="input"
           aria-label={Locale.Settings.Access.Tencent.Endpoint.Title}
           type="text"
           value={accessStore.tencentUrl}
@@ -1041,7 +1057,7 @@ export function Settings() {
               (access) => (access.tencentUrl = e.currentTarget.value),
             )
           }
-        ></input>
+        />
       </ListItem>
       <ListItem
         title={Locale.Settings.Access.Tencent.ApiKey.Title}
@@ -1088,7 +1104,8 @@ export function Settings() {
           ByteDance.ExampleEndpoint
         }
       >
-        <input
+        <Input
+          as="input"
           aria-label={Locale.Settings.Access.ByteDance.Endpoint.Title}
           type="text"
           value={accessStore.bytedanceUrl}
@@ -1098,7 +1115,7 @@ export function Settings() {
               (access) => (access.bytedanceUrl = e.currentTarget.value),
             )
           }
-        ></input>
+        />
       </ListItem>
       <ListItem
         title={Locale.Settings.Access.ByteDance.ApiKey.Title}
@@ -1129,7 +1146,8 @@ export function Settings() {
           Alibaba.ExampleEndpoint
         }
       >
-        <input
+        <Input
+          as="input"
           aria-label={Locale.Settings.Access.Alibaba.Endpoint.Title}
           type="text"
           value={accessStore.alibabaUrl}
@@ -1139,7 +1157,7 @@ export function Settings() {
               (access) => (access.alibabaUrl = e.currentTarget.value),
             )
           }
-        ></input>
+        />
       </ListItem>
       <ListItem
         title={Locale.Settings.Access.Alibaba.ApiKey.Title}
@@ -1170,7 +1188,8 @@ export function Settings() {
           Moonshot.ExampleEndpoint
         }
       >
-        <input
+        <Input
+          as="input"
           aria-label={Locale.Settings.Access.Moonshot.Endpoint.Title}
           type="text"
           value={accessStore.moonshotUrl}
@@ -1180,7 +1199,7 @@ export function Settings() {
               (access) => (access.moonshotUrl = e.currentTarget.value),
             )
           }
-        ></input>
+        />
       </ListItem>
       <ListItem
         title={Locale.Settings.Access.Moonshot.ApiKey.Title}
@@ -1211,7 +1230,8 @@ export function Settings() {
           DeepSeek.ExampleEndpoint
         }
       >
-        <input
+        <Input
+          as="input"
           aria-label={Locale.Settings.Access.DeepSeek.Endpoint.Title}
           type="text"
           value={accessStore.deepseekUrl}
@@ -1221,7 +1241,7 @@ export function Settings() {
               (access) => (access.deepseekUrl = e.currentTarget.value),
             )
           }
-        ></input>
+        />
       </ListItem>
       <ListItem
         title={Locale.Settings.Access.DeepSeek.ApiKey.Title}
@@ -1250,7 +1270,8 @@ export function Settings() {
           Locale.Settings.Access.XAI.Endpoint.SubTitle + XAI.ExampleEndpoint
         }
       >
-        <input
+        <Input
+          as="input"
           aria-label={Locale.Settings.Access.XAI.Endpoint.Title}
           type="text"
           value={accessStore.xaiUrl}
@@ -1260,7 +1281,7 @@ export function Settings() {
               (access) => (access.xaiUrl = e.currentTarget.value),
             )
           }
-        ></input>
+        />
       </ListItem>
       <ListItem
         title={Locale.Settings.Access.XAI.ApiKey.Title}
@@ -1291,7 +1312,8 @@ export function Settings() {
           ChatGLM.ExampleEndpoint
         }
       >
-        <input
+        <Input
+          as="input"
           aria-label={Locale.Settings.Access.ChatGLM.Endpoint.Title}
           type="text"
           value={accessStore.chatglmUrl}
@@ -1301,7 +1323,7 @@ export function Settings() {
               (access) => (access.chatglmUrl = e.currentTarget.value),
             )
           }
-        ></input>
+        />
       </ListItem>
       <ListItem
         title={Locale.Settings.Access.ChatGLM.ApiKey.Title}
@@ -1331,7 +1353,8 @@ export function Settings() {
           SiliconFlow.ExampleEndpoint
         }
       >
-        <input
+        <Input
+          as="input"
           aria-label={Locale.Settings.Access.SiliconFlow.Endpoint.Title}
           type="text"
           value={accessStore.siliconflowUrl}
@@ -1341,7 +1364,7 @@ export function Settings() {
               (access) => (access.siliconflowUrl = e.currentTarget.value),
             )
           }
-        ></input>
+        />
       </ListItem>
       <ListItem
         title={Locale.Settings.Access.SiliconFlow.ApiKey.Title}
@@ -1372,7 +1395,8 @@ export function Settings() {
           Stability.ExampleEndpoint
         }
       >
-        <input
+        <Input
+          as="input"
           aria-label={Locale.Settings.Access.Stability.Endpoint.Title}
           type="text"
           value={accessStore.stabilityUrl}
@@ -1382,7 +1406,7 @@ export function Settings() {
               (access) => (access.stabilityUrl = e.currentTarget.value),
             )
           }
-        ></input>
+        />
       </ListItem>
       <ListItem
         title={Locale.Settings.Access.Stability.ApiKey.Title}
@@ -1412,7 +1436,8 @@ export function Settings() {
           Iflytek.ExampleEndpoint
         }
       >
-        <input
+        <Input
+          as="input"
           aria-label={Locale.Settings.Access.Iflytek.Endpoint.Title}
           type="text"
           value={accessStore.iflytekUrl}
@@ -1422,7 +1447,7 @@ export function Settings() {
               (access) => (access.iflytekUrl = e.currentTarget.value),
             )
           }
-        ></input>
+        />
       </ListItem>
       <ListItem
         title={Locale.Settings.Access.Iflytek.ApiKey.Title}
@@ -1469,7 +1494,8 @@ export function Settings() {
           Locale.Settings.Access.AI302.Endpoint.SubTitle + AI302.ExampleEndpoint
         }
       >
-        <input
+        <Input
+          as="input"
           aria-label={Locale.Settings.Access.AI302.Endpoint.Title}
           type="text"
           value={accessStore.ai302Url}
@@ -1479,7 +1505,7 @@ export function Settings() {
               (access) => (access.ai302Url = e.currentTarget.value),
             )
           }
-        ></input>
+        />
       </ListItem>
       <ListItem
         title={Locale.Settings.Access.AI302.ApiKey.Title}
@@ -1662,7 +1688,8 @@ export function Settings() {
             title={Locale.Settings.FontFamily.Title}
             subTitle={Locale.Settings.FontFamily.SubTitle}
           >
-            <input
+            <Input
+              as="input"
               aria-label={Locale.Settings.FontFamily.Title}
               type="text"
               value={config.fontFamily}
@@ -1672,7 +1699,7 @@ export function Settings() {
                   (config) => (config.fontFamily = e.currentTarget.value),
                 )
               }
-            ></input>
+            />
           </ListItem>
 
           <ListItem

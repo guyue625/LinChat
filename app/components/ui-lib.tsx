@@ -255,16 +255,35 @@ export function showToast(
   root.render(<Toast content={content} action={action} onClose={close} />);
 }
 
-export type InputProps = React.HTMLProps<HTMLTextAreaElement> & {
+type TextAreaInputProps = React.TextareaHTMLAttributes<HTMLTextAreaElement> & {
   autoHeight?: boolean;
-  rows?: number;
+  as?: "textarea";
 };
 
+type TextInputProps = React.InputHTMLAttributes<HTMLInputElement> & {
+  as: "input";
+  autoHeight?: never;
+};
+
+export type InputProps = TextAreaInputProps | TextInputProps;
+
 export function Input(props: InputProps) {
+  const { as, autoHeight, className, ...rest } = props;
+  const inputClassName = clsx(styles["input"], className);
+
+  if (as === "input") {
+    return (
+      <input
+        {...(rest as React.InputHTMLAttributes<HTMLInputElement>)}
+        className={inputClassName}
+      />
+    );
+  }
+
   return (
     <textarea
-      {...props}
-      className={clsx(styles["input"], props.className)}
+      {...(rest as React.TextareaHTMLAttributes<HTMLTextAreaElement>)}
+      className={inputClassName}
     ></textarea>
   );
 }
@@ -272,6 +291,7 @@ export function Input(props: InputProps) {
 export function PasswordInput(
   props: HTMLProps<HTMLInputElement> & { aria?: string },
 ) {
+  const { aria, className, ...inputProps } = props;
   const [visible, setVisible] = useState(false);
   function changeVisibility() {
     setVisible(!visible);
@@ -280,15 +300,15 @@ export function PasswordInput(
   return (
     <div className={"password-input-container"}>
       <IconButton
-        aria={props.aria}
+        aria={aria}
         icon={visible ? <EyeIcon /> : <EyeOffIcon />}
         onClick={changeVisibility}
         className={"password-eye"}
       />
       <input
-        {...props}
+        {...inputProps}
         type={visible ? "text" : "password"}
-        className={"password-input"}
+        className={clsx(styles["input"], "password-input", className)}
       />
     </div>
   );

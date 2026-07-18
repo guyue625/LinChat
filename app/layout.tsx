@@ -16,7 +16,7 @@ export const metadata: Metadata = {
     statusBarStyle: "default",
   },
   icons: {
-    icon: [{ url: "/favicon.ico", sizes: "any" }],
+    icon: [{ url: "/logo-light.png", sizes: "any" }],
   },
 };
 

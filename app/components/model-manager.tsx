@@ -22,7 +22,7 @@ import EditIcon from "../icons/edit.svg";
 import LoadingIcon from "../icons/three-dots.svg";
 import ResetIcon from "../icons/reload.svg";
 import { IconButton } from "./button";
-import { ListItem, showToast } from "./ui-lib";
+import { Input, ListItem, showToast } from "./ui-lib";
 import styles from "./model-manager.module.scss";
 
 type AccessState = ReturnType<typeof useAccessStore.getState>;
@@ -247,7 +247,8 @@ export function ModelManager(props: {
         title={Locale.Settings.Access.CustomModel.Name}
         subTitle={Locale.Settings.Access.CustomModel.NameHelp}
       >
-        <input
+        <Input
+          as="input"
           className={styles.input}
           aria-label={Locale.Settings.Access.CustomModel.Name}
           value={draftName}
@@ -264,7 +265,8 @@ export function ModelManager(props: {
         subTitle={Locale.Settings.Access.CustomModel.AliasHelp}
       >
         <div className={styles.addActions}>
-          <input
+          <Input
+            as="input"
             className={styles.input}
             aria-label={Locale.Settings.Access.CustomModel.Alias}
             value={draftAlias}
@@ -294,7 +296,8 @@ export function ModelManager(props: {
             subTitle={Locale.Settings.Access.CustomModel.Edit}
           >
             <div className={styles.editActions}>
-              <input
+              <Input
+                as="input"
                 className={styles.editInput}
                 aria-label={Locale.Settings.Access.CustomModel.Name}
                 value={editing.name}
@@ -309,7 +312,8 @@ export function ModelManager(props: {
                   if (event.key === "Enter") saveModel();
                 }}
               />
-              <input
+              <Input
+                as="input"
                 className={styles.editInput}
                 aria-label={Locale.Settings.Access.CustomModel.Alias}
                 value={editing.alias}

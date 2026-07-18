@@ -3,7 +3,7 @@
   "short_name": "LinChat",
   "icons": [
     {
-      "src": "/favicon.ico",
+      "src": "/logo-light.png",
       "sizes": "48x48",
       "type": "image/x-icon"
     }
