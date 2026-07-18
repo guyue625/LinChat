@@ -16,12 +16,11 @@ export const metadata: Metadata = {
     statusBarStyle: "default",
   },
   icons: {
-    icon: [
-      { url: "/favicon.ico?v=2", sizes: "any" },
-      { url: "/favicon.png?v=2", type: "image/png", sizes: "256x256" },
+    icon: [{ url: "/favicon.png?v=3", type: "image/png", sizes: "468x401" }],
+    shortcut: "/favicon.png?v=3",
+    apple: [
+      { url: "/apple-touch-icon.png?v=3", type: "image/png", sizes: "468x401" },
     ],
-    shortcut: "/favicon.ico?v=2",
-    apple: [{ url: "/apple-touch-icon.png?v=2", sizes: "180x180" }],
   },
 };
 
