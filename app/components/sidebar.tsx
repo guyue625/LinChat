@@ -33,7 +33,7 @@ import {
   REPO_URL,
 } from "../constant";
 
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { isIOS, useMobileScreen } from "../utils";
 import dynamic from "next/dynamic";
 import { Selector, showConfirm, showToast } from "./ui-lib";
@@ -237,8 +237,10 @@ export function SideBar(props: { className?: string }) {
   const { onDragStart, shouldNarrow, toggleSideBar } = useDragSideBar();
   const [showDiscoverySelector, setshowDiscoverySelector] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
   const config = useAppConfig();
   const chatStore = useChatStore();
+  const activeMaskId = chatStore.currentSession().mask.id;
   const [mcpEnabled, setMcpEnabled] = useState(false);
 
   useEffect(() => {
@@ -337,7 +339,9 @@ export function SideBar(props: { className?: string }) {
       >
         <nav className={styles["workspace-nav"]}>
           <button
-            className={styles["workspace-nav-item"]}
+            className={clsx(styles["workspace-nav-item"], {
+              [styles["sidebar-entry-active"]]: location.pathname === Path.Home,
+            })}
             onClick={() => navigate(Path.Home)}
           >
             <ChatIcon />
@@ -355,7 +359,11 @@ export function SideBar(props: { className?: string }) {
           {FEATURED_ASSISTANTS.map((assistant) => (
             <button
               key={assistant.key}
-              className={styles["assistant-shortcut"]}
+              className={clsx(styles["assistant-shortcut"], {
+                [styles["sidebar-entry-active"]]:
+                  location.pathname === Path.Chat &&
+                  activeMaskId === `featured-${assistant.key}`,
+              })}
               title={assistant.name}
               onClick={() => {
                 chatStore.newSession(assistantToMask(assistant));
@@ -369,7 +377,11 @@ export function SideBar(props: { className?: string }) {
             </button>
           ))}
           <button
-            className={styles["assistant-shortcut"]}
+            className={clsx(styles["assistant-shortcut"], {
+              [styles["sidebar-entry-active"]]:
+                location.pathname === Path.Masks ||
+                location.pathname === Path.NewChat,
+            })}
             onClick={() => navigate(Path.Masks)}
           >
             <span className={styles["assistant-add"]}>＋</span>

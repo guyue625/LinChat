@@ -375,12 +375,18 @@
   text-align: left;
 }
 .workspace-nav-item {
-  background: color-mix(in srgb, var(--black) 7%, transparent);
   font-weight: 600;
 }
 .workspace-nav-item:hover,
 .assistant-shortcut:hover {
   background: var(--hover-color);
+}
+.sidebar-entry-active {
+  color: var(--primary);
+  background: color-mix(in srgb, var(--primary) 12%, transparent);
+}
+.sidebar-entry-active:hover {
+  background: color-mix(in srgb, var(--primary) 16%, transparent);
 }
 .workspace-nav-item svg {
   width: 18px;
