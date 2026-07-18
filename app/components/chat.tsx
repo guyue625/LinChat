@@ -1726,6 +1726,7 @@ function _Chat() {
               {!session.topic ? DEFAULT_TOPIC : session.topic}
             </div>
             <div className="window-header-sub-title">
+              {session.mask.name || "默认助理"} ·{" "}
               {Locale.Chat.SubTitle(session.messages.length)}
             </div>
           </div>

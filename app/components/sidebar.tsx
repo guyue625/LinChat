@@ -12,6 +12,7 @@ import McpIcon from "../icons/mcp.svg";
 import DragIcon from "../icons/drag.svg";
 import DiscoveryIcon from "../icons/discovery.svg";
 import ChatIcon from "../icons/chat.svg";
+import LeftIcon from "../icons/left.svg";
 import CollapseIcon from "../icons/sidebar-collapse.svg";
 import NotificationIcon from "../icons/notification.svg";
 import { EmojiAvatar } from "./emoji";
@@ -243,6 +244,28 @@ export function SideBar(props: { className?: string }) {
   const activeMaskId = chatStore.currentSession().mask.id;
   const [mcpEnabled, setMcpEnabled] = useState(false);
 
+  const openAssistant = (assistant: (typeof FEATURED_ASSISTANTS)[number]) => {
+    const maskId = `featured-${assistant.key}`;
+    const sessionIndex = chatStore.sessions.reduce(
+      (latestIndex, session, index) => {
+        if (session.mask.id !== maskId) return latestIndex;
+        if (latestIndex < 0) return index;
+        return session.lastUpdate > chatStore.sessions[latestIndex].lastUpdate
+          ? index
+          : latestIndex;
+      },
+      -1,
+    );
+
+    if (sessionIndex >= 0) {
+      chatStore.selectSession(sessionIndex);
+    } else {
+      chatStore.newSession(assistantToMask(assistant));
+    }
+
+    navigate(Path.Chat);
+  };
+
   useEffect(() => {
     // 检查 MCP 是否启用
     const checkMcpStatus = async () => {
@@ -252,6 +275,98 @@ export function SideBar(props: { className?: string }) {
     };
     checkMcpStatus();
   }, []);
+
+  const currentMask = chatStore.currentSession().mask;
+  const isAssistantWorkspace =
+    location.pathname === Path.Chat &&
+    currentMask.name !== Locale.Store.DefaultTopic;
+
+  if (isAssistantWorkspace) {
+    const createAssistantTopic = () => {
+      chatStore.newSession(currentMask);
+      navigate(Path.Chat);
+    };
+
+    return (
+      <SideBarContainer
+        onDragStart={onDragStart}
+        shouldNarrow={shouldNarrow}
+        {...props}
+      >
+        <SideBarHeader
+          title={
+            shouldNarrow ? undefined : (
+              <span className={styles["assistant-workspace-title"]}>
+                <EmojiAvatar avatar={currentMask.avatar} size={24} />
+                <span>{currentMask.name}</span>
+              </span>
+            )
+          }
+          subTitle={shouldNarrow ? undefined : "助理工作区"}
+          logo={
+            <div className={styles["sidebar-utility-actions"]}>
+              <IconButton
+                icon={<LeftIcon />}
+                aria="返回首页"
+                title="返回首页"
+                onClick={() => navigate(Path.Home)}
+              />
+              <IconButton
+                icon={<CollapseIcon />}
+                aria={shouldNarrow ? "展开侧栏" : "收起侧栏"}
+                title={shouldNarrow ? "展开侧栏" : "收起侧栏"}
+                onClick={toggleSideBar}
+              />
+            </div>
+          }
+          shouldNarrow={shouldNarrow}
+        />
+        <SideBarBody>
+          <div className={styles["assistant-workspace-menu"]}>
+            <button
+              className={styles["assistant-workspace-action"]}
+              onClick={createAssistantTopic}
+              title="开启新话题"
+            >
+              <AddIcon />
+              {!shouldNarrow && <span>开启新话题</span>}
+            </button>
+            <button
+              className={styles["assistant-workspace-action"]}
+              onClick={() => navigate(Path.Masks)}
+              title="助理档案"
+            >
+              <MaskIcon />
+              {!shouldNarrow && <span>助理档案</span>}
+            </button>
+          </div>
+          {!shouldNarrow && (
+            <div className={styles["sidebar-section-label"]}>话题</div>
+          )}
+          <ChatList narrow={shouldNarrow} maskId={activeMaskId} />
+        </SideBarBody>
+        <SideBarTail
+          primaryAction={
+            <IconButton
+              icon={<SettingsIcon />}
+              aria={Locale.Settings.Title}
+              title={Locale.Settings.Title}
+              onClick={() => navigate(Path.Settings)}
+              shadow
+            />
+          }
+          secondaryAction={
+            <IconButton
+              icon={<AddIcon />}
+              text={shouldNarrow ? undefined : "新话题"}
+              onClick={createAssistantTopic}
+              shadow
+            />
+          }
+        />
+      </SideBarContainer>
+    );
+  }
 
   return (
     <SideBarContainer
@@ -365,10 +480,7 @@ export function SideBar(props: { className?: string }) {
                   activeMaskId === `featured-${assistant.key}`,
               })}
               title={assistant.name}
-              onClick={() => {
-                chatStore.newSession(assistantToMask(assistant));
-                navigate(Path.Chat);
-              }}
+              onClick={() => openAssistant(assistant)}
             >
               <span>
                 <EmojiAvatar avatar={assistant.avatar} size={18} />
@@ -427,7 +539,15 @@ export function SideBar(props: { className?: string }) {
             icon={<AddIcon />}
             text={shouldNarrow ? undefined : Locale.Home.NewChat}
             onClick={() => {
-              if (config.dontShowMaskSplashScreen) {
+              const currentMask = chatStore.currentSession().mask;
+              const isAssistantChat =
+                location.pathname === Path.Chat &&
+                currentMask.id.startsWith("featured-");
+
+              if (isAssistantChat) {
+                chatStore.newSession(currentMask);
+                navigate(Path.Chat);
+              } else if (config.dontShowMaskSplashScreen) {
                 chatStore.newSession();
                 navigate(Path.Chat);
               } else {

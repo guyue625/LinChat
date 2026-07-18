@@ -25,12 +25,12 @@ export function ChatItem(props: {
   onDelete?: () => void;
   title: string;
   count: number;
-  time: string;
   selected: boolean;
   id: string;
   index: number;
   narrow?: boolean;
   mask: Mask;
+  dragDisabled?: boolean;
 }) {
   const draggableRef = useRef<HTMLDivElement | null>(null);
   useEffect(() => {
@@ -43,7 +43,11 @@ export function ChatItem(props: {
 
   const { pathname: currentPath } = useLocation();
   return (
-    <Draggable draggableId={`${props.id}`} index={props.index}>
+    <Draggable
+      draggableId={`${props.id}`}
+      index={props.index}
+      isDragDisabled={props.dragDisabled}
+    >
       {(provided) => (
         <div
           className={clsx(styles["chat-item"], {
@@ -75,15 +79,10 @@ export function ChatItem(props: {
               </div>
             </div>
           ) : (
-            <>
+            <div className={styles["chat-item-compact"]}>
+              <span className={styles["chat-item-hash"]}>#</span>
               <div className={styles["chat-item-title"]}>{props.title}</div>
-              <div className={styles["chat-item-info"]}>
-                <div className={styles["chat-item-count"]}>
-                  {Locale.ChatItem.ChatItemCount(props.count)}
-                </div>
-                <div className={styles["chat-item-date"]}>{props.time}</div>
-              </div>
-            </>
+            </div>
           )}
 
           <div
@@ -102,7 +101,7 @@ export function ChatItem(props: {
   );
 }
 
-export function ChatList(props: { narrow?: boolean }) {
+export function ChatList(props: { narrow?: boolean; maskId?: string }) {
   const [sessions, selectedIndex, selectSession, moveSession] = useChatStore(
     (state) => [
       state.sessions,
@@ -115,7 +114,13 @@ export function ChatList(props: { narrow?: boolean }) {
   const navigate = useNavigate();
   const isMobileScreen = useMobileScreen();
 
+  const visibleSessions = sessions
+    .map((session, storeIndex) => ({ session, storeIndex }))
+    .filter(({ session }) => !props.maskId || session.mask.id === props.maskId);
+
   const onDragEnd: OnDragEndResponder = (result) => {
+    if (props.maskId) return;
+
     const { destination, source } = result;
     if (!destination) {
       return;
@@ -140,31 +145,33 @@ export function ChatList(props: { narrow?: boolean }) {
             ref={provided.innerRef}
             {...provided.droppableProps}
           >
-            {sessions.map((item, i) => (
-              <ChatItem
-                title={item.topic}
-                time={new Date(item.lastUpdate).toLocaleString()}
-                count={item.messages.length}
-                key={item.id}
-                id={item.id}
-                index={i}
-                selected={i === selectedIndex}
-                onClick={() => {
-                  navigate(Path.Chat);
-                  selectSession(i);
-                }}
-                onDelete={async () => {
-                  if (
-                    (!props.narrow && !isMobileScreen) ||
-                    (await showConfirm(Locale.Home.DeleteChat))
-                  ) {
-                    chatStore.deleteSession(i);
-                  }
-                }}
-                narrow={props.narrow}
-                mask={item.mask}
-              />
-            ))}
+            {visibleSessions.map(
+              ({ session: item, storeIndex }, visibleIndex) => (
+                <ChatItem
+                  title={item.topic}
+                  count={item.messages.length}
+                  key={item.id}
+                  id={item.id}
+                  index={visibleIndex}
+                  selected={storeIndex === selectedIndex}
+                  dragDisabled={Boolean(props.maskId)}
+                  onClick={() => {
+                    selectSession(storeIndex);
+                    navigate(Path.Chat);
+                  }}
+                  onDelete={async () => {
+                    if (
+                      (!props.narrow && !isMobileScreen) ||
+                      (await showConfirm(Locale.Home.DeleteChat))
+                    ) {
+                      chatStore.deleteSession(storeIndex);
+                    }
+                  }}
+                  narrow={props.narrow}
+                  mask={item.mask}
+                />
+              ),
+            )}
             {provided.placeholder}
           </div>
         )}
