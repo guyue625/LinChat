@@ -37,7 +37,7 @@ export function WorkspaceHome() {
         <header className={styles.hero}>
           <div className={styles.identity}>
             <span className={styles.avatar}>
-              <EmojiAvatar avatar={active.avatar} size={24} />
+              <EmojiAvatar avatar={active.avatar} size={36} />
             </span>
             <strong>{active.name}</strong>
           </div>
@@ -97,7 +97,7 @@ export function WorkspaceHome() {
                 onDoubleClick={() => void startChat(assistant)}
               >
                 <span className={styles.cardAvatar}>
-                  <EmojiAvatar avatar={assistant.avatar} size={28} />
+                  <EmojiAvatar avatar={assistant.avatar} size={38} />
                 </span>
                 <span className={styles.cardText}>
                   <strong>{assistant.name}</strong>

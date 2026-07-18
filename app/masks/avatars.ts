@@ -1,0 +1,25 @@
+const ICON_BASE = "/assistant-icons";
+
+export const ASSISTANT_AVATARS = {
+  aiImage: `${ICON_BASE}/ai-image.png`,
+  copywriter: `${ICON_BASE}/copywriter.png`,
+  machineLearning: `${ICON_BASE}/machine-learning.png`,
+  logistics: `${ICON_BASE}/logistics.png`,
+  careerAdvisor: `${ICON_BASE}/career-advisor.png`,
+  englishWriter: `${ICON_BASE}/english-writer.png`,
+  languageDetector: `${ICON_BASE}/language-detector.png`,
+  socialWriter: `${ICON_BASE}/social-writer.png`,
+  resumeWriter: `${ICON_BASE}/resume-writer.png`,
+  psychologist: `${ICON_BASE}/psychologist.png`,
+  startupIdeas: `${ICON_BASE}/startup-ideas.png`,
+  webWriter: `${ICON_BASE}/web-writer.png`,
+  spiritualMentor: `${ICON_BASE}/spiritual-mentor.png`,
+  jailbreak: `${ICON_BASE}/jailbreak.png`,
+  githubCopilot: `${ICON_BASE}/github-copilot.png`,
+  promptImprovement: `${ICON_BASE}/prompt-improvement.png`,
+  can: `${ICON_BASE}/can.png`,
+  expert: `${ICON_BASE}/expert.png`,
+  general: `${ICON_BASE}/friendly-guide.png`,
+  contentWriter: `${ICON_BASE}/content-writer.png`,
+  developer: `${ICON_BASE}/developer.png`,
+} as const;

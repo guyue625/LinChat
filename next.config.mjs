@@ -59,6 +59,33 @@ if (mode !== "export") {
         source: "/api/:path*",
         headers: CorsHeaders,
       },
+      {
+        source: "/serviceWorker.js",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "no-cache, no-store, must-revalidate",
+          },
+        ],
+      },
+      {
+        source: "/serviceWorkerRegister.js",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "no-cache, no-store, must-revalidate",
+          },
+        ],
+      },
+      {
+        source: "/site.webmanifest",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "no-cache, no-store, must-revalidate",
+          },
+        ],
+      },
     ];
   };
 

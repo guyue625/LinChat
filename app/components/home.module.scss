@@ -456,9 +456,9 @@
   }
 
   .assistant-shortcut span {
-    width: 30px;
-    height: 30px;
-    flex-basis: 30px;
+    width: 32px;
+    height: 32px;
+    flex-basis: 32px;
     font-size: 18px;
   }
 
@@ -813,13 +813,15 @@
   border-top: var(--border-in-light);
 }
 .assistant-shortcut span {
-  width: 25px;
-  height: 25px;
-  flex: 0 0 25px;
+  width: 32px;
+  height: 32px;
+  flex: 0 0 32px;
   display: grid;
   place-items: center;
-  border-radius: 8px;
-  background: color-mix(in srgb, var(--black) 5%, transparent);
+  overflow: hidden;
+  border: var(--border-in-light);
+  border-radius: 9px;
+  background: #fff;
 }
 .assistant-shortcut em {
   min-width: 0;

@@ -201,7 +201,8 @@
   margin-right: 12px;
   border: 1px solid color-mix(in srgb, var(--black) 8%, transparent);
   border-radius: 13px;
-  background: color-mix(in srgb, var(--black) 4%, var(--white));
+  overflow: hidden;
+  background: #fff;
 }
 
 .mask-page .mask-page-body .mask-item .mask-header .mask-title {

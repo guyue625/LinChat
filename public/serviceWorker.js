@@ -1,62 +1,105 @@
-const CHATGPT_NEXT_WEB_CACHE = "chatgpt-next-web-cache";
-const CHATGPT_NEXT_WEB_FILE_CACHE = "chatgpt-next-web-file";
-let a="useandom-26T198340PX75pxJACKVERYMINDBUSHWOLF_GQZbfghjklqvwyzrict";let nanoid=(e=21)=>{let t="",r=crypto.getRandomValues(new Uint8Array(e));for(let n=0;n<e;n++)t+=a[63&r[n]];return t};
+const FILE_CACHE = "chatgpt-next-web-file";
+const OBSOLETE_APP_CACHE = "chatgpt-next-web-cache";
+const APP_CACHE_PREFIX = "linchat-app-cache-";
+const alphabet =
+  "useandom-26T198340PX75pxJACKVERYMINDBUSHWOLF_GQZbfghjklqvwyzrict";
 
-self.addEventListener("activate", function (event) {
-  console.log("ServiceWorker activated.");
+function nanoid(size = 21) {
+  let id = "";
+  const bytes = crypto.getRandomValues(new Uint8Array(size));
+  for (let index = 0; index < size; index += 1) {
+    id += alphabet[63 & bytes[index]];
+  }
+  return id;
+}
+
+self.addEventListener("install", (event) => {
+  event.waitUntil(self.skipWaiting());
 });
 
-self.addEventListener("install", function (event) {
-  self.skipWaiting();  // enable new version
+self.addEventListener("activate", (event) => {
   event.waitUntil(
-    caches.open(CHATGPT_NEXT_WEB_CACHE).then(function (cache) {
-      return cache.addAll([]);
-    }),
+    (async () => {
+      const cacheNames = await caches.keys();
+      await Promise.all(
+        cacheNames
+          .filter(
+            (name) =>
+              name === OBSOLETE_APP_CACHE || name.startsWith(APP_CACHE_PREFIX),
+          )
+          .map((name) => caches.delete(name)),
+      );
+      await self.clients.claim();
+      console.log("ServiceWorker activated.");
+    })(),
   );
 });
 
-function jsonify(data) {
-  return new Response(JSON.stringify(data), { headers: { 'content-type': 'application/json' } })
+function jsonify(data, init = {}) {
+  return new Response(JSON.stringify(data), {
+    ...init,
+    headers: {
+      "content-type": "application/json",
+      ...(init.headers || {}),
+    },
+  });
 }
 
 async function upload(request, url) {
-  const formData = await request.formData()
-  const file = formData.getAll('file')[0]
-  let ext = file.name.split('.').pop()
-  if (ext === 'blob') {
-    ext = file.type.split('/').pop()
+  const formData = await request.formData();
+  const file = formData.getAll("file")[0];
+
+  if (!(file instanceof File)) {
+    return jsonify({ code: 1, message: "Missing file" }, { status: 400 });
   }
-  const fileUrl = `${url.origin}/api/cache/${nanoid()}.${ext}`
-  // console.debug('file', file, fileUrl, request)
-  const cache = await caches.open(CHATGPT_NEXT_WEB_FILE_CACHE)
-  await cache.put(new Request(fileUrl), new Response(file, {
-    headers: {
-      'content-type': file.type,
-      'content-length': file.size,
-      'cache-control': 'no-cache', // file already store in disk
-      'server': 'ServiceWorker',
-    }
-  }))
-  return jsonify({ code: 0, data: fileUrl })
+
+  let extension = file.name.split(".").pop();
+  if (!extension || extension === "blob") {
+    extension = file.type.split("/").pop() || "bin";
+  }
+
+  const fileUrl = `${url.origin}/api/cache/${nanoid()}.${extension}`;
+  const cache = await caches.open(FILE_CACHE);
+  await cache.put(
+    new Request(fileUrl),
+    new Response(file, {
+      headers: {
+        "content-type": file.type || "application/octet-stream",
+        "content-length": String(file.size),
+        "cache-control": "no-cache",
+        server: "ServiceWorker",
+      },
+    }),
+  );
+
+  return jsonify({ code: 0, data: fileUrl });
 }
 
-async function remove(request, url) {
-  const cache = await caches.open(CHATGPT_NEXT_WEB_FILE_CACHE)
-  const res = await cache.delete(request.url)
-  return jsonify({ code: 0 })
+async function read(request) {
+  const cache = await caches.open(FILE_CACHE);
+  const response = await cache.match(request);
+  return response || new Response("Not found", { status: 404 });
 }
 
-self.addEventListener("fetch", (e) => {
-  const url = new URL(e.request.url);
-  if (/^\/api\/cache/.test(url.pathname)) {
-    if ('GET' == e.request.method) {
-      e.respondWith(caches.match(e.request))
-    }
-    if ('POST' == e.request.method) {
-      e.respondWith(upload(e.request, url))
-    }
-    if ('DELETE' == e.request.method) {
-      e.respondWith(remove(e.request, url))
-    }
+async function remove(request) {
+  const cache = await caches.open(FILE_CACHE);
+  await cache.delete(request.url);
+  return jsonify({ code: 0 });
+}
+
+self.addEventListener("fetch", (event) => {
+  const url = new URL(event.request.url);
+  const isFileCacheRequest =
+    url.origin === self.location.origin &&
+    (url.pathname === "/api/cache" || url.pathname.startsWith("/api/cache/"));
+
+  if (!isFileCacheRequest) return;
+
+  if (event.request.method === "GET") {
+    event.respondWith(read(event.request));
+  } else if (event.request.method === "POST") {
+    event.respondWith(upload(event.request, url));
+  } else if (event.request.method === "DELETE") {
+    event.respondWith(remove(event.request));
   }
 });

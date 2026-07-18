@@ -41,11 +41,13 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: var(--gray);
+  overflow: hidden;
+  width: 46px;
+  height: 46px;
+  flex: 0 0 46px;
   border: var(--border-in-light);
   border-radius: 12px;
-  width: 42px;
-  height: 42px;
+  background: #fff;
 }
 .hero h1 {
   margin: 0;

@@ -29,6 +29,17 @@ export function getEmojiUrl(unified: string, style: EmojiStyle) {
   return `https://fastly.jsdelivr.net/npm/emoji-datasource-apple/img/${style}/64/${unified}.png`;
 }
 
+export function isImageAvatar(avatar?: string) {
+  return Boolean(
+    avatar &&
+      (avatar.startsWith("/") ||
+        avatar.startsWith("http://") ||
+        avatar.startsWith("https://") ||
+        avatar.startsWith("data:image/") ||
+        avatar.startsWith("blob:")),
+  );
+}
+
 export function AvatarPicker(props: {
   onEmojiClick: (emojiId: string) => void;
 }) {
@@ -45,7 +56,11 @@ export function AvatarPicker(props: {
   );
 }
 
-export function Avatar(props: { model?: ModelType; avatar?: string }) {
+export function Avatar(props: {
+  model?: ModelType;
+  avatar?: string;
+  size?: number;
+}) {
   let LlmIcon = BotIconDefault;
 
   if (props.model) {
@@ -68,7 +83,10 @@ export function Avatar(props: { model?: ModelType; avatar?: string }) {
       LlmIcon = BotIconClaude;
     } else if (modelName.includes("llama")) {
       LlmIcon = BotIconMeta;
-    } else if (modelName.startsWith("mixtral") || modelName.startsWith("codestral")) {
+    } else if (
+      modelName.startsWith("mixtral") ||
+      modelName.startsWith("codestral")
+    ) {
       LlmIcon = BotIconMistral;
     } else if (modelName.includes("deepseek")) {
       LlmIcon = BotIconDeepseek;
@@ -94,24 +112,49 @@ export function Avatar(props: { model?: ModelType; avatar?: string }) {
 
     return (
       <div className="no-dark">
-        <LlmIcon className="user-avatar" width={30} height={30} />
+        <LlmIcon
+          className="user-avatar"
+          width={props.size ?? 30}
+          height={props.size ?? 30}
+        />
       </div>
     );
   }
 
   return (
-    <div className="user-avatar">
-      {props.avatar && <EmojiAvatar avatar={props.avatar} />}
+    <div
+      className={`user-avatar${
+        isImageAvatar(props.avatar) ? " assistant-avatar" : ""
+      }`}
+    >
+      {props.avatar && (
+        <EmojiAvatar
+          avatar={props.avatar}
+          size={props.size ?? (isImageAvatar(props.avatar) ? 36 : undefined)}
+        />
+      )}
     </div>
   );
 }
 
 export function EmojiAvatar(props: { avatar: string; size?: number }) {
-  return (
-    <Emoji
-      unified={props.avatar}
-      size={props.size ?? 18}
-      getEmojiUrl={getEmojiUrl}
-    />
-  );
+  const size = props.size ?? 18;
+
+  if (isImageAvatar(props.avatar)) {
+    return (
+      // Avatars can be local, remote, data, or blob URLs, so Next/Image is not applicable here.
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src={props.avatar}
+        width={size}
+        height={size}
+        alt=""
+        aria-hidden="true"
+        draggable={false}
+        className="assistant-avatar-image"
+      />
+    );
+  }
+
+  return <Emoji unified={props.avatar} size={size} getEmojiUrl={getEmojiUrl} />;
 }

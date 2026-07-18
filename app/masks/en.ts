@@ -1,8 +1,9 @@
 import { BuiltinMask } from "./typing";
+import { ASSISTANT_AVATARS } from "./avatars";
 
 export const EN_MASKS: BuiltinMask[] = [
   {
-    avatar: "1f47e",
+    avatar: ASSISTANT_AVATARS.githubCopilot,
     name: "GitHub Copilot",
     context: [
       {
@@ -28,7 +29,7 @@ export const EN_MASKS: BuiltinMask[] = [
     createdAt: 1688899480410,
   },
   {
-    avatar: "1f916",
+    avatar: ASSISTANT_AVATARS.promptImprovement,
     name: "Prompt Improvement",
     context: [
       {
@@ -74,7 +75,7 @@ export const EN_MASKS: BuiltinMask[] = [
     createdAt: 1688899480411,
   },
   {
-    avatar: "2328-fe0f",
+    avatar: ASSISTANT_AVATARS.can,
     name: "CAN",
     context: [
       {
@@ -100,7 +101,7 @@ export const EN_MASKS: BuiltinMask[] = [
     createdAt: 1688899480412,
   },
   {
-    avatar: "1f60e",
+    avatar: ASSISTANT_AVATARS.expert,
     name: "Expert",
     context: [
       {

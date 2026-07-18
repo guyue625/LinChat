@@ -1,8 +1,9 @@
 import { BuiltinMask } from "./typing";
+import { ASSISTANT_AVATARS } from "./avatars";
 
 export const CN_MASKS: BuiltinMask[] = [
   {
-    avatar: "1f5bc-fe0f",
+    avatar: ASSISTANT_AVATARS.aiImage,
     name: "AI文生图",
     context: [
       {
@@ -47,7 +48,7 @@ export const CN_MASKS: BuiltinMask[] = [
     createdAt: 1688899480510,
   },
   {
-    avatar: "1f638",
+    avatar: ASSISTANT_AVATARS.copywriter,
     name: "文案写手",
     context: [
       {
@@ -73,7 +74,7 @@ export const CN_MASKS: BuiltinMask[] = [
     createdAt: 1688899480511,
   },
   {
-    avatar: "1f978",
+    avatar: ASSISTANT_AVATARS.machineLearning,
     name: "机器学习",
     context: [
       {
@@ -99,7 +100,7 @@ export const CN_MASKS: BuiltinMask[] = [
     createdAt: 1688899480512,
   },
   {
-    avatar: "1f69b",
+    avatar: ASSISTANT_AVATARS.logistics,
     name: "后勤工作",
     context: [
       {
@@ -125,7 +126,7 @@ export const CN_MASKS: BuiltinMask[] = [
     createdAt: 1688899480513,
   },
   {
-    avatar: "1f469-200d-1f4bc",
+    avatar: ASSISTANT_AVATARS.careerAdvisor,
     name: "职业顾问",
     context: [
       {
@@ -151,7 +152,7 @@ export const CN_MASKS: BuiltinMask[] = [
     createdAt: 1688899480514,
   },
   {
-    avatar: "1f9d1-200d-1f3eb",
+    avatar: ASSISTANT_AVATARS.englishWriter,
     name: "英专写手",
     context: [
       {
@@ -177,7 +178,7 @@ export const CN_MASKS: BuiltinMask[] = [
     createdAt: 1688899480524,
   },
   {
-    avatar: "1f4da",
+    avatar: ASSISTANT_AVATARS.languageDetector,
     name: "语言检测器",
     context: [
       {
@@ -203,7 +204,7 @@ export const CN_MASKS: BuiltinMask[] = [
     createdAt: 1688899480525,
   },
   {
-    avatar: "1f4d5",
+    avatar: ASSISTANT_AVATARS.socialWriter,
     name: "小红书写手",
     context: [
       {
@@ -229,7 +230,7 @@ export const CN_MASKS: BuiltinMask[] = [
     createdAt: 1688899480534,
   },
   {
-    avatar: "1f4d1",
+    avatar: ASSISTANT_AVATARS.resumeWriter,
     name: "简历写手",
     context: [
       {
@@ -261,7 +262,7 @@ export const CN_MASKS: BuiltinMask[] = [
     createdAt: 1688899480536,
   },
   {
-    avatar: "1f469-200d-2695-fe0f",
+    avatar: ASSISTANT_AVATARS.psychologist,
     name: "心理医生",
     context: [
       {
@@ -287,7 +288,7 @@ export const CN_MASKS: BuiltinMask[] = [
     createdAt: 1688899480536,
   },
   {
-    avatar: "1f4b8",
+    avatar: ASSISTANT_AVATARS.startupIdeas,
     name: "创业点子王",
     context: [
       {
@@ -320,7 +321,7 @@ export const CN_MASKS: BuiltinMask[] = [
     createdAt: 1688899480536,
   },
   {
-    avatar: "270d-fe0f",
+    avatar: ASSISTANT_AVATARS.webWriter,
     name: "互联网写手",
     context: [
       {
@@ -353,7 +354,7 @@ export const CN_MASKS: BuiltinMask[] = [
     createdAt: 1688899480537,
   },
   {
-    avatar: "1f63e",
+    avatar: ASSISTANT_AVATARS.spiritualMentor,
     name: "心灵导师",
     context: [
       {
@@ -411,7 +412,7 @@ export const CN_MASKS: BuiltinMask[] = [
     createdAt: 1688899480537,
   },
   {
-    avatar: "1f513",
+    avatar: ASSISTANT_AVATARS.jailbreak,
     name: "越狱模式 [Jailbreak]",
     context: [
       {

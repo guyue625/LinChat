@@ -301,7 +301,7 @@ export function SideBar(props: { className?: string }) {
           title={
             shouldNarrow ? undefined : (
               <span className={styles["assistant-workspace-title"]}>
-                <EmojiAvatar avatar={currentMask.avatar} size={24} />
+                <EmojiAvatar avatar={currentMask.avatar} size={30} />
                 <span>{currentMask.name}</span>
               </span>
             )
@@ -535,7 +535,7 @@ export function SideBar(props: { className?: string }) {
                   onClick={() => openAssistant(assistant)}
                 >
                   <span>
-                    <EmojiAvatar avatar={assistant.avatar} size={18} />
+                    <EmojiAvatar avatar={assistant.avatar} size={28} />
                   </span>
                   {!shouldNarrow && <em>{assistant.name}</em>}
                 </button>

@@ -394,6 +394,23 @@ pre {
   border-radius: 11px;
 }
 
+.user-avatar.assistant-avatar {
+  width: 38px;
+  min-width: 38px;
+  height: 38px;
+  min-height: 38px;
+  overflow: hidden;
+  background: #fff;
+}
+
+.assistant-avatar-image {
+  display: block;
+  box-sizing: border-box;
+  border-radius: 8px;
+  background: #fff;
+  object-fit: contain;
+}
+
 .one-line {
   white-space: nowrap;
   overflow: hidden;
