@@ -1,14 +1,19 @@
-import { FormEvent, useState } from "react";
+import { FormEvent, useCallback, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { SendHorizontal, X } from "lucide-react";
 import { Path } from "../constant";
 import { useChatStore } from "../store";
+import { Mask } from "../store/mask";
 import {
   assistantToMask,
   FEATURED_ASSISTANTS,
   FeaturedAssistant,
 } from "../data/featured-assistants";
+import { deepClone } from "../utils/clone";
+import { uploadImage as uploadImageRemote } from "../utils/chat";
 import { EmojiAvatar } from "./emoji";
-import SendIcon from "../icons/send-white.svg";
+import { ChatActions } from "./chat";
+import chatStyles from "./chat.module.scss";
 import styles from "./workspace-home.module.scss";
 
 export function WorkspaceHome() {
@@ -16,18 +21,77 @@ export function WorkspaceHome() {
   const chatStore = useChatStore();
   const [input, setInput] = useState("");
   const [active, setActive] = useState(FEATURED_ASSISTANTS[0]);
+  const [draftMask, setDraftMask] = useState<Mask>(() =>
+    assistantToMask(FEATURED_ASSISTANTS[0]),
+  );
+  const [attachImages, setAttachImages] = useState<string[]>([]);
+  const [uploading, setUploading] = useState(false);
+  const [, setUnusedModal] = useState(false);
+
+  const updateDraftMask = useCallback((updater: (mask: Mask) => void) => {
+    setDraftMask((current) => {
+      const next = deepClone(current);
+      updater(next);
+      return next;
+    });
+  }, []);
+
+  const chooseAssistant = (assistant: FeaturedAssistant) => {
+    setActive(assistant);
+    setDraftMask((current) => {
+      const next = assistantToMask(assistant);
+      next.modelConfig = deepClone(current.modelConfig);
+      next.plugin = current.plugin ? [...current.plugin] : [];
+      next.syncGlobalConfig = current.syncGlobalConfig;
+      return next;
+    });
+  };
 
   const startChat = async (assistant: FeaturedAssistant, message?: string) => {
-    chatStore.newSession(assistantToMask(assistant));
+    const nextMask = assistantToMask(assistant);
+    nextMask.modelConfig = deepClone(draftMask.modelConfig);
+    nextMask.plugin = draftMask.plugin ? [...draftMask.plugin] : [];
+    nextMask.syncGlobalConfig = draftMask.syncGlobalConfig;
+    chatStore.newSession(nextMask);
     navigate(Path.Chat);
-    if (message?.trim())
-      await useChatStore.getState().onUserInput(message.trim());
+    if (message?.trim() || attachImages.length > 0) {
+      await useChatStore
+        .getState()
+        .onUserInput(message?.trim() ?? "", attachImages);
+    }
+    setInput("");
+    setAttachImages([]);
   };
 
   const submit = (event: FormEvent) => {
     event.preventDefault();
-    if (!input.trim()) return;
+    if (!input.trim() && attachImages.length === 0) return;
     void startChat(active, input);
+  };
+
+  const uploadImage = async () => {
+    const files = await new Promise<FileList | null>((resolve) => {
+      const fileInput = document.createElement("input");
+      fileInput.type = "file";
+      fileInput.accept =
+        "image/png, image/jpeg, image/webp, image/heic, image/heif";
+      fileInput.multiple = true;
+      fileInput.onchange = () => resolve(fileInput.files);
+      fileInput.click();
+    });
+    if (!files?.length) return;
+
+    setUploading(true);
+    try {
+      const uploaded = await Promise.all(
+        Array.from(files)
+          .slice(0, 3 - attachImages.length)
+          .map((file) => uploadImageRemote(file)),
+      );
+      setAttachImages((current) => [...current, ...uploaded].slice(0, 3));
+    } finally {
+      setUploading(false);
+    }
   };
 
   return (
@@ -55,21 +119,64 @@ export function WorkspaceHome() {
         <form className={styles.composer} onSubmit={submit}>
           <textarea
             value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && !e.shiftKey) {
-                e.preventDefault();
-                submit(e);
+            onChange={(event) => setInput(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter" && !event.shiftKey) {
+                event.preventDefault();
+                submit(event);
               }
             }}
             placeholder={`给 ${active.name} 发消息…`}
             rows={4}
             autoFocus
           />
-          <div className={styles.composerFooter}>
-            <span>Enter 发送 · Shift + Enter 换行</span>
-            <button type="submit" disabled={!input.trim()} aria-label="发送">
-              <SendIcon />
+          {attachImages.length > 0 && (
+            <div className={styles.attachments}>
+              {attachImages.map((image, index) => (
+                <div
+                  className={styles.attachment}
+                  key={image.slice(-32) + index}
+                  style={{ backgroundImage: `url("${image}")` }}
+                >
+                  <button
+                    type="button"
+                    aria-label="移除图片"
+                    onClick={() =>
+                      setAttachImages((images) =>
+                        images.filter((_, imageIndex) => imageIndex !== index),
+                      )
+                    }
+                  >
+                    <X />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+          <div className={chatStyles["composer-footer"]}>
+            <ChatActions
+              uploadImage={() => void uploadImage()}
+              setAttachImages={setAttachImages}
+              setUploading={setUploading}
+              showPromptModal={() => undefined}
+              scrollToBottom={() => undefined}
+              showPromptHints={() => undefined}
+              hitBottom
+              uploading={uploading}
+              setShowShortcutKeyModal={setUnusedModal}
+              setShowChatSidePanel={setUnusedModal}
+              mask={draftMask}
+              onMaskChange={updateDraftMask}
+              homeMode
+            />
+            <button
+              className={chatStyles["chat-input-send"]}
+              type="submit"
+              disabled={!input.trim() && attachImages.length === 0}
+              aria-label="发送"
+              title="发送"
+            >
+              <SendHorizontal />
             </button>
           </div>
         </form>
@@ -100,7 +207,7 @@ export function WorkspaceHome() {
                 className={
                   active.key === assistant.key ? styles.activeCard : styles.card
                 }
-                onClick={() => setActive(assistant)}
+                onClick={() => chooseAssistant(assistant)}
                 onDoubleClick={() => void startChat(assistant)}
               >
                 <span

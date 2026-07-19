@@ -9,7 +9,7 @@ import React, {
   useState,
 } from "react";
 
-import SendWhiteIcon from "../icons/send-white.svg";
+import { Search as SearchIcon, SendHorizontal as SendIcon } from "lucide-react";
 import AddIcon from "../icons/add.svg";
 import DownIcon from "../icons/down.svg";
 import BrainIcon from "../icons/brain.svg";
@@ -37,7 +37,6 @@ import ImageIcon from "../icons/image.svg";
 
 import BottomIcon from "../icons/bottom.svg";
 import StopIcon from "../icons/pause.svg";
-import RobotIcon from "../icons/robot.svg";
 import SizeIcon from "../icons/size.svg";
 import QualityIcon from "../icons/hd.svg";
 import StyleIcon from "../icons/palette.svg";
@@ -105,7 +104,7 @@ import {
   UNFINISHED_INPUT,
 } from "../constant";
 import { ContextPrompts, MaskAvatar, MaskConfig } from "./mask";
-import { useMaskStore } from "../store/mask";
+import { Mask, useMaskStore } from "../store/mask";
 import { ChatCommandPrefix, useChatCommand, useCommand } from "../command";
 import { prettyObject } from "../utils/format";
 import { ExportMessageModal } from "./exporter";
@@ -120,6 +119,7 @@ import { RealtimeChat } from "@/app/components/realtime-chat";
 import clsx from "clsx";
 import { getAvailableClientsCount, isMcpEnabled } from "../mcp/actions";
 import { FEATURED_ASSISTANTS } from "../data/featured-assistants";
+import { ModelIcon } from "./emoji";
 
 const localStorage = safeLocalStorage();
 
@@ -520,6 +520,30 @@ function ComposerMenuItem(props: {
     </button>
   );
 }
+function TaskRunningStatus() {
+  const [seconds, setSeconds] = useState(0);
+
+  useEffect(() => {
+    const startedAt = Date.now();
+    const timer = window.setInterval(
+      () => setSeconds(Math.floor((Date.now() - startedAt) / 1000)),
+      1000,
+    );
+    return () => window.clearInterval(timer);
+  }, []);
+
+  return (
+    <div
+      className={styles["chat-message-status"]}
+      role="status"
+      aria-live="polite"
+    >
+      <span>任务正在处理中，你可以放心切换到其他页面</span>
+      <small>{seconds}s</small>
+    </div>
+  );
+}
+
 export function ChatActions(props: {
   uploadImage: () => void;
   setAttachImages: (images: string[]) => void;
@@ -531,16 +555,30 @@ export function ChatActions(props: {
   uploading: boolean;
   setShowShortcutKeyModal: React.Dispatch<React.SetStateAction<boolean>>;
   setShowChatSidePanel: React.Dispatch<React.SetStateAction<boolean>>;
+  mask?: Mask;
+  onMaskChange?: (updater: (mask: Mask) => void) => void;
+  homeMode?: boolean;
 }) {
-  const { setAttachImages, setUploading } = props;
+  const { setAttachImages, setUploading, onMaskChange } = props;
   const config = useAppConfig();
   const navigate = useNavigate();
   const chatStore = useChatStore();
   const pluginStore = usePluginStore();
   const session = chatStore.currentSession();
-  const currentModel = session.mask.modelConfig.model;
+  const mask = props.mask ?? session.mask;
+  const updateMask = useCallback(
+    (updater: (mask: Mask) => void) => {
+      if (onMaskChange) {
+        onMaskChange(updater);
+        return;
+      }
+      chatStore.updateTargetSession(session, (target) => updater(target.mask));
+    },
+    [chatStore, onMaskChange, session],
+  );
+  const currentModel = mask.modelConfig.model;
   const currentProviderName =
-    session.mask.modelConfig?.providerName || ServiceProvider.OpenAI;
+    mask.modelConfig?.providerName || ServiceProvider.OpenAI;
   const allModels = useAllModels();
   const accessStore = useAccessStore();
   const selectedProvider = accessStore.useCustomConfig
@@ -573,12 +611,11 @@ export function ChatActions(props: {
   const [mcpState, setMcpState] = useState({ enabled: false, count: 0 });
   const isMobileScreen = useMobileScreen();
   const plugins = pluginStore.getAll();
-  const selectedPluginCount = session.mask.plugin?.length ?? 0;
+  const selectedPluginCount = mask.plugin?.length ?? 0;
   const modelSizes = getModelSizes(currentModel);
-  const currentSize =
-    session.mask.modelConfig?.size ?? ("1024x1024" as ModelSize);
-  const currentQuality = session.mask.modelConfig?.quality ?? "standard";
-  const currentStyle = session.mask.modelConfig?.style ?? "vivid";
+  const currentSize = mask.modelConfig?.size ?? ("1024x1024" as ModelSize);
+  const currentQuality = mask.modelConfig?.quality ?? "standard";
+  const currentStyle = mask.modelConfig?.style ?? "vivid";
   const filteredModels = useMemo(() => {
     const query = modelSearch.trim().toLowerCase();
     if (!query) return models;
@@ -588,6 +625,16 @@ export function ChatActions(props: {
         .some((value) => String(value).toLowerCase().includes(query)),
     );
   }, [modelSearch, models]);
+  const groupedModels = useMemo(() => {
+    const groups = new Map<string, typeof filteredModels>();
+    filteredModels.forEach((model) => {
+      const provider = model.provider?.providerName || "Other";
+      const group = groups.get(provider) ?? [];
+      group.push(model);
+      groups.set(provider, group);
+    });
+    return Array.from(groups.entries());
+  }, [filteredModels]);
 
   useEffect(() => {
     const canUpload = isVisionModel(currentModel);
@@ -604,21 +651,20 @@ export function ChatActions(props: {
     );
     if (unavailable && models.length > 0) {
       const nextModel = models.find((model) => model.isDefault) || models[0];
-      chatStore.updateTargetSession(session, (target) => {
-        target.mask.modelConfig.model = nextModel.name;
-        target.mask.modelConfig.providerName = nextModel.provider
+      updateMask((mask) => {
+        mask.modelConfig.model = nextModel.name;
+        mask.modelConfig.providerName = nextModel.provider
           ?.providerName as ServiceProvider;
       });
       showToast(nextModel.displayName || nextModel.name);
     }
   }, [
-    chatStore,
     currentModel,
     currentProviderName,
     models,
-    session,
     setAttachImages,
     setUploading,
+    updateMask,
   ]);
 
   useEffect(() => {
@@ -638,20 +684,20 @@ export function ChatActions(props: {
     setShowMoreMenu(false);
   };
   const selectModel = (model: (typeof models)[number]) => {
-    chatStore.updateTargetSession(session, (target) => {
-      target.mask.modelConfig.model = model.name as ModelType;
-      target.mask.modelConfig.providerName = model.provider
+    updateMask((mask) => {
+      mask.modelConfig.model = model.name as ModelType;
+      mask.modelConfig.providerName = model.provider
         ?.providerName as ServiceProvider;
-      target.mask.syncGlobalConfig = false;
+      mask.syncGlobalConfig = false;
     });
     showToast(model.displayName || model.name);
     setShowModelSelector(false);
     setModelSearch("");
   };
   const toggleMemory = () => {
-    chatStore.updateTargetSession(session, (target) => {
-      target.mask.modelConfig.sendMemory = !target.mask.modelConfig.sendMemory;
-      target.mask.syncGlobalConfig = false;
+    updateMask((mask) => {
+      mask.modelConfig.sendMemory = !mask.modelConfig.sendMemory;
+      mask.syncGlobalConfig = false;
     });
   };
   const clearContext = () => {
@@ -684,7 +730,9 @@ export function ChatActions(props: {
       <div className={styles["composer-actions-start"]}>
         <div className={styles["composer-anchor"]}>
           <ComposerToolButton
-            icon={<RobotIcon />}
+            icon={
+              <ModelIcon model={currentModel} provider={currentProviderName} />
+            }
             label={currentModelName}
             active={showModelSelector}
             className={styles["composer-model-button"]}
@@ -699,9 +747,13 @@ export function ChatActions(props: {
             <DownIcon />
           </ComposerToolButton>
           {showModelSelector && (
-            <div className={styles["composer-model-popover"]}>
+            <div
+              className={clsx(styles["composer-model-popover"], {
+                [styles["composer-model-popover-home"]]: props.homeMode,
+              })}
+            >
               <div className={styles["composer-model-search"]}>
-                <RobotIcon />
+                <SearchIcon aria-hidden="true" />
                 <input
                   autoFocus
                   value={modelSearch}
@@ -716,32 +768,46 @@ export function ChatActions(props: {
                 />
               </div>
               <div className={styles["composer-model-list"]}>
-                {filteredModels.map((model) => {
-                  const providerName = model.provider?.providerName || "";
-                  const selected =
-                    model.name === currentModel &&
-                    providerName === currentProviderName;
-                  return (
-                    <button
-                      type="button"
-                      key={`${model.name}@${providerName}`}
-                      className={clsx(
-                        styles["composer-model-item"],
-                        selected && styles["composer-model-item-selected"],
-                      )}
-                      onClick={() => selectModel(model)}
-                    >
-                      <span className={styles["composer-model-avatar"]}>
-                        <RobotIcon />
-                      </span>
-                      <span className={styles["composer-model-copy"]}>
-                        <strong>{model.displayName || model.name}</strong>
-                        <small>{providerName}</small>
-                      </span>
-                      {selected && <ConfirmIcon />}
-                    </button>
-                  );
-                })}
+                {groupedModels.map(([providerName, providerModels]) => (
+                  <section
+                    className={styles["composer-model-group"]}
+                    key={providerName}
+                  >
+                    <div className={styles["composer-model-group-title"]}>
+                      <span>{providerName}</span>
+                      <small>{providerModels.length}</small>
+                    </div>
+                    {providerModels.map((model) => {
+                      const selected =
+                        model.name === currentModel &&
+                        providerName === currentProviderName;
+                      return (
+                        <button
+                          type="button"
+                          key={`${model.name}@${providerName}`}
+                          className={clsx(
+                            styles["composer-model-item"],
+                            selected && styles["composer-model-item-selected"],
+                          )}
+                          onClick={() => selectModel(model)}
+                        >
+                          <span className={styles["composer-model-avatar"]}>
+                            <ModelIcon
+                              model={model.name}
+                              provider={providerName}
+                              size={28}
+                            />
+                          </span>
+                          <span className={styles["composer-model-copy"]}>
+                            <strong>{model.displayName || model.name}</strong>
+                            <small>{model.name}</small>
+                          </span>
+                          {selected && <ConfirmIcon />}
+                        </button>
+                      );
+                    })}
+                  </section>
+                ))}
                 {filteredModels.length === 0 && (
                   <div className={styles["composer-model-empty"]}>
                     {Locale.Settings.Model}
@@ -777,17 +843,19 @@ export function ChatActions(props: {
               <ComposerMenuItem
                 icon={<BrainIcon />}
                 label={Locale.Memory.Title}
-                checked={session.mask.modelConfig.sendMemory}
+                checked={mask.modelConfig.sendMemory}
                 onClick={toggleMemory}
               />
-              <ComposerMenuItem
-                icon={<PromptIcon />}
-                label={Locale.Chat.InputActions.Prompt}
-                onClick={() => {
-                  setShowMoreMenu(false);
-                  props.showPromptHints();
-                }}
-              />
+              {!props.homeMode && (
+                <ComposerMenuItem
+                  icon={<PromptIcon />}
+                  label={Locale.Chat.InputActions.Prompt}
+                  onClick={() => {
+                    setShowMoreMenu(false);
+                    props.showPromptHints();
+                  }}
+                />
+              )}
               <ComposerMenuItem
                 icon={<MaskIcon />}
                 label={Locale.Chat.InputActions.Masks}
@@ -847,51 +915,57 @@ export function ChatActions(props: {
                   />
                 </>
               )}
-              <div className={styles["composer-menu-divider"]} />
-              <ComposerMenuItem
-                icon={<SettingsIcon />}
-                label={Locale.Chat.InputActions.Settings}
-                onClick={() => {
-                  setShowMoreMenu(false);
-                  props.showPromptModal();
-                }}
-              />
-              <ComposerMenuItem
-                icon={<BreakIcon />}
-                label={Locale.Chat.InputActions.Clear}
-                onClick={clearContext}
-              />
-              {!isMobileScreen && (
-                <ComposerMenuItem
-                  icon={<ShortcutkeyIcon />}
-                  label={Locale.Chat.ShortcutKey.Title}
-                  onClick={() => {
-                    setShowMoreMenu(false);
-                    props.setShowShortcutKeyModal(true);
-                  }}
-                />
+              {!props.homeMode && (
+                <>
+                  <div className={styles["composer-menu-divider"]} />
+                  <ComposerMenuItem
+                    icon={<SettingsIcon />}
+                    label={Locale.Chat.InputActions.Settings}
+                    onClick={() => {
+                      setShowMoreMenu(false);
+                      props.showPromptModal();
+                    }}
+                  />
+                  <ComposerMenuItem
+                    icon={<BreakIcon />}
+                    label={Locale.Chat.InputActions.Clear}
+                    onClick={clearContext}
+                  />
+                  {!isMobileScreen && (
+                    <ComposerMenuItem
+                      icon={<ShortcutkeyIcon />}
+                      label={Locale.Chat.ShortcutKey.Title}
+                      onClick={() => {
+                        setShowMoreMenu(false);
+                        props.setShowShortcutKeyModal(true);
+                      }}
+                    />
+                  )}
+                </>
               )}
             </div>
           )}
         </div>
       </div>
 
-      <div className={styles["composer-actions-end"]}>
-        {!props.hitBottom && (
-          <ComposerToolButton
-            icon={<BottomIcon />}
-            label={Locale.Chat.InputActions.ToBottom}
-            onClick={props.scrollToBottom}
-          />
-        )}
-        {config.realtimeConfig.enable && (
-          <ComposerToolButton
-            icon={<HeadphoneIcon />}
-            label="Realtime Chat"
-            onClick={() => props.setShowChatSidePanel(true)}
-          />
-        )}
-      </div>
+      {!props.homeMode && (
+        <div className={styles["composer-actions-end"]}>
+          {!props.hitBottom && (
+            <ComposerToolButton
+              icon={<BottomIcon />}
+              label={Locale.Chat.InputActions.ToBottom}
+              onClick={props.scrollToBottom}
+            />
+          )}
+          {config.realtimeConfig.enable && (
+            <ComposerToolButton
+              icon={<HeadphoneIcon />}
+              label="Realtime Chat"
+              onClick={() => props.setShowChatSidePanel(true)}
+            />
+          )}
+        </div>
+      )}
 
       {showSizeSelector && (
         <Selector
@@ -901,8 +975,8 @@ export function ChatActions(props: {
           onSelection={(selection) => {
             if (selection.length === 0) return;
             const size = selection[0];
-            chatStore.updateTargetSession(session, (target) => {
-              target.mask.modelConfig.size = size;
+            updateMask((mask) => {
+              mask.modelConfig.size = size;
             });
             showToast(size);
           }}
@@ -919,8 +993,8 @@ export function ChatActions(props: {
           onSelection={(selection) => {
             if (selection.length === 0) return;
             const quality = selection[0];
-            chatStore.updateTargetSession(session, (target) => {
-              target.mask.modelConfig.quality = quality;
+            updateMask((mask) => {
+              mask.modelConfig.quality = quality;
             });
             showToast(quality);
           }}
@@ -937,8 +1011,8 @@ export function ChatActions(props: {
           onSelection={(selection) => {
             if (selection.length === 0) return;
             const style = selection[0];
-            chatStore.updateTargetSession(session, (target) => {
-              target.mask.modelConfig.style = style;
+            updateMask((mask) => {
+              mask.modelConfig.style = style;
             });
             showToast(style);
           }}
@@ -947,15 +1021,15 @@ export function ChatActions(props: {
       {showPluginSelector && (
         <Selector
           multiple
-          defaultSelectedValue={session.mask?.plugin}
+          defaultSelectedValue={mask.plugin}
           items={plugins.map((plugin) => ({
             title: `${plugin.title}@${plugin.version}`,
             value: plugin.id,
           }))}
           onClose={() => setShowPluginSelector(false)}
           onSelection={(selection) => {
-            chatStore.updateTargetSession(session, (target) => {
-              target.mask.plugin = selection as string[];
+            updateMask((mask) => {
+              mask.plugin = selection as string[];
             });
           }}
         />
@@ -2086,9 +2160,7 @@ function _Chat() {
                               )}
                             </div>
                             {message?.tools?.length == 0 && showTyping && (
-                              <div className={styles["chat-message-status"]}>
-                                {Locale.Chat.Typing}
-                              </div>
+                              <TaskRunningStatus />
                             )}
                             {/*@ts-ignore*/}
                             {message?.tools?.length > 0 && (
@@ -2267,7 +2339,7 @@ function _Chat() {
                       ChatControllerPool.hasPending() ? (
                         <StopIcon />
                       ) : (
-                        <SendWhiteIcon />
+                        <SendIcon />
                       )
                     }
                     aria={
@@ -2281,7 +2353,6 @@ function _Chat() {
                         : Locale.Chat.Send
                     }
                     className={styles["chat-input-send"]}
-                    type="primary"
                     onClick={() => {
                       if (ChatControllerPool.hasPending()) {
                         ChatControllerPool.stopAll();

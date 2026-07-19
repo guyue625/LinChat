@@ -1764,10 +1764,10 @@
 
 .composer-model-search {
   display: flex;
-  height: 38px;
-  padding: 0 10px;
+  height: 42px;
+  padding: 0 12px;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   border: 1px solid color-mix(in srgb, var(--black) 10%, transparent);
   border-radius: 9px;
   background: color-mix(in srgb, var(--white) 94%, var(--gray));
@@ -1775,8 +1775,8 @@
 }
 
 .composer-model-search svg {
-  width: 16px;
-  height: 16px;
+  width: 17px;
+  height: 17px;
   flex: 0 0 auto;
   color: currentColor;
   filter: none !important;
@@ -1799,15 +1799,30 @@
   overflow-y: auto;
 }
 
+.composer-model-popover-home {
+  // The homepage composer can sit too close to the viewport top after its
+  // textarea receives focus. Keep this overlay viewport-bound so its search
+  // field and first results are never clipped by the scrolling page.
+  position: fixed;
+  top: max(12px, env(safe-area-inset-top));
+  bottom: auto;
+  left: auto;
+  max-height: calc(100dvh - 24px);
+}
+
+.composer-model-popover-home .composer-model-list {
+  max-height: min(360px, calc(100dvh - 92px));
+}
+
 .composer-model-item {
   appearance: none;
   display: flex;
   width: 100%;
-  min-height: 48px;
-  padding: 6px 8px;
+  min-height: 46px;
+  padding: 5px 10px;
   cursor: pointer;
   align-items: center;
-  gap: 10px;
+  gap: 11px;
   border: 0;
   border-radius: 9px;
   outline: none;
@@ -1829,17 +1844,24 @@
 }
 
 .composer-model-avatar {
-  display: grid;
-  width: 32px;
-  height: 32px;
-  flex: 0 0 auto;
-  place-items: center;
-  border: 1px solid color-mix(in srgb, var(--black) 8%, transparent);
-  border-radius: 9px;
-  background: color-mix(in srgb, var(--black) 5%, var(--white));
+  display: inline-flex;
+  width: 30px;
+  height: 30px;
+  flex: 0 0 30px;
+  overflow: hidden;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
 }
 
-.composer-model-avatar svg,
+.composer-model-avatar svg {
+  width: 28px;
+  height: 28px;
+  flex: 0 0 28px;
+  shape-rendering: geometricPrecision;
+  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.08)) !important;
+}
+
 .composer-model-item > svg {
   width: 17px;
   height: 17px;
@@ -2062,5 +2084,104 @@
     position: static;
     right: auto;
     bottom: auto;
+  }
+}
+
+/* Provider grouping keeps large model catalogs scannable without adding a UI dependency. */
+.composer-model-group + .composer-model-group {
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px solid color-mix(in srgb, var(--black) 8%, transparent);
+}
+
+.composer-model-group-title {
+  position: sticky;
+  z-index: 1;
+  top: 0;
+  display: flex;
+  padding: 5px 8px 4px;
+  align-items: center;
+  justify-content: space-between;
+  background: color-mix(in srgb, var(--white) 96%, transparent);
+  color: color-mix(in srgb, var(--black) 56%, transparent);
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: 0.02em;
+}
+
+.composer-model-group-title small {
+  opacity: 0.62;
+  font-size: 10px;
+  font-weight: 500;
+}
+
+.chat-input-send,
+.chat-input-send:hover,
+.chat-input-send:focus-visible {
+  border: 0 !important;
+  background: transparent !important;
+  color: var(--primary) !important;
+  box-shadow: none !important;
+}
+
+.chat-input-send:hover,
+.chat-input-send:focus-visible {
+  background: color-mix(in srgb, var(--primary) 10%, transparent) !important;
+}
+
+.chat-input-send:focus-visible {
+  outline: 0;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary) 22%, transparent) !important;
+}
+
+.chat-input-send:disabled {
+  background: transparent !important;
+  color: color-mix(in srgb, var(--black) 28%, transparent) !important;
+  opacity: 1;
+}
+
+.chat-input-send svg {
+  color: currentColor;
+  stroke: currentColor;
+  filter: none !important;
+}
+
+.chat-message-status {
+  max-width: min(560px, calc(100vw - 64px));
+  margin: 10px 0 2px 10px;
+  padding: 8px 10px;
+  box-sizing: border-box;
+  border: 1px solid color-mix(in srgb, var(--black) 8%, transparent);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--black) 3%, transparent);
+  opacity: 0.72;
+}
+
+.chat-message-status span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chat-message-status small {
+  flex: 0 0 auto;
+  padding-left: 2px;
+  color: color-mix(in srgb, var(--black) 52%, transparent);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 600px) {
+  .composer-model-popover-home {
+    top: max(10px, env(safe-area-inset-top));
+    right: 10px;
+    bottom: auto;
+    left: 10px;
+    max-height: calc(100dvh - 20px);
+  }
+
+  .composer-model-popover-home .composer-model-list {
+    max-height: calc(100dvh - 88px);
   }
 }

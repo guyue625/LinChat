@@ -1,4 +1,4 @@
-﻿.page {
+.page {
   position: relative;
   flex: 1;
   min-width: 0;
@@ -69,11 +69,12 @@
   font-size: 16px;
 }
 .composer {
+  position: relative;
   border: var(--border-in-light);
   border-radius: 20px;
   background: color-mix(in srgb, var(--white) 94%, var(--gray));
   box-shadow: 0 18px 55px rgba(0, 0, 0, 0.08);
-  overflow: hidden;
+  overflow: visible;
   transition:
     border-color 0.2s,
     box-shadow 0.2s;
@@ -251,4 +252,43 @@
   .sectionTitle p {
     display: none;
   }
+}
+
+.attachments {
+  display: flex;
+  gap: 8px;
+  padding: 0 18px 8px;
+}
+
+.attachment {
+  position: relative;
+  width: 58px;
+  height: 58px;
+  flex: 0 0 58px;
+  border: var(--border-in-light);
+  border-radius: 10px;
+  background-position: center;
+  background-size: cover;
+}
+
+.attachment button {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  width: 20px;
+  height: 20px;
+  display: grid;
+  padding: 0;
+  cursor: pointer;
+  place-items: center;
+  border: 1px solid color-mix(in srgb, var(--black) 12%, transparent);
+  border-radius: 50%;
+  background: var(--white);
+  color: var(--black);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+}
+
+.attachment button svg {
+  width: 12px;
+  height: 12px;
 }
