@@ -1,10 +1,10 @@
 import React, { Fragment, useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 
 import styles from "./home.module.scss";
 
 import { IconButton } from "./button";
 import GithubIcon from "../icons/github.svg";
-import DragIcon from "../icons/drag.svg";
 import {
   ArrowLeft as LeftIcon,
   Bell as NotificationIcon,
@@ -14,11 +14,14 @@ import {
   ChevronsUpDown,
   Compass as DiscoveryIcon,
   MessageCircle as ChatIcon,
+  MoreHorizontal,
   PanelLeftClose as CollapseIcon,
   Plug as McpIcon,
   Plus as AddIcon,
+  Search as SearchIcon,
   Settings as SettingsIcon,
   Trash2 as DeleteIcon,
+  X as CloseIcon,
 } from "lucide-react";
 import { EmojiAvatar } from "./emoji";
 import { BrandLogo } from "./brand-logo";
@@ -34,8 +37,6 @@ import { Mask, useMaskStore } from "../store/mask";
 
 import {
   DEFAULT_SIDEBAR_WIDTH,
-  MAX_SIDEBAR_WIDTH,
-  MIN_SIDEBAR_WIDTH,
   NARROW_SIDEBAR_WIDTH,
   Path,
   REPO_URL,
@@ -58,6 +59,58 @@ const ChatList = dynamic(async () => (await import("./chat-list")).ChatList, {
   loading: () => null,
 });
 
+function RecentChatsPanel(props: { onClose: () => void }) {
+  const { onClose } = props;
+  const [query, setQuery] = useState("");
+
+  useEffect(() => {
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", closeOnEscape);
+    return () => window.removeEventListener("keydown", closeOnEscape);
+  }, [onClose]);
+
+  return createPortal(
+    <div
+      className={styles["recent-panel-backdrop"]}
+      role="presentation"
+      onPointerDown={onClose}
+    >
+      <aside
+        className={styles["recent-panel"]}
+        role="dialog"
+        aria-modal="true"
+        aria-label="最近会话"
+        onPointerDown={(event) => event.stopPropagation()}
+      >
+        <header className={styles["recent-panel-header"]}>
+          <div>
+            <strong>最近</strong>
+            <span>查看和管理全部会话</span>
+          </div>
+          <button type="button" aria-label="关闭" onClick={onClose}>
+            <CloseIcon />
+          </button>
+        </header>
+        <label className={styles["recent-panel-search"]}>
+          <SearchIcon />
+          <input
+            autoFocus
+            value={query}
+            onChange={(event) => setQuery(event.currentTarget.value)}
+            placeholder="搜索会话"
+          />
+        </label>
+        <div className={styles["recent-panel-list"]}>
+          <ChatList variant="panel" query={query} onSelect={onClose} />
+        </div>
+      </aside>
+    </div>,
+    document.body,
+  );
+}
+
 export function useHotKey() {
   const chatStore = useChatStore();
 
@@ -77,84 +130,36 @@ export function useHotKey() {
   });
 }
 
-export function useDragSideBar() {
-  const limit = (x: number) => Math.min(MAX_SIDEBAR_WIDTH, x);
-
+export function useSideBarState() {
   const config = useAppConfig();
-  const startX = useRef(0);
-  const startDragWidth = useRef(config.sidebarWidth ?? DEFAULT_SIDEBAR_WIDTH);
-  const lastUpdateTime = useRef(Date.now());
+  const isMobileScreen = useMobileScreen();
+  const shouldNarrow =
+    !isMobileScreen && config.sidebarWidth === NARROW_SIDEBAR_WIDTH;
 
   const toggleSideBar = () => {
-    config.update((config) => {
-      if (config.sidebarWidth < MIN_SIDEBAR_WIDTH) {
-        config.sidebarWidth = DEFAULT_SIDEBAR_WIDTH;
-      } else {
-        config.sidebarWidth = NARROW_SIDEBAR_WIDTH;
-      }
+    config.update((nextConfig) => {
+      nextConfig.sidebarWidth = shouldNarrow
+        ? DEFAULT_SIDEBAR_WIDTH
+        : NARROW_SIDEBAR_WIDTH;
     });
   };
 
-  const onDragStart = (e: MouseEvent) => {
-    // Remembers the initial width each time the mouse is pressed
-    startX.current = e.clientX;
-    startDragWidth.current = config.sidebarWidth;
-    const dragStartTime = Date.now();
-
-    const handleDragMove = (e: MouseEvent) => {
-      if (Date.now() < lastUpdateTime.current + 20) {
-        return;
-      }
-      lastUpdateTime.current = Date.now();
-      const d = e.clientX - startX.current;
-      const nextWidth = limit(startDragWidth.current + d);
-      config.update((config) => {
-        if (nextWidth < MIN_SIDEBAR_WIDTH) {
-          config.sidebarWidth = NARROW_SIDEBAR_WIDTH;
-        } else {
-          config.sidebarWidth = nextWidth;
-        }
-      });
-    };
-
-    const handleDragEnd = () => {
-      // In useRef the data is non-responsive, so `config.sidebarWidth` can't get the dynamic sidebarWidth
-      window.removeEventListener("pointermove", handleDragMove);
-      window.removeEventListener("pointerup", handleDragEnd);
-
-      // if user click the drag icon, should toggle the sidebar
-      const shouldFireClick = Date.now() - dragStartTime < 300;
-      if (shouldFireClick) {
-        toggleSideBar();
-      }
-    };
-
-    window.addEventListener("pointermove", handleDragMove);
-    window.addEventListener("pointerup", handleDragEnd);
-  };
-
-  const isMobileScreen = useMobileScreen();
-  const shouldNarrow =
-    !isMobileScreen && config.sidebarWidth < MIN_SIDEBAR_WIDTH;
-
   useEffect(() => {
-    const barWidth = shouldNarrow
-      ? NARROW_SIDEBAR_WIDTH
-      : limit(config.sidebarWidth ?? DEFAULT_SIDEBAR_WIDTH);
-    const sideBarWidth = isMobileScreen ? "100vw" : `${barWidth}px`;
+    const sideBarWidth = isMobileScreen
+      ? "100vw"
+      : `${
+          shouldNarrow
+            ? NARROW_SIDEBAR_WIDTH
+            : config.sidebarWidth ?? DEFAULT_SIDEBAR_WIDTH
+        }px`;
     document.documentElement.style.setProperty("--sidebar-width", sideBarWidth);
   }, [config.sidebarWidth, isMobileScreen, shouldNarrow]);
 
-  return {
-    onDragStart,
-    shouldNarrow,
-    toggleSideBar,
-  };
+  return { shouldNarrow, toggleSideBar };
 }
 
 export function SideBarContainer(props: {
   children: React.ReactNode;
-  onDragStart: (e: MouseEvent) => void;
   shouldNarrow: boolean;
   className?: string;
 }) {
@@ -163,7 +168,7 @@ export function SideBarContainer(props: {
     () => isIOS() && isMobileScreen,
     [isMobileScreen],
   );
-  const { children, className, onDragStart, shouldNarrow } = props;
+  const { children, className, shouldNarrow } = props;
   return (
     <div
       className={clsx(styles.sidebar, className, {
@@ -175,12 +180,6 @@ export function SideBarContainer(props: {
       }}
     >
       {children}
-      <div
-        className={styles["sidebar-drag"]}
-        onPointerDown={(e) => onDragStart(e as any)}
-      >
-        <DragIcon />
-      </div>
     </div>
   );
 }
@@ -244,7 +243,7 @@ export function SideBarTail(props: {
 
 export function SideBar(props: { className?: string }) {
   useHotKey();
-  const { onDragStart, shouldNarrow, toggleSideBar } = useDragSideBar();
+  const { shouldNarrow, toggleSideBar } = useSideBarState();
   const [showDiscoverySelector, setshowDiscoverySelector] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
@@ -253,6 +252,7 @@ export function SideBar(props: { className?: string }) {
   const activeMaskId = chatStore.currentSession().mask.id;
   const [mcpEnabled, setMcpEnabled] = useState(false);
   const [recentExpanded, setRecentExpanded] = useState(true);
+  const [recentPanelOpen, setRecentPanelOpen] = useState(false);
   const [assistantsExpanded, setAssistantsExpanded] = useState(true);
   const [topicsExpanded, setTopicsExpanded] = useState(true);
   const [assistantSwitcherOpen, setAssistantSwitcherOpen] = useState(false);
@@ -377,11 +377,7 @@ export function SideBar(props: { className?: string }) {
     };
 
     return (
-      <SideBarContainer
-        onDragStart={onDragStart}
-        shouldNarrow={shouldNarrow}
-        {...props}
-      >
+      <SideBarContainer shouldNarrow={shouldNarrow} {...props}>
         <SideBarHeader
           title={
             shouldNarrow ? undefined : (
@@ -568,8 +564,8 @@ export function SideBar(props: { className?: string }) {
               <span>话题</span>
             </button>
           )}
-          {(shouldNarrow || topicsExpanded) && (
-            <ChatList narrow={shouldNarrow} maskId={activeMaskId} />
+          {!shouldNarrow && topicsExpanded && (
+            <ChatList maskId={activeMaskId} />
           )}
         </SideBarBody>
         <SideBarTail
@@ -596,11 +592,7 @@ export function SideBar(props: { className?: string }) {
   }
 
   return (
-    <SideBarContainer
-      onDragStart={onDragStart}
-      shouldNarrow={shouldNarrow}
-      {...props}
-    >
+    <SideBarContainer shouldNarrow={shouldNarrow} {...props}>
       <SideBarHeader
         title={
           shouldNarrow ? undefined : (
@@ -711,7 +703,21 @@ export function SideBar(props: { className?: string }) {
             <span>最近</span>
           </button>
         )}
-        {(shouldNarrow || recentExpanded) && <ChatList narrow={shouldNarrow} />}
+        {!shouldNarrow && recentExpanded && (
+          <>
+            <ChatList limit={5} />
+            {chatStore.sessions.length > 5 && (
+              <button
+                type="button"
+                className={styles["recent-more-button"]}
+                onClick={() => setRecentPanelOpen(true)}
+              >
+                <MoreHorizontal />
+                <span>更多</span>
+              </button>
+            )}
+          </>
+        )}
         <div className={styles["assistant-shortcuts"]}>
           {!shouldNarrow && (
             <button
@@ -823,6 +829,9 @@ export function SideBar(props: { className?: string }) {
           />
         }
       />
+      {recentPanelOpen && (
+        <RecentChatsPanel onClose={() => setRecentPanelOpen(false)} />
+      )}
     </SideBarContainer>
   );
 }

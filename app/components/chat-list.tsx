@@ -118,7 +118,14 @@ export function ChatItem(props: {
   );
 }
 
-export function ChatList(props: { narrow?: boolean; maskId?: string }) {
+export function ChatList(props: {
+  narrow?: boolean;
+  maskId?: string;
+  limit?: number;
+  query?: string;
+  variant?: "sidebar" | "panel";
+  onSelect?: () => void;
+}) {
   const [sessions, selectedIndex, selectSession, moveSession] = useChatStore(
     (state) => [
       state.sessions,
@@ -135,12 +142,24 @@ export function ChatList(props: { narrow?: boolean; maskId?: string }) {
     y: number;
   }>();
 
-  const visibleSessions = sessions
+  const normalizedQuery = props.query?.trim().toLowerCase();
+  const matchingSessions = sessions
     .map((session, storeIndex) => ({ session, storeIndex }))
-    .filter(({ session }) => !props.maskId || session.mask.id === props.maskId);
+    .filter(({ session }) => !props.maskId || session.mask.id === props.maskId)
+    .filter(
+      ({ session }) =>
+        !normalizedQuery ||
+        session.topic.toLowerCase().includes(normalizedQuery),
+    );
+  const visibleSessions = props.limit
+    ? matchingSessions.slice(0, props.limit)
+    : matchingSessions;
+  const dragDisabled = Boolean(
+    props.maskId || props.limit || normalizedQuery || props.variant === "panel",
+  );
 
   const onDragEnd: OnDragEndResponder = (result) => {
-    if (props.maskId) return;
+    if (dragDisabled) return;
 
     const { destination, source } = result;
     if (!destination) {
@@ -211,10 +230,12 @@ export function ChatList(props: { narrow?: boolean; maskId?: string }) {
 
   return (
     <DragDropContext onDragEnd={onDragEnd}>
-      <Droppable droppableId="chat-list">
+      <Droppable droppableId={`chat-list-${props.variant ?? "sidebar"}`}>
         {(provided) => (
           <div
-            className={styles["chat-list"]}
+            className={clsx(styles["chat-list"], {
+              [styles["chat-list-panel"]]: props.variant === "panel",
+            })}
             ref={provided.innerRef}
             {...provided.droppableProps}
           >
@@ -227,10 +248,11 @@ export function ChatList(props: { narrow?: boolean; maskId?: string }) {
                   id={item.id}
                   index={visibleIndex}
                   selected={storeIndex === selectedIndex}
-                  dragDisabled={Boolean(props.maskId)}
+                  dragDisabled={dragDisabled}
                   onClick={() => {
                     selectSession(storeIndex);
                     navigate(Path.Chat);
+                    props.onSelect?.();
                   }}
                   onOpenMenu={({ x, y }) => {
                     setMenu({ storeIndex, x, y });
@@ -239,6 +261,9 @@ export function ChatList(props: { narrow?: boolean; maskId?: string }) {
                   mask={item.mask}
                 />
               ),
+            )}
+            {visibleSessions.length === 0 && props.variant === "panel" && (
+              <div className={styles["recent-panel-empty"]}>未找到相关会话</div>
             )}
             {provided.placeholder}
           </div>

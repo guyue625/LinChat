@@ -62,36 +62,6 @@
     }
   }
 
-  &:hover,
-  &:active {
-    .sidebar-drag {
-      background-color: rgba($color: #000000, $alpha: 0.01);
-
-      svg {
-        opacity: 0.2;
-      }
-    }
-  }
-}
-
-.sidebar-drag {
-  $width: 14px;
-
-  position: absolute;
-  top: 0;
-  right: 0;
-  height: 100%;
-  width: $width;
-  background-color: rgba($color: #000000, $alpha: 0);
-  cursor: ew-resize;
-  transition: all ease 0.3s;
-  display: flex;
-  align-items: center;
-
-  svg {
-    opacity: 0;
-    margin-left: -2px;
-  }
 }
 
 .window-content {
@@ -467,10 +437,6 @@
     width: 19px;
     height: 19px;
     opacity: 1;
-  }
-
-  .sidebar-drag {
-    display: none;
   }
 
   .assistant-workspace-menu,
@@ -1302,4 +1268,189 @@
 .narrow-sidebar .sidebar-utility-actions button {
   width: 40px;
   height: 40px;
+}
+
+.recent-more-button {
+  width: calc(100% - 16px);
+  min-height: 34px;
+  margin: 3px 8px 0;
+  display: flex;
+  padding: 6px 9px;
+  cursor: pointer;
+  align-items: center;
+  gap: 9px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: color-mix(in srgb, var(--black) 58%, transparent);
+  font: inherit;
+  font-size: 12px;
+}
+
+.recent-more-button:hover,
+.recent-more-button:focus-visible {
+  outline: 0;
+  background: var(--hover-color);
+  color: var(--black);
+}
+
+.recent-more-button svg {
+  width: 16px;
+  height: 16px;
+}
+
+.recent-panel-backdrop {
+  position: fixed;
+  z-index: 1200;
+  inset: 0;
+  display: flex;
+  justify-content: flex-start;
+  padding-left: var(--sidebar-width);
+  background: color-mix(in srgb, var(--black) 12%, transparent);
+  backdrop-filter: blur(1px);
+}
+
+.recent-panel {
+  width: min(390px, calc(100vw - var(--sidebar-width)));
+  height: 100%;
+  min-width: 320px;
+  display: flex;
+  box-sizing: border-box;
+  flex-direction: column;
+  border-right: 1px solid color-mix(in srgb, var(--black) 10%, transparent);
+  background: var(--white);
+  color: var(--black);
+  box-shadow: 18px 0 48px rgba(0, 0, 0, 0.13);
+  animation: recent-panel-in 0.18s ease-out;
+}
+
+@keyframes recent-panel-in {
+  from {
+    opacity: 0;
+    transform: translateX(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.recent-panel-header {
+  min-height: 72px;
+  display: flex;
+  padding: 16px 18px 12px;
+  box-sizing: border-box;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.recent-panel-header > div {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.recent-panel-header strong {
+  font-size: 17px;
+}
+
+.recent-panel-header span {
+  color: color-mix(in srgb, var(--black) 48%, transparent);
+  font-size: 11px;
+}
+
+.recent-panel-header button {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  padding: 0;
+  cursor: pointer;
+  place-items: center;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--black);
+}
+
+.recent-panel-header button:hover {
+  background: var(--hover-color);
+}
+
+.recent-panel-header svg {
+  width: 18px;
+  height: 18px;
+}
+
+.recent-panel-search {
+  min-height: 38px;
+  margin: 0 16px 12px;
+  display: flex;
+  padding: 0 11px;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid color-mix(in srgb, var(--black) 10%, transparent);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--white) 94%, var(--gray));
+  color: color-mix(in srgb, var(--black) 44%, transparent);
+}
+
+.recent-panel-search svg {
+  width: 16px;
+  height: 16px;
+}
+
+.recent-panel-search input {
+  min-width: 0;
+  flex: 1;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--black);
+  font: inherit;
+  font-size: 13px;
+}
+
+.recent-panel-list {
+  min-height: 0;
+  flex: 1;
+  padding: 0 10px 16px;
+  overflow: auto;
+}
+
+.chat-list-panel .chat-item {
+  min-height: 42px;
+  padding: 8px 10px;
+}
+
+.recent-panel-empty {
+  padding: 40px 16px;
+  color: color-mix(in srgb, var(--black) 44%, transparent);
+  font-size: 13px;
+  text-align: center;
+}
+
+/* In collapsed mode only explicit navigation/assistant entries remain.
+   Keep artwork inside a stable square so brand avatars are never cropped. */
+.narrow-sidebar .assistant-shortcut span,
+.narrow-sidebar .assistant-workspace-action,
+.narrow-sidebar .workspace-nav-item {
+  overflow: visible;
+}
+
+.narrow-sidebar .assistant-shortcut span :global(img),
+.narrow-sidebar .assistant-shortcut span :global(svg) {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+@media only screen and (max-width: 600px) {
+  .recent-panel-backdrop {
+    padding-left: 0;
+  }
+
+  .recent-panel {
+    width: 100vw;
+    min-width: 0;
+  }
 }

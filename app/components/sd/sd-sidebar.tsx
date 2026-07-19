@@ -14,7 +14,7 @@ import {
   SideBarBody,
   SideBarHeader,
   SideBarTail,
-  useDragSideBar,
+  useSideBarState,
   useHotKey,
 } from "@/app/components/sidebar";
 
@@ -33,7 +33,7 @@ const SdPanel = dynamic(
 export function SideBar(props: { className?: string }) {
   useHotKey();
   const isMobileScreen = useMobileScreen();
-  const { onDragStart, shouldNarrow } = useDragSideBar();
+  const { shouldNarrow } = useSideBarState();
   const navigate = useNavigate();
   const sdStore = useSdStore();
   const currentModel = sdStore.currentModel;
@@ -68,11 +68,7 @@ export function SideBar(props: { className?: string }) {
   };
 
   return (
-    <SideBarContainer
-      onDragStart={onDragStart}
-      shouldNarrow={shouldNarrow}
-      {...props}
-    >
+    <SideBarContainer shouldNarrow={shouldNarrow} {...props}>
       {isMobileScreen ? (
         <div
           className="window-header"
