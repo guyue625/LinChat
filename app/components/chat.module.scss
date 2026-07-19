@@ -1712,6 +1712,8 @@
   width: 17px;
   height: 17px;
   color: currentColor;
+  stroke: currentColor !important;
+  opacity: 1 !important;
   filter: none !important;
 }
 
@@ -1783,6 +1785,8 @@
 }
 
 .composer-model-search input {
+  display: block;
+  flex: 1;
   width: 100%;
   min-width: 0;
   border: 0;
@@ -1791,6 +1795,11 @@
   color: var(--black);
   font: inherit;
   font-size: 13px;
+  text-align: left !important;
+}
+
+.composer-model-search input::placeholder {
+  text-align: left;
 }
 
 .composer-model-list {
@@ -1800,14 +1809,12 @@
 }
 
 .composer-model-popover-home {
-  // The homepage composer can sit too close to the viewport top after its
-  // textarea receives focus. Keep this overlay viewport-bound so its search
-  // field and first results are never clipped by the scrolling page.
-  position: fixed;
-  top: max(12px, env(safe-area-inset-top));
+  // Open below the trigger so the model list never covers the composer.
+  position: absolute;
+  top: calc(100% + 10px);
   bottom: auto;
-  left: auto;
-  max-height: calc(100dvh - 24px);
+  left: 0;
+  max-height: min(520px, calc(100dvh - 120px));
 }
 
 .composer-model-popover-home .composer-model-list {
@@ -1957,6 +1964,8 @@
   width: 17px;
   height: 17px;
   color: currentColor;
+  stroke: currentColor !important;
+  opacity: 1 !important;
   filter: none !important;
 }
 
@@ -2174,11 +2183,13 @@
 
 @media (max-width: 600px) {
   .composer-model-popover-home {
-    top: max(10px, env(safe-area-inset-top));
-    right: 10px;
+    position: absolute;
+    top: calc(100% + 8px);
+    right: auto;
     bottom: auto;
-    left: 10px;
-    max-height: calc(100dvh - 20px);
+    left: 0;
+    width: min(380px, calc(100vw - 28px));
+    max-height: min(520px, calc(100dvh - 110px));
   }
 
   .composer-model-popover-home .composer-model-list {

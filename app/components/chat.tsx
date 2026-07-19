@@ -635,6 +635,12 @@ export function ChatActions(props: {
     });
     return Array.from(groups.entries());
   }, [filteredModels]);
+  const getProviderGroupLabel = (providerName: string) => {
+    if (providerName === ServiceProvider.SiliconFlow) {
+      return "模型服务商 · 硅基流动（SiliconFlow）";
+    }
+    return `模型服务商 · ${providerName}`;
+  };
 
   useEffect(() => {
     const canUpload = isVisionModel(currentModel);
@@ -774,7 +780,7 @@ export function ChatActions(props: {
                     key={providerName}
                   >
                     <div className={styles["composer-model-group-title"]}>
-                      <span>{providerName}</span>
+                      <span>{getProviderGroupLabel(providerName)}</span>
                       <small>{providerModels.length}</small>
                     </div>
                     {providerModels.map((model) => {

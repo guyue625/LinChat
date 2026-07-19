@@ -63,8 +63,7 @@ export function ChatItem(props: {
         <div
           className={clsx(styles["chat-item"], {
             [styles["chat-item-selected"]]:
-              props.selected &&
-              (currentPath === Path.Chat || currentPath === Path.Home),
+              props.selected && currentPath === Path.Chat,
           })}
           onClick={props.onClick}
           onContextMenu={(event) => {

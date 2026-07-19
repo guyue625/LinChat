@@ -4,7 +4,6 @@ import { createPortal } from "react-dom";
 import styles from "./home.module.scss";
 
 import { IconButton } from "./button";
-import GithubIcon from "../icons/github.svg";
 import {
   ArrowLeft as LeftIcon,
   Bell as NotificationIcon,
@@ -15,11 +14,13 @@ import {
   Compass as DiscoveryIcon,
   MessageCircle as ChatIcon,
   MoreHorizontal,
+  Moon,
   PanelLeftClose as CollapseIcon,
   Plug as McpIcon,
   Plus as AddIcon,
   Search as SearchIcon,
   Settings as SettingsIcon,
+  Sun,
   Trash2 as DeleteIcon,
   X as CloseIcon,
 } from "lucide-react";
@@ -34,13 +35,9 @@ import Locale from "../locales";
 
 import { useAppConfig, useChatStore } from "../store";
 import { Mask, useMaskStore } from "../store/mask";
+import { Theme } from "../store/config";
 
-import {
-  DEFAULT_SIDEBAR_WIDTH,
-  NARROW_SIDEBAR_WIDTH,
-  Path,
-  REPO_URL,
-} from "../constant";
+import { DEFAULT_SIDEBAR_WIDTH, NARROW_SIDEBAR_WIDTH, Path } from "../constant";
 
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { isIOS, useMobileScreen } from "../utils";
@@ -262,6 +259,16 @@ export function SideBar(props: { className?: string }) {
   const customAssistants = Object.values(maskStore.masks).sort(
     (a, b) => b.createdAt - a.createdAt,
   );
+  const isDarkTheme =
+    config.theme === Theme.Dark ||
+    (config.theme === Theme.Auto &&
+      typeof window !== "undefined" &&
+      window.matchMedia("(prefers-color-scheme: dark)").matches);
+  const toggleTheme = () => {
+    config.update((nextConfig) => {
+      nextConfig.theme = isDarkTheme ? Theme.Light : Theme.Dark;
+    });
+  };
 
   useEffect(() => {
     if (!assistantSwitcherOpen) return;
@@ -795,38 +802,15 @@ export function SideBar(props: { className?: string }) {
               </Link>
             </div>
             <div className={styles["sidebar-action"]}>
-              <a href={REPO_URL} target="_blank" rel="noopener noreferrer">
-                <IconButton
-                  aria={Locale.Export.MessageFromChatGPT}
-                  icon={<GithubIcon />}
-                  shadow
-                />
-              </a>
+              <IconButton
+                aria={isDarkTheme ? "切换为浅色" : "切换为深色"}
+                title={isDarkTheme ? "切换为浅色" : "切换为深色"}
+                icon={isDarkTheme ? <Sun /> : <Moon />}
+                onClick={toggleTheme}
+                shadow
+              />
             </div>
           </>
-        }
-        secondaryAction={
-          <IconButton
-            icon={<AddIcon />}
-            text={shouldNarrow ? undefined : Locale.Home.NewChat}
-            onClick={() => {
-              const currentMask = chatStore.currentSession().mask;
-              const isAssistantChat =
-                location.pathname === Path.Chat &&
-                currentMask.id.startsWith("featured-");
-
-              if (isAssistantChat) {
-                chatStore.newSession(currentMask);
-                navigate(Path.Chat);
-              } else if (config.dontShowMaskSplashScreen) {
-                chatStore.newSession();
-                navigate(Path.Chat);
-              } else {
-                navigate(Path.NewChat);
-              }
-            }}
-            shadow
-          />
         }
       />
       {recentPanelOpen && (

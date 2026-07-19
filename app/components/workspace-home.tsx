@@ -1,6 +1,6 @@
 import { FormEvent, useCallback, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { SendHorizontal, X } from "lucide-react";
+import { Check, ChevronsUpDown, SendHorizontal, X } from "lucide-react";
 import { Path } from "../constant";
 import { useChatStore } from "../store";
 import { Mask } from "../store/mask";
@@ -26,6 +26,7 @@ export function WorkspaceHome() {
   );
   const [attachImages, setAttachImages] = useState<string[]>([]);
   const [uploading, setUploading] = useState(false);
+  const [assistantMenuOpen, setAssistantMenuOpen] = useState(false);
   const [, setUnusedModal] = useState(false);
 
   const updateDraftMask = useCallback((updater: (mask: Mask) => void) => {
@@ -38,6 +39,7 @@ export function WorkspaceHome() {
 
   const chooseAssistant = (assistant: FeaturedAssistant) => {
     setActive(assistant);
+    setAssistantMenuOpen(false);
     setDraftMask((current) => {
       const next = assistantToMask(assistant);
       next.modelConfig = deepClone(current.modelConfig);
@@ -99,18 +101,76 @@ export function WorkspaceHome() {
       <div className={styles.glow} />
       <section className={styles.content}>
         <header className={styles.hero}>
-          <div className={styles.identity}>
-            <span
-              className={`${styles.avatar} ${
-                active.isSystem ? styles.brandAvatar : ""
-              }`}
-            >
-              <EmojiAvatar
-                avatar={active.avatar}
-                size={active.isSystem ? 52 : 36}
+          <div className={styles.identitySwitcher}>
+            {assistantMenuOpen && (
+              <button
+                type="button"
+                className={styles.switcherBackdrop}
+                aria-label="关闭助理选择"
+                onClick={() => setAssistantMenuOpen(false)}
               />
-            </span>
-            <strong>{active.name}</strong>
+            )}
+            <button
+              type="button"
+              className={styles.identity}
+              aria-label={`切换助理，当前为 ${active.name}`}
+              aria-haspopup="listbox"
+              aria-expanded={assistantMenuOpen}
+              onClick={() => setAssistantMenuOpen((open) => !open)}
+            >
+              <span
+                className={`${styles.avatar} ${
+                  active.isSystem ? styles.brandAvatar : ""
+                }`}
+              >
+                <EmojiAvatar
+                  avatar={active.avatar}
+                  size={active.isSystem ? 52 : 36}
+                />
+              </span>
+              <strong>{active.name}</strong>
+              <ChevronsUpDown aria-hidden="true" />
+            </button>
+            {assistantMenuOpen && (
+              <div
+                className={styles.assistantMenu}
+                role="listbox"
+                aria-label="选择助理"
+              >
+                {FEATURED_ASSISTANTS.map((assistant) => (
+                  <button
+                    key={assistant.key}
+                    type="button"
+                    role="option"
+                    aria-selected={active.key === assistant.key}
+                    className={
+                      active.key === assistant.key
+                        ? styles.assistantMenuActive
+                        : undefined
+                    }
+                    onClick={() => chooseAssistant(assistant)}
+                  >
+                    <span
+                      className={`${styles.menuAvatar} ${
+                        assistant.isSystem ? styles.brandAvatar : ""
+                      }`}
+                    >
+                      <EmojiAvatar
+                        avatar={assistant.avatar}
+                        size={assistant.isSystem ? 38 : 30}
+                      />
+                    </span>
+                    <span>
+                      <strong>{assistant.name}</strong>
+                      <small>{assistant.description}</small>
+                    </span>
+                    {active.key === assistant.key && (
+                      <Check aria-hidden="true" />
+                    )}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
           <h1>你好，今天想完成什么？</h1>
           <p>{active.greeting}</p>
