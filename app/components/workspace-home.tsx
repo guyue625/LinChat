@@ -36,8 +36,15 @@ export function WorkspaceHome() {
       <section className={styles.content}>
         <header className={styles.hero}>
           <div className={styles.identity}>
-            <span className={styles.avatar}>
-              <EmojiAvatar avatar={active.avatar} size={36} />
+            <span
+              className={`${styles.avatar} ${
+                active.isSystem ? styles.brandAvatar : ""
+              }`}
+            >
+              <EmojiAvatar
+                avatar={active.avatar}
+                size={active.isSystem ? 52 : 36}
+              />
             </span>
             <strong>{active.name}</strong>
           </div>
@@ -96,8 +103,15 @@ export function WorkspaceHome() {
                 onClick={() => setActive(assistant)}
                 onDoubleClick={() => void startChat(assistant)}
               >
-                <span className={styles.cardAvatar}>
-                  <EmojiAvatar avatar={assistant.avatar} size={38} />
+                <span
+                  className={`${styles.cardAvatar} ${
+                    assistant.isSystem ? styles.brandAvatar : ""
+                  }`}
+                >
+                  <EmojiAvatar
+                    avatar={assistant.avatar}
+                    size={assistant.isSystem ? 48 : 38}
+                  />
                 </span>
                 <span className={styles.cardText}>
                   <strong>{assistant.name}</strong>

@@ -3,20 +3,25 @@ import React, { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import styles from "./home.module.scss";
 
 import { IconButton } from "./button";
-import SettingsIcon from "../icons/settings.svg";
 import GithubIcon from "../icons/github.svg";
-import AddIcon from "../icons/add.svg";
-import DeleteIcon from "../icons/delete.svg";
-import MaskIcon from "../icons/mask.svg";
-import McpIcon from "../icons/mcp.svg";
 import DragIcon from "../icons/drag.svg";
-import DiscoveryIcon from "../icons/discovery.svg";
-import ChatIcon from "../icons/chat.svg";
-import LeftIcon from "../icons/left.svg";
-import CollapseIcon from "../icons/sidebar-collapse.svg";
-import NotificationIcon from "../icons/notification.svg";
-import DownIcon from "../icons/down.svg";
+import {
+  ArrowLeft as LeftIcon,
+  Bell as NotificationIcon,
+  Bot as MaskIcon,
+  Check,
+  ChevronDown as DownIcon,
+  ChevronsUpDown,
+  Compass as DiscoveryIcon,
+  MessageCircle as ChatIcon,
+  PanelLeftClose as CollapseIcon,
+  Plug as McpIcon,
+  Plus as AddIcon,
+  Settings as SettingsIcon,
+  Trash2 as DeleteIcon,
+} from "lucide-react";
 import { EmojiAvatar } from "./emoji";
+import { BrandLogo } from "./brand-logo";
 import {
   assistantToMask,
   FEATURED_ASSISTANTS,
@@ -25,6 +30,7 @@ import {
 import Locale from "../locales";
 
 import { useAppConfig, useChatStore } from "../store";
+import { Mask, useMaskStore } from "../store/mask";
 
 import {
   DEFAULT_SIDEBAR_WIDTH,
@@ -184,9 +190,10 @@ export function SideBarHeader(props: {
   subTitle?: string | React.ReactNode;
   logo?: React.ReactNode;
   children?: React.ReactNode;
+  overlay?: React.ReactNode;
   shouldNarrow?: boolean;
 }) {
-  const { title, subTitle, logo, children, shouldNarrow } = props;
+  const { title, subTitle, logo, children, overlay, shouldNarrow } = props;
   return (
     <Fragment>
       <div
@@ -202,6 +209,7 @@ export function SideBarHeader(props: {
           <div className={styles["sidebar-sub-title"]}>{subTitle}</div>
         </div>
         <div className={clsx(styles["sidebar-logo"], "no-dark")}>{logo}</div>
+        {overlay}
       </div>
       {children}
     </Fragment>
@@ -247,6 +255,38 @@ export function SideBar(props: { className?: string }) {
   const [recentExpanded, setRecentExpanded] = useState(true);
   const [assistantsExpanded, setAssistantsExpanded] = useState(true);
   const [topicsExpanded, setTopicsExpanded] = useState(true);
+  const [assistantSwitcherOpen, setAssistantSwitcherOpen] = useState(false);
+  const assistantSwitcherRef = useRef<HTMLButtonElement>(null);
+  const assistantSwitcherMenuRef = useRef<HTMLDivElement>(null);
+  const maskStore = useMaskStore();
+  const customAssistants = Object.values(maskStore.masks).sort(
+    (a, b) => b.createdAt - a.createdAt,
+  );
+
+  useEffect(() => {
+    if (!assistantSwitcherOpen) return;
+
+    const closeSwitcher = (event: PointerEvent) => {
+      const target = event.target as Node;
+      if (
+        assistantSwitcherRef.current?.contains(target) ||
+        assistantSwitcherMenuRef.current?.contains(target)
+      ) {
+        return;
+      }
+      setAssistantSwitcherOpen(false);
+    };
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setAssistantSwitcherOpen(false);
+    };
+
+    document.addEventListener("pointerdown", closeSwitcher);
+    document.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.removeEventListener("pointerdown", closeSwitcher);
+      document.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [assistantSwitcherOpen]);
 
   const openAssistant = (assistant: (typeof FEATURED_ASSISTANTS)[number]) => {
     const maskId = `featured-${assistant.key}`;
@@ -277,6 +317,32 @@ export function SideBar(props: { className?: string }) {
       chatStore.newSession(assistantToMask(assistant));
     }
 
+    navigate(Path.Chat);
+  };
+
+  const openMaskAssistant = (mask: Mask) => {
+    const sessionIndex = chatStore.sessions.reduce(
+      (latestIndex, session, index) => {
+        if (session.mask.id !== mask.id) return latestIndex;
+        if (latestIndex < 0) return index;
+        return session.lastUpdate > chatStore.sessions[latestIndex].lastUpdate
+          ? index
+          : latestIndex;
+      },
+      -1,
+    );
+
+    if (sessionIndex >= 0) {
+      const session = chatStore.sessions[sessionIndex];
+      chatStore.updateTargetSession(session, (target) => {
+        target.mask = { ...mask };
+      });
+      chatStore.selectSession(sessionIndex);
+    } else {
+      chatStore.newSession(mask);
+    }
+
+    setAssistantSwitcherOpen(false);
     navigate(Path.Chat);
   };
 
@@ -319,21 +385,27 @@ export function SideBar(props: { className?: string }) {
         <SideBarHeader
           title={
             shouldNarrow ? undefined : (
-              <span
+              <button
+                ref={assistantSwitcherRef}
+                type="button"
                 className={clsx(styles["assistant-workspace-title"], {
                   [styles["assistant-workspace-title-brand"]]:
                     currentFeaturedAssistant?.isSystem,
                 })}
+                aria-label={`切换助理，当前为 ${currentMask.name}`}
+                aria-haspopup="listbox"
+                aria-expanded={assistantSwitcherOpen}
+                onClick={() => setAssistantSwitcherOpen((isOpen) => !isOpen)}
               >
                 <EmojiAvatar
                   avatar={currentMaskAvatar}
-                  size={currentFeaturedAssistant?.isSystem ? 34 : 30}
+                  size={currentFeaturedAssistant?.isSystem ? 32 : 28}
                 />
                 <span>{currentMask.name}</span>
-              </span>
+                <ChevronsUpDown aria-hidden="true" />
+              </button>
             )
           }
-          subTitle={shouldNarrow ? undefined : "助理工作区"}
           logo={
             <div className={styles["sidebar-utility-actions"]}>
               <IconButton
@@ -349,6 +421,108 @@ export function SideBar(props: { className?: string }) {
                 onClick={toggleSideBar}
               />
             </div>
+          }
+          overlay={
+            !shouldNarrow && assistantSwitcherOpen ? (
+              <div
+                ref={assistantSwitcherMenuRef}
+                className={styles["assistant-switcher-menu"]}
+                role="listbox"
+                aria-label="切换助理"
+              >
+                <div className={styles["assistant-switcher-label"]}>
+                  预置助理
+                </div>
+                {FEATURED_ASSISTANTS.map((assistant) => {
+                  const assistantMaskId = `featured-${assistant.key}`;
+                  const selected = currentMask.id === assistantMaskId;
+                  return (
+                    <button
+                      key={assistant.key}
+                      type="button"
+                      role="option"
+                      aria-selected={selected}
+                      className={clsx(styles["assistant-switcher-item"], {
+                        [styles["assistant-switcher-item-active"]]: selected,
+                      })}
+                      onClick={() => {
+                        setAssistantSwitcherOpen(false);
+                        openAssistant(assistant);
+                      }}
+                    >
+                      <span
+                        className={clsx(styles["assistant-switcher-avatar"], {
+                          [styles["assistant-switcher-avatar-brand"]]:
+                            assistant.isSystem,
+                        })}
+                      >
+                        <EmojiAvatar
+                          avatar={assistant.avatar}
+                          size={assistant.isSystem ? 34 : 28}
+                        />
+                      </span>
+                      <span className={styles["assistant-switcher-copy"]}>
+                        <strong>{assistant.name}</strong>
+                        <small>{assistant.description}</small>
+                      </span>
+                      {selected && <Check aria-hidden="true" />}
+                    </button>
+                  );
+                })}
+                {customAssistants.length > 0 && (
+                  <>
+                    <div className={styles["assistant-switcher-divider"]} />
+                    <div className={styles["assistant-switcher-label"]}>
+                      我的助理
+                    </div>
+                    {customAssistants.map((assistant) => {
+                      const selected = currentMask.id === assistant.id;
+                      return (
+                        <button
+                          key={assistant.id}
+                          type="button"
+                          role="option"
+                          aria-selected={selected}
+                          className={clsx(styles["assistant-switcher-item"], {
+                            [styles["assistant-switcher-item-active"]]:
+                              selected,
+                          })}
+                          onClick={() => openMaskAssistant(assistant)}
+                        >
+                          <span className={styles["assistant-switcher-avatar"]}>
+                            <EmojiAvatar avatar={assistant.avatar} size={28} />
+                          </span>
+                          <span className={styles["assistant-switcher-copy"]}>
+                            <strong>{assistant.name}</strong>
+                            <small>自定义助理</small>
+                          </span>
+                          {selected && <Check aria-hidden="true" />}
+                        </button>
+                      );
+                    })}
+                  </>
+                )}
+                <div className={styles["assistant-switcher-divider"]} />
+                <button
+                  type="button"
+                  className={clsx(
+                    styles["assistant-switcher-item"],
+                    styles["assistant-switcher-create"],
+                  )}
+                  onClick={() => {
+                    setAssistantSwitcherOpen(false);
+                    navigate(Path.Masks);
+                  }}
+                >
+                  <span className={styles["assistant-switcher-avatar"]}>
+                    <AddIcon aria-hidden="true" />
+                  </span>
+                  <span className={styles["assistant-switcher-copy"]}>
+                    <strong>创建助理</strong>
+                  </span>
+                </button>
+              </div>
+            ) : undefined
           }
           shouldNarrow={shouldNarrow}
         />
@@ -428,8 +602,14 @@ export function SideBar(props: { className?: string }) {
       {...props}
     >
       <SideBarHeader
-        title="LinChat"
-        subTitle="Build your own AI assistant."
+        title={
+          shouldNarrow ? undefined : (
+            <span className={styles["sidebar-brand-title"]}>
+              <BrandLogo width={30} height={26} alt="" />
+              <span>LinChat</span>
+            </span>
+          )
+        }
         logo={
           <div className={styles["sidebar-utility-actions"]}>
             <IconButton

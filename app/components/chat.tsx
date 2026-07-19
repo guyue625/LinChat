@@ -106,7 +106,6 @@ import {
   ServiceProvider,
   UNFINISHED_INPUT,
 } from "../constant";
-import { Avatar } from "./emoji";
 import { ContextPrompts, MaskAvatar, MaskConfig } from "./mask";
 import { useMaskStore } from "../store/mask";
 import { ChatCommandPrefix, useChatCommand, useCommand } from "../command";
@@ -1304,6 +1303,32 @@ function _Chat() {
     });
   };
 
+  const onEditMessage = async (message: ChatMessage) => {
+    const newMessage = await showPrompt(
+      Locale.Chat.Actions.Edit,
+      getMessageTextContent(message),
+      10,
+    );
+    let newContent: string | MultimodalContent[] = newMessage;
+    const images = getMessageImages(message);
+    if (images.length > 0) {
+      newContent = [{ type: "text", text: newMessage }];
+      images.forEach((image) => {
+        (newContent as MultimodalContent[]).push({
+          type: "image_url",
+          image_url: { url: image },
+        });
+      });
+    }
+
+    chatStore.updateTargetSession(session, (targetSession) => {
+      const targetMessage = targetSession.mask.context
+        .concat(targetSession.messages)
+        .find((item) => item.id === message.id);
+      if (targetMessage) targetMessage.content = newContent;
+    });
+  };
+
   const accessStore = useAccessStore();
   const [speechStatus, setSpeechStatus] = useState(false);
   const [speechLoading, setSpeechLoading] = useState(false);
@@ -1366,43 +1391,23 @@ function _Chat() {
     context.push(copiedHello);
   }
 
-  // preview messages
+  // Only committed messages belong in the conversation. While the user is
+  // composing, the draft stays in the input instead of appearing twice.
   const renderMessages = useMemo(() => {
-    return context
-      .concat(session.messages as RenderMessage[])
-      .concat(
-        isLoading
-          ? [
-              {
-                ...createMessage({
-                  role: "assistant",
-                  content: "……",
-                }),
-                preview: true,
-              },
-            ]
-          : [],
-      )
-      .concat(
-        userInput.length > 0 && config.sendPreviewBubble
-          ? [
-              {
-                ...createMessage({
-                  role: "user",
-                  content: userInput,
-                }),
-                preview: true,
-              },
-            ]
-          : [],
-      );
-  }, [
-    config.sendPreviewBubble,
-    context,
-    isLoading,
-    session.messages,
-    userInput,
-  ]);
+    return context.concat(session.messages as RenderMessage[]).concat(
+      isLoading
+        ? [
+            {
+              ...createMessage({
+                role: "assistant",
+                content: "??",
+              }),
+              preview: true,
+            },
+          ]
+        : [],
+    );
+  }, [context, isLoading, session.messages]);
 
   const [msgRenderIndex, _setMsgRenderIndex] = useState(
     Math.max(0, renderMessages.length - CHAT_PAGE_SIZE),
@@ -1880,73 +1885,27 @@ function _Chat() {
                         >
                           <div className={styles["chat-message-container"]}>
                             <div className={styles["chat-message-header"]}>
-                              <div className={styles["chat-message-avatar"]}>
-                                <div className={styles["chat-message-edit"]}>
-                                  <IconButton
-                                    icon={<EditIcon />}
-                                    aria={Locale.Chat.Actions.Edit}
-                                    onClick={async () => {
-                                      const newMessage = await showPrompt(
-                                        Locale.Chat.Actions.Edit,
-                                        getMessageTextContent(message),
-                                        10,
-                                      );
-                                      let newContent:
-                                        | string
-                                        | MultimodalContent[] = newMessage;
-                                      const images = getMessageImages(message);
-                                      if (images.length > 0) {
-                                        newContent = [
-                                          { type: "text", text: newMessage },
-                                        ];
-                                        for (
-                                          let i = 0;
-                                          i < images.length;
-                                          i++
-                                        ) {
-                                          newContent.push({
-                                            type: "image_url",
-                                            image_url: {
-                                              url: images[i],
-                                            },
-                                          });
-                                        }
-                                      }
-                                      chatStore.updateTargetSession(
-                                        session,
-                                        (session) => {
-                                          const m = session.mask.context
-                                            .concat(session.messages)
-                                            .find((m) => m.id === message.id);
-                                          if (m) {
-                                            m.content = newContent;
-                                          }
-                                        },
-                                      );
-                                    }}
-                                  ></IconButton>
+                              {!isUser && (
+                                <div className={styles["chat-message-avatar"]}>
+                                  <div className={styles["chat-message-edit"]}>
+                                    <IconButton
+                                      icon={<EditIcon />}
+                                      aria={Locale.Chat.Actions.Edit}
+                                      onClick={() => onEditMessage(message)}
+                                    />
+                                  </div>
+                                  <MaskAvatar
+                                    avatar={
+                                      featuredAssistant?.avatar ??
+                                      session.mask.avatar
+                                    }
+                                    model={
+                                      message.model ||
+                                      session.mask.modelConfig.model
+                                    }
+                                  />
                                 </div>
-                                {isUser ? (
-                                  <Avatar avatar={config.avatar} />
-                                ) : (
-                                  <>
-                                    {["system"].includes(message.role) ? (
-                                      <Avatar avatar="2699-fe0f" />
-                                    ) : (
-                                      <MaskAvatar
-                                        avatar={
-                                          featuredAssistant?.avatar ??
-                                          session.mask.avatar
-                                        }
-                                        model={
-                                          message.model ||
-                                          session.mask.modelConfig.model
-                                        }
-                                      />
-                                    )}
-                                  </>
-                                )}
-                              </div>
+                              )}
                               {!isUser && (
                                 <div className={styles["chat-model-name"]}>
                                   {message.model}
@@ -1966,6 +1925,15 @@ function _Chat() {
                                       />
                                     ) : (
                                       <>
+                                        {isUser && (
+                                          <ChatAction
+                                            text={Locale.Chat.Actions.Edit}
+                                            icon={<EditIcon />}
+                                            onClick={() =>
+                                              onEditMessage(message)
+                                            }
+                                          />
+                                        )}
                                         <ChatAction
                                           text={Locale.Chat.Actions.Retry}
                                           icon={<ResetIcon />}
