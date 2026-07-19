@@ -10,6 +10,8 @@ import React, {
 } from "react";
 
 import SendWhiteIcon from "../icons/send-white.svg";
+import AddIcon from "../icons/add.svg";
+import DownIcon from "../icons/down.svg";
 import BrainIcon from "../icons/brain.svg";
 import RenameIcon from "../icons/edit.svg";
 import EditIcon from "../icons/rename.svg";
@@ -33,9 +35,6 @@ import CloseIcon from "../icons/close.svg";
 import CancelIcon from "../icons/cancel.svg";
 import ImageIcon from "../icons/image.svg";
 
-import LightIcon from "../icons/light.svg";
-import DarkIcon from "../icons/dark.svg";
-import AutoIcon from "../icons/auto.svg";
 import BottomIcon from "../icons/bottom.svg";
 import StopIcon from "../icons/pause.svg";
 import RobotIcon from "../icons/robot.svg";
@@ -53,7 +52,6 @@ import {
   DEFAULT_TOPIC,
   ModelType,
   SubmitKey,
-  Theme,
   useAccessStore,
   useAppConfig,
   useChatStore,
@@ -117,7 +115,7 @@ import { createTTSPlayer } from "../utils/audio";
 import { MsEdgeTTS, OUTPUT_FORMAT } from "../utils/ms_edge_tts";
 
 import { isEmpty } from "lodash-es";
-import { filterModelsByProvider, getModelProvider } from "../utils/model";
+import { filterModelsByProvider } from "../utils/model";
 import { RealtimeChat } from "@/app/components/realtime-chat";
 import clsx from "clsx";
 import { getAvailableClientsCount, isMcpEnabled } from "../mcp/actions";
@@ -136,34 +134,6 @@ const EMPTY_CHAT_SUGGESTIONS = [
 const Markdown = dynamic(async () => (await import("./markdown")).Markdown, {
   loading: () => <LoadingIcon />,
 });
-
-const MCPAction = () => {
-  const navigate = useNavigate();
-  const [count, setCount] = useState<number>(0);
-  const [mcpEnabled, setMcpEnabled] = useState(false);
-
-  useEffect(() => {
-    const checkMcpStatus = async () => {
-      const enabled = await isMcpEnabled();
-      setMcpEnabled(enabled);
-      if (enabled) {
-        const count = await getAvailableClientsCount();
-        setCount(count);
-      }
-    };
-    checkMcpStatus();
-  }, []);
-
-  if (!mcpEnabled) return null;
-
-  return (
-    <ChatAction
-      onClick={() => navigate(Path.McpMarket)}
-      text={`MCP${count ? ` (${count})` : ""}`}
-      icon={<McpToolIcon />}
-    />
-  );
-};
 
 export function SessionConfigModel(props: { onClose: () => void }) {
   const chatStore = useChatStore();
@@ -494,6 +464,62 @@ function useScrollToBottom(
   };
 }
 
+function ComposerToolButton(props: {
+  icon: JSX.Element;
+  label: string;
+  active?: boolean;
+  className?: string;
+  onClick: () => void;
+  children?: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      className={clsx(
+        styles["composer-tool-button"],
+        props.active && styles["composer-tool-button-active"],
+        props.className,
+      )}
+      aria-label={props.label}
+      title={props.label}
+      onClick={props.onClick}
+    >
+      <span className={styles["composer-tool-icon"]}>{props.icon}</span>
+      {props.children}
+    </button>
+  );
+}
+
+function ComposerMenuItem(props: {
+  icon: JSX.Element;
+  label: string;
+  checked?: boolean;
+  trailing?: React.ReactNode;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      className={styles["composer-menu-item"]}
+      onClick={props.onClick}
+    >
+      <span className={styles["composer-menu-item-icon"]}>{props.icon}</span>
+      <span className={styles["composer-menu-item-label"]}>{props.label}</span>
+      {props.trailing ??
+        (props.checked !== undefined && (
+          <span
+            className={clsx(
+              styles["composer-switch"],
+              props.checked && styles["composer-switch-on"],
+            )}
+            aria-hidden="true"
+          >
+            <span />
+          </span>
+        ))}
+    </button>
+  );
+}
 export function ChatActions(props: {
   uploadImage: () => void;
   setAttachImages: (images: string[]) => void;
@@ -504,7 +530,6 @@ export function ChatActions(props: {
   hitBottom: boolean;
   uploading: boolean;
   setShowShortcutKeyModal: React.Dispatch<React.SetStateAction<boolean>>;
-  setUserInput: (input: string) => void;
   setShowChatSidePanel: React.Dispatch<React.SetStateAction<boolean>>;
 }) {
   const { setAttachImages, setUploading } = props;
@@ -513,23 +538,6 @@ export function ChatActions(props: {
   const chatStore = useChatStore();
   const pluginStore = usePluginStore();
   const session = chatStore.currentSession();
-
-  // switch themes
-  const theme = config.theme;
-
-  function nextTheme() {
-    const themes = [Theme.Auto, Theme.Light, Theme.Dark];
-    const themeIndex = themes.indexOf(theme);
-    const nextIndex = (themeIndex + 1) % themes.length;
-    const nextTheme = themes[nextIndex];
-    config.update((config) => (config.theme = nextTheme));
-  }
-
-  // stop all responses
-  const couldStop = ChatControllerPool.hasPending();
-  const stopAll = () => ChatControllerPool.stopAll();
-
-  // switch model
   const currentModel = session.mask.modelConfig.model;
   const currentProviderName =
     session.mask.modelConfig?.providerName || ServiceProvider.OpenAI;
@@ -539,334 +547,422 @@ export function ChatActions(props: {
     ? accessStore.provider
     : undefined;
   const models = useMemo(() => {
-    const filteredModels = filterModelsByProvider(allModels, selectedProvider);
-    const defaultModel = filteredModels.find((m) => m.isDefault);
-
-    if (defaultModel) {
-      const arr = [
-        defaultModel,
-        ...filteredModels.filter((m) => m !== defaultModel),
-      ];
-      return arr;
-    } else {
-      return filteredModels;
-    }
+    const available = filterModelsByProvider(allModels, selectedProvider);
+    const defaultModel = available.find((model) => model.isDefault);
+    return defaultModel
+      ? [defaultModel, ...available.filter((model) => model !== defaultModel)]
+      : available;
   }, [allModels, selectedProvider]);
   const currentModelName = useMemo(() => {
     const model = models.find(
-      (m) =>
-        m.name == currentModel &&
-        m?.provider?.providerName == currentProviderName,
+      (item) =>
+        item.name === currentModel &&
+        item.provider?.providerName === currentProviderName,
     );
-    return model?.displayName ?? "";
+    return model?.displayName || currentModel;
   }, [models, currentModel, currentProviderName]);
+
   const [showModelSelector, setShowModelSelector] = useState(false);
+  const [showMoreMenu, setShowMoreMenu] = useState(false);
+  const [modelSearch, setModelSearch] = useState("");
   const [showPluginSelector, setShowPluginSelector] = useState(false);
   const [showUploadImage, setShowUploadImage] = useState(false);
-
   const [showSizeSelector, setShowSizeSelector] = useState(false);
   const [showQualitySelector, setShowQualitySelector] = useState(false);
   const [showStyleSelector, setShowStyleSelector] = useState(false);
+  const [mcpState, setMcpState] = useState({ enabled: false, count: 0 });
+  const isMobileScreen = useMobileScreen();
+  const plugins = pluginStore.getAll();
+  const selectedPluginCount = session.mask.plugin?.length ?? 0;
   const modelSizes = getModelSizes(currentModel);
-  const dalle3Qualitys: DalleQuality[] = ["standard", "hd"];
-  const dalle3Styles: DalleStyle[] = ["vivid", "natural"];
   const currentSize =
     session.mask.modelConfig?.size ?? ("1024x1024" as ModelSize);
   const currentQuality = session.mask.modelConfig?.quality ?? "standard";
   const currentStyle = session.mask.modelConfig?.style ?? "vivid";
-
-  const isMobileScreen = useMobileScreen();
+  const filteredModels = useMemo(() => {
+    const query = modelSearch.trim().toLowerCase();
+    if (!query) return models;
+    return models.filter((model) =>
+      [model.displayName, model.name, model.provider?.providerName]
+        .filter(Boolean)
+        .some((value) => String(value).toLowerCase().includes(query)),
+    );
+  }, [modelSearch, models]);
 
   useEffect(() => {
-    const show = isVisionModel(currentModel);
-    setShowUploadImage(show);
-    if (!show) {
+    const canUpload = isVisionModel(currentModel);
+    setShowUploadImage(canUpload);
+    if (!canUpload) {
       setAttachImages([]);
       setUploading(false);
     }
 
-    // if current model is not available
-    // switch to first available model
-    const isUnavailableModel = !models.some(
-      (m) =>
-        m.name === currentModel &&
-        m.provider?.providerName === currentProviderName,
+    const unavailable = !models.some(
+      (model) =>
+        model.name === currentModel &&
+        model.provider?.providerName === currentProviderName,
     );
-    if (isUnavailableModel && models.length > 0) {
-      // show next model to default model if exist
-      let nextModel = models.find((model) => model.isDefault) || models[0];
-      chatStore.updateTargetSession(session, (session) => {
-        session.mask.modelConfig.model = nextModel.name;
-        session.mask.modelConfig.providerName = nextModel?.provider
+    if (unavailable && models.length > 0) {
+      const nextModel = models.find((model) => model.isDefault) || models[0];
+      chatStore.updateTargetSession(session, (target) => {
+        target.mask.modelConfig.model = nextModel.name;
+        target.mask.modelConfig.providerName = nextModel.provider
           ?.providerName as ServiceProvider;
       });
-      showToast(
-        nextModel?.provider?.providerName == "ByteDance"
-          ? nextModel.displayName
-          : nextModel.name,
-      );
+      showToast(nextModel.displayName || nextModel.name);
     }
   }, [
     chatStore,
     currentModel,
     currentProviderName,
     models,
+    session,
     setAttachImages,
     setUploading,
-    session,
   ]);
 
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      const enabled = await isMcpEnabled();
+      const count = enabled ? await getAvailableClientsCount() : 0;
+      if (alive) setMcpState({ enabled, count });
+    })();
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  const closePopovers = () => {
+    setShowModelSelector(false);
+    setShowMoreMenu(false);
+  };
+  const selectModel = (model: (typeof models)[number]) => {
+    chatStore.updateTargetSession(session, (target) => {
+      target.mask.modelConfig.model = model.name as ModelType;
+      target.mask.modelConfig.providerName = model.provider
+        ?.providerName as ServiceProvider;
+      target.mask.syncGlobalConfig = false;
+    });
+    showToast(model.displayName || model.name);
+    setShowModelSelector(false);
+    setModelSearch("");
+  };
+  const toggleMemory = () => {
+    chatStore.updateTargetSession(session, (target) => {
+      target.mask.modelConfig.sendMemory = !target.mask.modelConfig.sendMemory;
+      target.mask.syncGlobalConfig = false;
+    });
+  };
+  const clearContext = () => {
+    chatStore.updateTargetSession(session, (target) => {
+      if (target.clearContextIndex === target.messages.length) {
+        target.clearContextIndex = undefined;
+      } else {
+        target.clearContextIndex = target.messages.length;
+        target.memoryPrompt = "";
+      }
+    });
+    setShowMoreMenu(false);
+  };
+  const openPluginSelector = () => {
+    setShowMoreMenu(false);
+    plugins.length === 0 ? navigate(Path.Plugins) : setShowPluginSelector(true);
+  };
+
+  // TODO(lobe-composer): Add general file attachments, native web search,
+  // Agent Gateway, device targeting and approval modes only after their
+  // runtimes exist. Non-functional placeholder controls stay hidden.
   return (
     <div className={styles["chat-input-actions"]}>
-      <>
-        {couldStop && (
-          <ChatAction
-            onClick={stopAll}
-            text={Locale.Chat.InputActions.Stop}
-            icon={<StopIcon />}
-          />
-        )}
-        {!props.hitBottom && (
-          <ChatAction
-            onClick={props.scrollToBottom}
-            text={Locale.Chat.InputActions.ToBottom}
-            icon={<BottomIcon />}
-          />
-        )}
-        {props.hitBottom && (
-          <ChatAction
-            onClick={props.showPromptModal}
-            text={Locale.Chat.InputActions.Settings}
-            icon={<SettingsIcon />}
-          />
-        )}
-
-        {showUploadImage && (
-          <ChatAction
-            onClick={props.uploadImage}
-            text={Locale.Chat.InputActions.UploadImage}
-            icon={props.uploading ? <LoadingButtonIcon /> : <ImageIcon />}
-          />
-        )}
-        <ChatAction
-          onClick={nextTheme}
-          text={Locale.Chat.InputActions.Theme[theme]}
-          icon={
-            <>
-              {theme === Theme.Auto ? (
-                <AutoIcon />
-              ) : theme === Theme.Light ? (
-                <LightIcon />
-              ) : theme === Theme.Dark ? (
-                <DarkIcon />
-              ) : null}
-            </>
-          }
+      {(showModelSelector || showMoreMenu) && (
+        <div
+          className={styles["composer-popover-backdrop"]}
+          onClick={closePopovers}
         />
-
-        <ChatAction
-          onClick={props.showPromptHints}
-          text={Locale.Chat.InputActions.Prompt}
-          icon={<PromptIcon />}
-        />
-
-        <ChatAction
-          onClick={() => {
-            navigate(Path.Masks);
-          }}
-          text={Locale.Chat.InputActions.Masks}
-          icon={<MaskIcon />}
-        />
-
-        <ChatAction
-          text={Locale.Chat.InputActions.Clear}
-          icon={<BreakIcon />}
-          onClick={() => {
-            chatStore.updateTargetSession(session, (session) => {
-              if (session.clearContextIndex === session.messages.length) {
-                session.clearContextIndex = undefined;
-              } else {
-                session.clearContextIndex = session.messages.length;
-                session.memoryPrompt = ""; // will clear memory
-              }
-            });
-          }}
-        />
-
-        <ChatAction
-          onClick={() => setShowModelSelector(true)}
-          text={currentModelName}
-          icon={<RobotIcon />}
-        />
-
-        {showModelSelector && (
-          <Selector
-            defaultSelectedValue={`${currentModel}@${currentProviderName}`}
-            items={models.map((m) => ({
-              title: `${m.displayName}${
-                m?.provider?.providerName
-                  ? " (" + m?.provider?.providerName + ")"
-                  : ""
-              }`,
-              value: `${m.name}@${m?.provider?.providerName}`,
-            }))}
-            onClose={() => setShowModelSelector(false)}
-            onSelection={(s) => {
-              if (s.length === 0) return;
-              const [model, providerName] = getModelProvider(s[0]);
-              chatStore.updateTargetSession(session, (session) => {
-                session.mask.modelConfig.model = model as ModelType;
-                session.mask.modelConfig.providerName =
-                  providerName as ServiceProvider;
-                session.mask.syncGlobalConfig = false;
-              });
-              if (providerName == "ByteDance") {
-                const selectedModel = models.find(
-                  (m) =>
-                    m.name == model &&
-                    m?.provider?.providerName == providerName,
-                );
-                showToast(selectedModel?.displayName ?? "");
-              } else {
-                showToast(model);
-              }
-            }}
-          />
-        )}
-
-        {supportsCustomSize(currentModel) && (
-          <ChatAction
-            onClick={() => setShowSizeSelector(true)}
-            text={currentSize}
-            icon={<SizeIcon />}
-          />
-        )}
-
-        {showSizeSelector && (
-          <Selector
-            defaultSelectedValue={currentSize}
-            items={modelSizes.map((m) => ({
-              title: m,
-              value: m,
-            }))}
-            onClose={() => setShowSizeSelector(false)}
-            onSelection={(s) => {
-              if (s.length === 0) return;
-              const size = s[0];
-              chatStore.updateTargetSession(session, (session) => {
-                session.mask.modelConfig.size = size;
-              });
-              showToast(size);
-            }}
-          />
-        )}
-
-        {isDalle3(currentModel) && (
-          <ChatAction
-            onClick={() => setShowQualitySelector(true)}
-            text={currentQuality}
-            icon={<QualityIcon />}
-          />
-        )}
-
-        {showQualitySelector && (
-          <Selector
-            defaultSelectedValue={currentQuality}
-            items={dalle3Qualitys.map((m) => ({
-              title: m,
-              value: m,
-            }))}
-            onClose={() => setShowQualitySelector(false)}
-            onSelection={(q) => {
-              if (q.length === 0) return;
-              const quality = q[0];
-              chatStore.updateTargetSession(session, (session) => {
-                session.mask.modelConfig.quality = quality;
-              });
-              showToast(quality);
-            }}
-          />
-        )}
-
-        {isDalle3(currentModel) && (
-          <ChatAction
-            onClick={() => setShowStyleSelector(true)}
-            text={currentStyle}
-            icon={<StyleIcon />}
-          />
-        )}
-
-        {showStyleSelector && (
-          <Selector
-            defaultSelectedValue={currentStyle}
-            items={dalle3Styles.map((m) => ({
-              title: m,
-              value: m,
-            }))}
-            onClose={() => setShowStyleSelector(false)}
-            onSelection={(s) => {
-              if (s.length === 0) return;
-              const style = s[0];
-              chatStore.updateTargetSession(session, (session) => {
-                session.mask.modelConfig.style = style;
-              });
-              showToast(style);
-            }}
-          />
-        )}
-
-        {showPlugins(currentProviderName, currentModel) && (
-          <ChatAction
+      )}
+      <div className={styles["composer-actions-start"]}>
+        <div className={styles["composer-anchor"]}>
+          <ComposerToolButton
+            icon={<RobotIcon />}
+            label={currentModelName}
+            active={showModelSelector}
+            className={styles["composer-model-button"]}
             onClick={() => {
-              if (pluginStore.getAll().length == 0) {
-                navigate(Path.Plugins);
-              } else {
-                setShowPluginSelector(true);
-              }
+              setShowMoreMenu(false);
+              setShowModelSelector((show) => !show);
             }}
-            text={Locale.Plugin.Name}
-            icon={<PluginIcon />}
-          />
-        )}
-        {showPluginSelector && (
-          <Selector
-            multiple
-            defaultSelectedValue={chatStore.currentSession().mask?.plugin}
-            items={pluginStore.getAll().map((item) => ({
-              title: `${item?.title}@${item?.version}`,
-              value: item?.id,
-            }))}
-            onClose={() => setShowPluginSelector(false)}
-            onSelection={(s) => {
-              chatStore.updateTargetSession(session, (session) => {
-                session.mask.plugin = s as string[];
-              });
-            }}
-          />
-        )}
+          >
+            <span className={styles["composer-model-name"]}>
+              {currentModelName}
+            </span>
+            <DownIcon />
+          </ComposerToolButton>
+          {showModelSelector && (
+            <div className={styles["composer-model-popover"]}>
+              <div className={styles["composer-model-search"]}>
+                <RobotIcon />
+                <input
+                  autoFocus
+                  value={modelSearch}
+                  placeholder={`${Locale.Settings.Model}...`}
+                  aria-label={Locale.Settings.Model}
+                  onChange={(event) =>
+                    setModelSearch(event.currentTarget.value)
+                  }
+                  onKeyDown={(event) => {
+                    if (event.key === "Escape") closePopovers();
+                  }}
+                />
+              </div>
+              <div className={styles["composer-model-list"]}>
+                {filteredModels.map((model) => {
+                  const providerName = model.provider?.providerName || "";
+                  const selected =
+                    model.name === currentModel &&
+                    providerName === currentProviderName;
+                  return (
+                    <button
+                      type="button"
+                      key={`${model.name}@${providerName}`}
+                      className={clsx(
+                        styles["composer-model-item"],
+                        selected && styles["composer-model-item-selected"],
+                      )}
+                      onClick={() => selectModel(model)}
+                    >
+                      <span className={styles["composer-model-avatar"]}>
+                        <RobotIcon />
+                      </span>
+                      <span className={styles["composer-model-copy"]}>
+                        <strong>{model.displayName || model.name}</strong>
+                        <small>{providerName}</small>
+                      </span>
+                      {selected && <ConfirmIcon />}
+                    </button>
+                  );
+                })}
+                {filteredModels.length === 0 && (
+                  <div className={styles["composer-model-empty"]}>
+                    {Locale.Settings.Model}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
 
-        {!isMobileScreen && (
-          <ChatAction
-            onClick={() => props.setShowShortcutKeyModal(true)}
-            text={Locale.Chat.ShortcutKey.Title}
-            icon={<ShortcutkeyIcon />}
+        <div className={styles["composer-anchor"]}>
+          <ComposerToolButton
+            icon={<AddIcon />}
+            label={Locale.ChatItem.MoreActions}
+            active={showMoreMenu}
+            onClick={() => {
+              setShowModelSelector(false);
+              setShowMoreMenu((show) => !show);
+            }}
+          />
+          {showMoreMenu && (
+            <div className={styles["composer-more-menu"]}>
+              {showUploadImage && (
+                <ComposerMenuItem
+                  icon={props.uploading ? <LoadingButtonIcon /> : <ImageIcon />}
+                  label={Locale.Chat.InputActions.UploadImage}
+                  onClick={() => {
+                    setShowMoreMenu(false);
+                    props.uploadImage();
+                  }}
+                />
+              )}
+              <ComposerMenuItem
+                icon={<BrainIcon />}
+                label={Locale.Memory.Title}
+                checked={session.mask.modelConfig.sendMemory}
+                onClick={toggleMemory}
+              />
+              <ComposerMenuItem
+                icon={<PromptIcon />}
+                label={Locale.Chat.InputActions.Prompt}
+                onClick={() => {
+                  setShowMoreMenu(false);
+                  props.showPromptHints();
+                }}
+              />
+              <ComposerMenuItem
+                icon={<MaskIcon />}
+                label={Locale.Chat.InputActions.Masks}
+                onClick={() => navigate(Path.Masks)}
+              />
+              {showPlugins(currentProviderName, currentModel) && (
+                <ComposerMenuItem
+                  icon={<PluginIcon />}
+                  label={Locale.Plugin.Name}
+                  trailing={
+                    selectedPluginCount > 0 ? (
+                      <span className={styles["composer-menu-count"]}>
+                        {selectedPluginCount}
+                      </span>
+                    ) : undefined
+                  }
+                  onClick={openPluginSelector}
+                />
+              )}
+              {mcpState.enabled && (
+                <ComposerMenuItem
+                  icon={<McpToolIcon />}
+                  label={`MCP${mcpState.count ? ` (${mcpState.count})` : ""}`}
+                  onClick={() => navigate(Path.McpMarket)}
+                />
+              )}
+              {(supportsCustomSize(currentModel) || isDalle3(currentModel)) && (
+                <div className={styles["composer-menu-divider"]} />
+              )}
+              {supportsCustomSize(currentModel) && (
+                <ComposerMenuItem
+                  icon={<SizeIcon />}
+                  label={currentSize}
+                  onClick={() => {
+                    setShowMoreMenu(false);
+                    setShowSizeSelector(true);
+                  }}
+                />
+              )}
+              {isDalle3(currentModel) && (
+                <>
+                  <ComposerMenuItem
+                    icon={<QualityIcon />}
+                    label={currentQuality}
+                    onClick={() => {
+                      setShowMoreMenu(false);
+                      setShowQualitySelector(true);
+                    }}
+                  />
+                  <ComposerMenuItem
+                    icon={<StyleIcon />}
+                    label={currentStyle}
+                    onClick={() => {
+                      setShowMoreMenu(false);
+                      setShowStyleSelector(true);
+                    }}
+                  />
+                </>
+              )}
+              <div className={styles["composer-menu-divider"]} />
+              <ComposerMenuItem
+                icon={<SettingsIcon />}
+                label={Locale.Chat.InputActions.Settings}
+                onClick={() => {
+                  setShowMoreMenu(false);
+                  props.showPromptModal();
+                }}
+              />
+              <ComposerMenuItem
+                icon={<BreakIcon />}
+                label={Locale.Chat.InputActions.Clear}
+                onClick={clearContext}
+              />
+              {!isMobileScreen && (
+                <ComposerMenuItem
+                  icon={<ShortcutkeyIcon />}
+                  label={Locale.Chat.ShortcutKey.Title}
+                  onClick={() => {
+                    setShowMoreMenu(false);
+                    props.setShowShortcutKeyModal(true);
+                  }}
+                />
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div className={styles["composer-actions-end"]}>
+        {!props.hitBottom && (
+          <ComposerToolButton
+            icon={<BottomIcon />}
+            label={Locale.Chat.InputActions.ToBottom}
+            onClick={props.scrollToBottom}
           />
         )}
-        {!isMobileScreen && <MCPAction />}
-      </>
-      <div className={styles["chat-input-actions-end"]}>
         {config.realtimeConfig.enable && (
-          <ChatAction
-            onClick={() => props.setShowChatSidePanel(true)}
-            text={"Realtime Chat"}
+          <ComposerToolButton
             icon={<HeadphoneIcon />}
+            label="Realtime Chat"
+            onClick={() => props.setShowChatSidePanel(true)}
           />
         )}
       </div>
+
+      {showSizeSelector && (
+        <Selector
+          defaultSelectedValue={currentSize}
+          items={modelSizes.map((size) => ({ title: size, value: size }))}
+          onClose={() => setShowSizeSelector(false)}
+          onSelection={(selection) => {
+            if (selection.length === 0) return;
+            const size = selection[0];
+            chatStore.updateTargetSession(session, (target) => {
+              target.mask.modelConfig.size = size;
+            });
+            showToast(size);
+          }}
+        />
+      )}
+      {showQualitySelector && (
+        <Selector
+          defaultSelectedValue={currentQuality}
+          items={["standard", "hd"].map((quality) => ({
+            title: quality,
+            value: quality as DalleQuality,
+          }))}
+          onClose={() => setShowQualitySelector(false)}
+          onSelection={(selection) => {
+            if (selection.length === 0) return;
+            const quality = selection[0];
+            chatStore.updateTargetSession(session, (target) => {
+              target.mask.modelConfig.quality = quality;
+            });
+            showToast(quality);
+          }}
+        />
+      )}
+      {showStyleSelector && (
+        <Selector
+          defaultSelectedValue={currentStyle}
+          items={["vivid", "natural"].map((style) => ({
+            title: style,
+            value: style as DalleStyle,
+          }))}
+          onClose={() => setShowStyleSelector(false)}
+          onSelection={(selection) => {
+            if (selection.length === 0) return;
+            const style = selection[0];
+            chatStore.updateTargetSession(session, (target) => {
+              target.mask.modelConfig.style = style;
+            });
+            showToast(style);
+          }}
+        />
+      )}
+      {showPluginSelector && (
+        <Selector
+          multiple
+          defaultSelectedValue={session.mask?.plugin}
+          items={plugins.map((plugin) => ({
+            title: `${plugin.title}@${plugin.version}`,
+            value: plugin.id,
+          }))}
+          onClose={() => setShowPluginSelector(false)}
+          onSelection={(selection) => {
+            chatStore.updateTargetSession(session, (target) => {
+              target.mask.plugin = selection as string[];
+            });
+          }}
+        />
+      )}
     </div>
   );
 }
-
 export function EditMessageModal(props: { onClose: () => void }) {
   const chatStore = useChatStore();
   const session = chatStore.currentSession();
@@ -2096,35 +2192,11 @@ function _Chat() {
                 onPromptSelect={onPromptSelect}
               />
 
-              <ChatActions
-                uploadImage={uploadImage}
-                setAttachImages={setAttachImages}
-                setUploading={setUploading}
-                showPromptModal={() => setShowPromptModal(true)}
-                scrollToBottom={scrollToBottom}
-                hitBottom={hitBottom}
-                uploading={uploading}
-                showPromptHints={() => {
-                  // Click again to close
-                  if (promptHints.length > 0) {
-                    setPromptHints([]);
-                    return;
-                  }
-
-                  inputRef.current?.focus();
-                  setUserInput("/");
-                  onSearch("");
-                }}
-                setShowShortcutKeyModal={setShowShortcutKeyModal}
-                setUserInput={setUserInput}
-                setShowChatSidePanel={setShowChatSidePanel}
-              />
-              <label
+              <div
                 className={clsx(styles["chat-input-panel-inner"], {
                   [styles["chat-input-panel-inner-attach"]]:
                     attachImages.length !== 0,
                 })}
-                htmlFor="chat-input"
               >
                 <textarea
                   id="chat-input"
@@ -2167,15 +2239,59 @@ function _Chat() {
                     })}
                   </div>
                 )}
-                <IconButton
-                  icon={<SendWhiteIcon />}
-                  aria={Locale.Chat.Send}
-                  title={Locale.Chat.Send}
-                  className={styles["chat-input-send"]}
-                  type="primary"
-                  onClick={() => doSubmit(userInput)}
-                />
-              </label>
+                <div className={styles["composer-footer"]}>
+                  <ChatActions
+                    uploadImage={uploadImage}
+                    setAttachImages={setAttachImages}
+                    setUploading={setUploading}
+                    showPromptModal={() => setShowPromptModal(true)}
+                    scrollToBottom={scrollToBottom}
+                    hitBottom={hitBottom}
+                    uploading={uploading}
+                    showPromptHints={() => {
+                      // Click again to close
+                      if (promptHints.length > 0) {
+                        setPromptHints([]);
+                        return;
+                      }
+
+                      inputRef.current?.focus();
+                      setUserInput("/");
+                      onSearch("");
+                    }}
+                    setShowShortcutKeyModal={setShowShortcutKeyModal}
+                    setShowChatSidePanel={setShowChatSidePanel}
+                  />
+                  <IconButton
+                    icon={
+                      ChatControllerPool.hasPending() ? (
+                        <StopIcon />
+                      ) : (
+                        <SendWhiteIcon />
+                      )
+                    }
+                    aria={
+                      ChatControllerPool.hasPending()
+                        ? Locale.Chat.Actions.Stop
+                        : Locale.Chat.Send
+                    }
+                    title={
+                      ChatControllerPool.hasPending()
+                        ? Locale.Chat.Actions.Stop
+                        : Locale.Chat.Send
+                    }
+                    className={styles["chat-input-send"]}
+                    type="primary"
+                    onClick={() => {
+                      if (ChatControllerPool.hasPending()) {
+                        ChatControllerPool.stopAll();
+                      } else {
+                        doSubmit(userInput);
+                      }
+                    }}
+                  />
+                </div>
+              </div>
             </div>
           </div>
           <div
