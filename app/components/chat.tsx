@@ -115,6 +115,7 @@ import { MsEdgeTTS, OUTPUT_FORMAT } from "../utils/ms_edge_tts";
 
 import { isEmpty } from "lodash-es";
 import { filterModelsByProvider } from "../utils/model";
+import { getComposerPopoverPlacement } from "../utils/popover";
 import { RealtimeChat } from "@/app/components/realtime-chat";
 import clsx from "clsx";
 import { getAvailableClientsCount, isMcpEnabled } from "../mcp/actions";
@@ -603,6 +604,10 @@ export function ChatActions(props: {
   const [showModelSelector, setShowModelSelector] = useState(false);
   const [showMoreMenu, setShowMoreMenu] = useState(false);
   const [modelSearch, setModelSearch] = useState("");
+  const modelAnchorRef = useRef<HTMLDivElement>(null);
+  const [modelPopoverLayout, setModelPopoverLayout] = useState<
+    ReturnType<typeof getComposerPopoverPlacement>
+  >({ placement: "bottom", maxHeight: 360 });
   const [showPluginSelector, setShowPluginSelector] = useState(false);
   const [showUploadImage, setShowUploadImage] = useState(false);
   const [showSizeSelector, setShowSizeSelector] = useState(false);
@@ -641,6 +646,26 @@ export function ChatActions(props: {
     }
     return `模型服务商 · ${providerName}`;
   };
+
+  const updateModelPopoverLayout = useCallback(() => {
+    if (!props.homeMode || !modelAnchorRef.current) return;
+
+    const rect = modelAnchorRef.current.getBoundingClientRect();
+    const viewport = window.visualViewport;
+    const viewportTop = viewport?.offsetTop ?? 0;
+    const nextLayout = getComposerPopoverPlacement({
+      triggerTop: rect.top - viewportTop,
+      triggerBottom: rect.bottom - viewportTop,
+      viewportHeight: viewport?.height ?? window.innerHeight,
+      preferredPlacement: "bottom",
+    });
+    setModelPopoverLayout((currentLayout) =>
+      currentLayout.placement === nextLayout.placement &&
+      currentLayout.maxHeight === nextLayout.maxHeight
+        ? currentLayout
+        : nextLayout,
+    );
+  }, [props.homeMode]);
 
   useEffect(() => {
     const canUpload = isVisionModel(currentModel);
@@ -684,6 +709,23 @@ export function ChatActions(props: {
       alive = false;
     };
   }, []);
+
+  useEffect(() => {
+    if (!showModelSelector || !props.homeMode) return;
+
+    updateModelPopoverLayout();
+    const viewport = window.visualViewport;
+    window.addEventListener("resize", updateModelPopoverLayout);
+    window.addEventListener("scroll", updateModelPopoverLayout, true);
+    viewport?.addEventListener("resize", updateModelPopoverLayout);
+    viewport?.addEventListener("scroll", updateModelPopoverLayout);
+    return () => {
+      window.removeEventListener("resize", updateModelPopoverLayout);
+      window.removeEventListener("scroll", updateModelPopoverLayout, true);
+      viewport?.removeEventListener("resize", updateModelPopoverLayout);
+      viewport?.removeEventListener("scroll", updateModelPopoverLayout);
+    };
+  }, [props.homeMode, showModelSelector, updateModelPopoverLayout]);
 
   const closePopovers = () => {
     setShowModelSelector(false);
@@ -734,7 +776,7 @@ export function ChatActions(props: {
         />
       )}
       <div className={styles["composer-actions-start"]}>
-        <div className={styles["composer-anchor"]}>
+        <div className={styles["composer-anchor"]} ref={modelAnchorRef}>
           <ComposerToolButton
             icon={
               <ModelIcon model={currentModel} provider={currentProviderName} />
@@ -744,7 +786,8 @@ export function ChatActions(props: {
             className={styles["composer-model-button"]}
             onClick={() => {
               setShowMoreMenu(false);
-              setShowModelSelector((show) => !show);
+              if (!showModelSelector) updateModelPopoverLayout();
+              setShowModelSelector(!showModelSelector);
             }}
           >
             <span className={styles["composer-model-name"]}>
@@ -757,6 +800,20 @@ export function ChatActions(props: {
               className={clsx(styles["composer-model-popover"], {
                 [styles["composer-model-popover-home"]]: props.homeMode,
               })}
+              data-placement={
+                props.homeMode ? modelPopoverLayout.placement : undefined
+              }
+              style={
+                props.homeMode
+                  ? ({
+                      "--composer-model-popover-max-height": `${modelPopoverLayout.maxHeight}px`,
+                      "--composer-model-list-max-height": `${Math.max(
+                        0,
+                        modelPopoverLayout.maxHeight - 64,
+                      )}px`,
+                    } as React.CSSProperties)
+                  : undefined
+              }
             >
               <div className={styles["composer-model-search"]}>
                 <SearchIcon aria-hidden="true" />

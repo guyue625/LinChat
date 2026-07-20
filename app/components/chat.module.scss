@@ -1809,16 +1809,29 @@
 }
 
 .composer-model-popover-home {
-  // Open below the trigger so the model list never covers the composer.
   position: absolute;
-  top: calc(100% + 10px);
-  bottom: auto;
   left: 0;
-  max-height: min(520px, calc(100dvh - 120px));
+  max-height: var(
+    --composer-model-popover-max-height,
+    min(520px, calc(100dvh - 120px))
+  );
 }
 
 .composer-model-popover-home .composer-model-list {
-  max-height: min(360px, calc(100dvh - 92px));
+  max-height: min(
+    360px,
+    var(--composer-model-list-max-height, calc(100dvh - 184px))
+  );
+}
+
+.composer-model-popover-home[data-placement="bottom"] {
+  top: calc(100% + 10px);
+  bottom: auto;
+}
+
+.composer-model-popover-home[data-placement="top"] {
+  top: auto;
+  bottom: calc(100% + 10px);
 }
 
 .composer-model-item {
@@ -2184,15 +2197,19 @@
 @media (max-width: 600px) {
   .composer-model-popover-home {
     position: absolute;
-    top: calc(100% + 8px);
     right: auto;
-    bottom: auto;
     left: 0;
     width: min(380px, calc(100vw - 28px));
-    max-height: min(520px, calc(100dvh - 110px));
+    max-height: var(
+      --composer-model-popover-max-height,
+      min(520px, calc(100dvh - 110px))
+    );
   }
 
   .composer-model-popover-home .composer-model-list {
-    max-height: calc(100dvh - 88px);
+    max-height: min(
+      360px,
+      var(--composer-model-list-max-height, calc(100dvh - 174px))
+    );
   }
 }
