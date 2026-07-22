@@ -22,3 +22,10 @@ export function mergeAttachmentUrls(
 ) {
   return [...current, ...incoming].slice(0, limit);
 }
+
+export function shouldDisableComposerSend(
+  uploading: boolean,
+  sendDisabled = false,
+) {
+  return uploading || sendDisabled;
+}

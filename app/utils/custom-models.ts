@@ -5,6 +5,21 @@ export interface EditableCustomModel {
   provider?: string;
 }
 
+export interface SelectableUpstreamModel {
+  name: string;
+  alias?: string;
+}
+
+export function selectUpstreamModels(
+  models: ReadonlyArray<SelectableUpstreamModel>,
+  selectedNames: ReadonlySet<string>,
+  excludedNames: ReadonlySet<string> = new Set(),
+): SelectableUpstreamModel[] {
+  return models.filter(
+    (model) => selectedNames.has(model.name) && !excludedNames.has(model.name),
+  );
+}
+
 function splitCustomModelTokens(customModels: string): string[] {
   return customModels
     .split(",")
@@ -129,4 +144,18 @@ export function mergeCustomModels(
       addCustomModel(result, provider, model.name, model.alias),
     customModels,
   );
+}
+
+export function mergeCustomModelDraft(
+  customModels: string,
+  provider: string,
+  draftName: string,
+  draftAlias: string,
+  selectedModels: ReadonlyArray<{ name: string; alias?: string }>,
+): string {
+  let result = mergeCustomModels(customModels, provider, selectedModels);
+  if (draftName.trim()) {
+    result = addCustomModel(result, provider, draftName, draftAlias);
+  }
+  return result;
 }

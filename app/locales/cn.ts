@@ -580,6 +580,21 @@ const cn = {
         ModelCount: (count: number) => `已配置 ${count} 个模型`,
         FetchSuccess: (count: number) => `已从上游获取 ${count} 个模型`,
         FetchFailed: (reason: string) => `获取模型失败：${reason}`,
+        PickerTitle: "选择要添加的模型",
+        Search: "搜索模型",
+        SelectVisible: "全选当前结果",
+        ClearVisible: "取消当前结果",
+        SelectedCount: (selected: number, total: number) =>
+          `已选择 ${selected} / ${total} 个模型`,
+        ConfirmSelection: "添加选中的模型",
+        SelectionRequired: "请至少选择一个模型",
+        NoMatches: "没有匹配的模型",
+        AlreadyAdded: "已添加",
+        AddModalTitle: "添加模型",
+        ManualTitle: "手动添加",
+        UpstreamTitle: "从上游选择",
+        UpstreamHelp: "从已配置的 /models 接口获取可用模型",
+        AddSuccess: (count: number) => `已添加 ${count} 个模型`,
       },
       AI302: {
         ApiKey: {

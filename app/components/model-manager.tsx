@@ -3,14 +3,15 @@ import { useEffect, useMemo, useState } from "react";
 import { ServiceProvider } from "../constant";
 import { useAccessStore } from "../store";
 import {
-  addCustomModel,
   getCustomModelsForProvider,
-  mergeCustomModels,
+  mergeCustomModelDraft,
   removeCustomModelAt,
+  selectUpstreamModels,
   updateCustomModelAt,
 } from "../utils/custom-models";
 import {
   fetchUpstreamModels,
+  UpstreamModel,
   UpstreamModelSource,
 } from "../utils/upstream-models";
 import Locale from "../locales";
@@ -22,7 +23,7 @@ import EditIcon from "../icons/edit.svg";
 import LoadingIcon from "../icons/three-dots.svg";
 import ResetIcon from "../icons/reload.svg";
 import { IconButton } from "./button";
-import { Input, ListItem, showToast } from "./ui-lib";
+import { Input, ListItem, Modal, showToast } from "./ui-lib";
 import styles from "./model-manager.module.scss";
 
 type AccessState = ReturnType<typeof useAccessStore.getState>;
@@ -141,7 +142,16 @@ export function ModelManager(props: {
   const provider = accessStore.provider;
   const [draftName, setDraftName] = useState("");
   const [draftAlias, setDraftAlias] = useState("");
+  const [showAddModal, setShowAddModal] = useState(false);
   const [fetching, setFetching] = useState(false);
+  const [availableModels, setAvailableModels] = useState<UpstreamModel[]>();
+  const [configuredModelNames, setConfiguredModelNames] = useState<Set<string>>(
+    new Set(),
+  );
+  const [selectedModelNames, setSelectedModelNames] = useState<Set<string>>(
+    new Set(),
+  );
+  const [modelSearch, setModelSearch] = useState("");
   const [editing, setEditing] = useState<{
     tokenIndex: number;
     name: string;
@@ -157,23 +167,76 @@ export function ModelManager(props: {
     !!editing?.name.trim() &&
     !/[,=]/.test(editing.name) &&
     !editing.alias.includes(",");
+  const filteredAvailableModels = useMemo(() => {
+    const query = modelSearch.trim().toLowerCase();
+    if (!query) return availableModels ?? [];
+    return (availableModels ?? []).filter((model) =>
+      `${model.name} ${model.alias ?? ""}`.toLowerCase().includes(query),
+    );
+  }, [availableModels, modelSearch]);
 
   useEffect(() => {
     setDraftName("");
     setDraftAlias("");
+    setShowAddModal(false);
     setEditing(undefined);
+    setAvailableModels(undefined);
+    setModelSearch("");
   }, [provider]);
 
-  const addModel = () => {
-    if (!canAdd) {
+  const openAddModal = () => {
+    setDraftName("");
+    setDraftAlias("");
+    setAvailableModels(undefined);
+    setConfiguredModelNames(new Set());
+    setSelectedModelNames(new Set());
+    setModelSearch("");
+    setShowAddModal(true);
+  };
+
+  const closeAddModal = () => {
+    setShowAddModal(false);
+    setDraftName("");
+    setDraftAlias("");
+    setAvailableModels(undefined);
+    setConfiguredModelNames(new Set());
+    setSelectedModelNames(new Set());
+    setModelSearch("");
+  };
+
+  const confirmAddModels = () => {
+    const hasManualName = !!draftName.trim();
+    const hasManualAlias = !!draftAlias.trim();
+    const selectedModels = selectUpstreamModels(
+      availableModels ?? [],
+      selectedModelNames,
+      configuredModelNames,
+    );
+
+    if ((hasManualName && !canAdd) || (!hasManualName && hasManualAlias)) {
       showToast(Locale.Settings.Access.CustomModel.Invalid);
       return;
     }
+    if (!hasManualName && selectedModels.length === 0) {
+      showToast(Locale.Settings.Access.CustomModel.SelectionRequired);
+      return;
+    }
+
     props.onChange(
-      addCustomModel(props.customModels, provider, draftName, draftAlias),
+      mergeCustomModelDraft(
+        props.customModels,
+        provider,
+        draftName,
+        draftAlias,
+        selectedModels,
+      ),
     );
-    setDraftName("");
-    setDraftAlias("");
+    showToast(
+      Locale.Settings.Access.CustomModel.AddSuccess(
+        selectedModels.length + Number(hasManualName),
+      ),
+    );
+    closeAddModal();
   };
 
   const saveModel = () => {
@@ -202,18 +265,48 @@ export function ModelManager(props: {
       if (upstreamModels.length === 0) {
         throw new Error(Locale.Settings.Access.CustomModel.EmptyResponse);
       }
-      props.onChange(
-        mergeCustomModels(props.customModels, provider, upstreamModels),
+      const availableNames = new Set(upstreamModels.map((model) => model.name));
+      const configuredNames = new Set(
+        models
+          .map((model) => model.name)
+          .filter((name) => availableNames.has(name)),
       );
-      showToast(
-        Locale.Settings.Access.CustomModel.FetchSuccess(upstreamModels.length),
-      );
+      setConfiguredModelNames(configuredNames);
+      setSelectedModelNames(new Set());
+      setAvailableModels(upstreamModels);
+      setModelSearch("");
     } catch (error) {
       const reason = error instanceof Error ? error.message : String(error);
       showToast(Locale.Settings.Access.CustomModel.FetchFailed(reason));
     } finally {
       setFetching(false);
     }
+  };
+
+  const toggleModel = (name: string) => {
+    setSelectedModelNames((current) => {
+      const next = new Set(current);
+      if (next.has(name)) next.delete(name);
+      else next.add(name);
+      return next;
+    });
+  };
+
+  const toggleAllFiltered = () => {
+    setSelectedModelNames((current) => {
+      const next = new Set(current);
+      const selectableModels = filteredAvailableModels.filter(
+        (model) => !configuredModelNames.has(model.name),
+      );
+      const allSelected = selectableModels.every((model) =>
+        next.has(model.name),
+      );
+      selectableModels.forEach((model) => {
+        if (allSelected) next.delete(model.name);
+        else next.add(model.name);
+      });
+      return next;
+    });
   };
 
   return (
@@ -231,60 +324,12 @@ export function ModelManager(props: {
       >
         <IconButton
           className={styles.fetchButton}
-          icon={fetching ? <LoadingIcon /> : <ResetIcon />}
-          text={
-            fetching
-              ? Locale.Settings.Access.CustomModel.Fetching
-              : Locale.Settings.Access.CustomModel.Fetch
-          }
+          icon={<AddIcon />}
+          text={Locale.Settings.Access.CustomModel.Add}
+          type="primary"
           bordered
-          disabled={fetching}
-          onClick={fetchModels}
+          onClick={openAddModal}
         />
-      </ListItem>
-
-      <ListItem
-        title={Locale.Settings.Access.CustomModel.Name}
-        subTitle={Locale.Settings.Access.CustomModel.NameHelp}
-      >
-        <Input
-          as="input"
-          className={styles.input}
-          aria-label={Locale.Settings.Access.CustomModel.Name}
-          value={draftName}
-          placeholder={Locale.Settings.Access.CustomModel.NamePlaceholder}
-          onChange={(event) => setDraftName(event.currentTarget.value)}
-          onKeyDown={(event) => {
-            if (event.key === "Enter") addModel();
-          }}
-        />
-      </ListItem>
-
-      <ListItem
-        title={Locale.Settings.Access.CustomModel.AliasOptional}
-        subTitle={Locale.Settings.Access.CustomModel.AliasHelp}
-      >
-        <div className={styles.addActions}>
-          <Input
-            as="input"
-            className={styles.input}
-            aria-label={Locale.Settings.Access.CustomModel.Alias}
-            value={draftAlias}
-            placeholder={Locale.Settings.Access.CustomModel.AliasPlaceholder}
-            onChange={(event) => setDraftAlias(event.currentTarget.value)}
-            onKeyDown={(event) => {
-              if (event.key === "Enter") addModel();
-            }}
-          />
-          <IconButton
-            className={styles.addButton}
-            icon={<AddIcon />}
-            text={Locale.Settings.Access.CustomModel.Add}
-            type="primary"
-            disabled={!canAdd}
-            onClick={addModel}
-          />
-        </div>
       </ListItem>
 
       {models.map((model, index) =>
@@ -382,6 +427,160 @@ export function ModelManager(props: {
             </div>
           </ListItem>
         ),
+      )}
+
+      {showAddModal && (
+        <div className="modal-mask">
+          <Modal
+            title={Locale.Settings.Access.CustomModel.AddModalTitle}
+            onClose={closeAddModal}
+            actions={[
+              <IconButton
+                key="cancel"
+                text={Locale.Settings.Access.CustomModel.Cancel}
+                bordered
+                onClick={closeAddModal}
+              />,
+              <IconButton
+                key="add"
+                text={Locale.Settings.Access.CustomModel.Add}
+                type="primary"
+                disabled={!canAdd && selectedModelNames.size === 0}
+                onClick={confirmAddModels}
+              />,
+            ]}
+          >
+            <div className={styles.modelPicker}>
+              <div className={styles.manualModelSection}>
+                <div className={styles.sectionTitle}>
+                  {Locale.Settings.Access.CustomModel.ManualTitle}
+                </div>
+                <Input
+                  as="input"
+                  className={styles.modalInput}
+                  aria-label={Locale.Settings.Access.CustomModel.Name}
+                  value={draftName}
+                  placeholder={
+                    Locale.Settings.Access.CustomModel.NamePlaceholder
+                  }
+                  onChange={(event) => setDraftName(event.currentTarget.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter") confirmAddModels();
+                  }}
+                />
+                <Input
+                  as="input"
+                  className={styles.modalInput}
+                  aria-label={Locale.Settings.Access.CustomModel.Alias}
+                  value={draftAlias}
+                  placeholder={
+                    Locale.Settings.Access.CustomModel.AliasPlaceholder
+                  }
+                  onChange={(event) => setDraftAlias(event.currentTarget.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter") confirmAddModels();
+                  }}
+                />
+              </div>
+
+              <div className={styles.upstreamModelSection}>
+                <div className={styles.upstreamModelHeader}>
+                  <div>
+                    <div className={styles.sectionTitle}>
+                      {Locale.Settings.Access.CustomModel.UpstreamTitle}
+                    </div>
+                    <div className={styles.sectionHint}>
+                      {Locale.Settings.Access.CustomModel.UpstreamHelp}
+                    </div>
+                  </div>
+                  <IconButton
+                    className={styles.fetchButton}
+                    icon={fetching ? <LoadingIcon /> : <ResetIcon />}
+                    text={
+                      fetching
+                        ? Locale.Settings.Access.CustomModel.Fetching
+                        : Locale.Settings.Access.CustomModel.Fetch
+                    }
+                    bordered
+                    disabled={fetching}
+                    onClick={fetchModels}
+                  />
+                </div>
+
+                {availableModels && (
+                  <>
+                    <div className={styles.modelPickerToolbar}>
+                      <Input
+                        as="input"
+                        className={styles.modelSearch}
+                        aria-label={Locale.Settings.Access.CustomModel.Search}
+                        placeholder={Locale.Settings.Access.CustomModel.Search}
+                        value={modelSearch}
+                        onChange={(event) =>
+                          setModelSearch(event.currentTarget.value)
+                        }
+                      />
+                      <button
+                        className={styles.selectAllButton}
+                        type="button"
+                        onClick={toggleAllFiltered}
+                      >
+                        {filteredAvailableModels.every((model) =>
+                          selectedModelNames.has(model.name),
+                        )
+                          ? Locale.Settings.Access.CustomModel.ClearVisible
+                          : Locale.Settings.Access.CustomModel.SelectVisible}
+                      </button>
+                    </div>
+                    <div className={styles.modelPickerSummary}>
+                      {Locale.Settings.Access.CustomModel.SelectedCount(
+                        selectedModelNames.size,
+                        availableModels.length,
+                      )}
+                    </div>
+                    <div className={styles.modelPickerList}>
+                      {filteredAvailableModels.map((model) => {
+                        const alreadyAdded = configuredModelNames.has(
+                          model.name,
+                        );
+                        return (
+                          <label
+                            className={styles.modelOption}
+                            key={model.name}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={selectedModelNames.has(model.name)}
+                              disabled={alreadyAdded}
+                              onChange={() => toggleModel(model.name)}
+                            />
+                            <span className={styles.modelOptionText}>
+                              <span>{model.alias || model.name}</span>
+                              {model.alias && <small>{model.name}</small>}
+                            </span>
+                            {alreadyAdded && (
+                              <span className={styles.alreadyAdded}>
+                                {
+                                  Locale.Settings.Access.CustomModel
+                                    .AlreadyAdded
+                                }
+                              </span>
+                            )}
+                          </label>
+                        );
+                      })}
+                      {filteredAvailableModels.length === 0 && (
+                        <div className={styles.noResults}>
+                          {Locale.Settings.Access.CustomModel.NoMatches}
+                        </div>
+                      )}
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+          </Modal>
+        </div>
       )}
     </>
   );

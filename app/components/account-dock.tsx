@@ -1,7 +1,16 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { ChevronUp, LogIn, LogOut, ShieldCheck, UserRound } from "lucide-react";
+import {
+  ChevronUp,
+  LogIn,
+  LogOut,
+  Moon,
+  Settings,
+  ShieldCheck,
+  Sun,
+  UserRound,
+} from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Path } from "../constant";
 import { AccountAvatar } from "./account-avatar";
@@ -13,8 +22,13 @@ import {
 } from "./account-utils";
 import styles from "./account-dock.module.scss";
 
-export function AccountDock(props: { shouldNarrow: boolean }) {
-  const { shouldNarrow } = props;
+export function AccountDock(props: {
+  shouldNarrow: boolean;
+  isDarkTheme: boolean;
+  onSettings: () => void;
+  onToggleTheme: () => void;
+}) {
+  const { isDarkTheme, onSettings, onToggleTheme, shouldNarrow } = props;
   const { enabled, loading, logout, user } = useAccount();
   const [open, setOpen] = useState(false);
   const dockRef = useRef<HTMLDivElement>(null);
@@ -37,9 +51,47 @@ export function AccountDock(props: { shouldNarrow: boolean }) {
     };
   }, [open]);
 
-  if (loading || !enabled) return null;
-
   const returnTo = `${location.pathname}${location.search}`;
+
+  const utilityControls = (
+    <div className={styles.menuUtilities} role="group" aria-label="界面设置">
+      <button
+        type="button"
+        className={styles.menuUtilityButton}
+        role="menuitem"
+        aria-label="设置"
+        title="设置"
+        onClick={() => {
+          setOpen(false);
+          onSettings();
+        }}
+      >
+        <Settings />
+      </button>
+      <button
+        type="button"
+        className={styles.menuUtilityButton}
+        role="menuitem"
+        aria-label={isDarkTheme ? "切换为浅色" : "切换为深色"}
+        title={isDarkTheme ? "切换为浅色" : "切换为深色"}
+        onClick={() => {
+          setOpen(false);
+          onToggleTheme();
+        }}
+      >
+        {isDarkTheme ? <Sun /> : <Moon />}
+      </button>
+    </div>
+  );
+
+  if (loading) return null;
+  if (!enabled) {
+    return (
+      <div className={styles.dock} data-narrow={shouldNarrow}>
+        {utilityControls}
+      </div>
+    );
+  }
 
   if (!user) {
     return (
@@ -60,6 +112,7 @@ export function AccountDock(props: { shouldNarrow: boolean }) {
             </span>
           )}
         </button>
+        {utilityControls}
       </div>
     );
   }
@@ -73,10 +126,11 @@ export function AccountDock(props: { shouldNarrow: boolean }) {
         <div className={styles.menu} role="menu" aria-label="账号菜单">
           <div className={styles.menuIdentity}>
             <AccountAvatar avatar={user.avatar} name={name} size={38} />
-            <span>
+            <span className={styles.identityCopy}>
               <strong>{name}</strong>
               <small>@{user.username}</small>
             </span>
+            {utilityControls}
           </div>
           <div className={styles.divider} />
           {items.includes("profile") && (

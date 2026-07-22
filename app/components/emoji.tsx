@@ -21,11 +21,46 @@ import BotIconGrok from "../icons/llm-icons/grok.svg";
 import BotIconHunyuan from "../icons/llm-icons/hunyuan.svg";
 import BotIconDoubao from "../icons/llm-icons/doubao.svg";
 import BotIconChatglm from "../icons/llm-icons/chatglm.svg";
+import { getModelVendor } from "../utils/model-vendor";
 
 type LlmIconComponent = typeof BotIconDefault;
 
-function getModelIcon(model?: string, provider?: string): LlmIconComponent {
-  const modelName = `${model ?? ""} ${provider ?? ""}`.toLowerCase();
+const vendorIcons: Record<string, LlmIconComponent> = {
+  OpenAI: BotIconOpenAI,
+  Azure: BotIconOpenAI,
+  Anthropic: BotIconClaude,
+  Google: BotIconGemini,
+  Meta: BotIconMeta,
+  Mistral: BotIconMistral,
+  DeepSeek: BotIconDeepseek,
+  "Moonshot / Kimi": BotIconMoonshot,
+  "Alibaba / Qwen": BotIconQwen,
+  "Baidu / ERNIE": BotIconWenxin,
+  "xAI / Grok": BotIconGrok,
+  "Tencent / Hunyuan": BotIconHunyuan,
+  "ByteDance / Doubao": BotIconDoubao,
+  ByteDance: BotIconDoubao,
+  "Zhipu / GLM": BotIconChatglm,
+  ChatGLM: BotIconChatglm,
+  XAI: BotIconGrok,
+  Alibaba: BotIconQwen,
+  Baidu: BotIconWenxin,
+  Tencent: BotIconHunyuan,
+  Moonshot: BotIconMoonshot,
+};
+
+function getModelIcon(
+  model?: string,
+  provider?: string,
+  displayName?: string,
+): LlmIconComponent {
+  const modelVendor = getModelVendor(model, provider, displayName);
+  if (vendorIcons[modelVendor]) return vendorIcons[modelVendor];
+
+  const providerVendor = getModelVendor(undefined, provider);
+  if (vendorIcons[providerVendor]) return vendorIcons[providerVendor];
+
+  const modelName = `${model ?? ""}`.toLowerCase();
 
   if (
     /\b(openai|azure)\b/.test(modelName) ||
@@ -76,10 +111,11 @@ function getModelIcon(model?: string, provider?: string): LlmIconComponent {
 export function ModelIcon(props: {
   model?: string;
   provider?: string;
+  displayName?: string;
   size?: number;
   className?: string;
 }) {
-  const LlmIcon = getModelIcon(props.model, props.provider);
+  const LlmIcon = getModelIcon(props.model, props.provider, props.displayName);
   const size = props.size ?? 18;
   return (
     <LlmIcon

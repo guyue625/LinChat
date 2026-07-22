@@ -79,6 +79,7 @@ import { uploadImage as uploadImageRemote } from "@/app/utils/chat";
 import {
   getPastedImageFiles,
   mergeAttachmentUrls,
+  shouldDisableComposerSend,
 } from "@/app/utils/chat-composer";
 
 import dynamic from "next/dynamic";
@@ -122,6 +123,8 @@ import { MsEdgeTTS, OUTPUT_FORMAT } from "../utils/ms_edge_tts";
 
 import { isEmpty } from "lodash-es";
 import { filterModelsByProvider } from "../utils/model";
+import { getModelVendor } from "../utils/model-vendor";
+import { focusWithoutScroll } from "../utils/focus-without-scroll";
 import { getComposerPopoverPlacement } from "../utils/popover";
 import { RealtimeChat } from "@/app/components/realtime-chat";
 import clsx from "clsx";
@@ -132,6 +135,10 @@ import { useAccount } from "./account-context";
 import { runWithAccountLogin } from "./account-login-guard";
 import { buildAuthPath } from "./account-utils";
 import { deriveTopicFromMessages } from "../utils/session-topic";
+import {
+  getAssistantMessageMetadata,
+  getMessageModelDisplayName,
+} from "../utils/message-metadata";
 
 const localStorage = safeLocalStorage();
 
@@ -605,19 +612,20 @@ export function ChatActions(props: ChatActionsProps) {
       ? [defaultModel, ...available.filter((model) => model !== defaultModel)]
       : available;
   }, [allModels, selectedProvider]);
-  const currentModelName = useMemo(() => {
-    const model = models.find(
+  const currentModelInfo = useMemo(() => {
+    return models.find(
       (item) =>
         item.name === currentModel &&
         item.provider?.providerName === currentProviderName,
     );
-    return model?.displayName || currentModel;
   }, [models, currentModel, currentProviderName]);
+  const currentModelName = currentModelInfo?.displayName || currentModel;
 
   const [showModelSelector, setShowModelSelector] = useState(false);
   const [showMoreMenu, setShowMoreMenu] = useState(false);
   const [modelSearch, setModelSearch] = useState("");
   const modelAnchorRef = useRef<HTMLDivElement>(null);
+  const modelSearchRef = useRef<HTMLInputElement>(null);
   const [modelPopoverLayout, setModelPopoverLayout] = useState<
     ReturnType<typeof getComposerPopoverPlacement>
   >({ placement: "bottom", maxHeight: 360 });
@@ -638,7 +646,16 @@ export function ChatActions(props: ChatActionsProps) {
     const query = modelSearch.trim().toLowerCase();
     if (!query) return models;
     return models.filter((model) =>
-      [model.displayName, model.name, model.provider?.providerName]
+      [
+        model.displayName,
+        model.name,
+        model.provider?.providerName,
+        getModelVendor(
+          model.name,
+          model.provider?.providerName,
+          model.displayName,
+        ),
+      ]
         .filter(Boolean)
         .some((value) => String(value).toLowerCase().includes(query)),
     );
@@ -646,18 +663,19 @@ export function ChatActions(props: ChatActionsProps) {
   const groupedModels = useMemo(() => {
     const groups = new Map<string, typeof filteredModels>();
     filteredModels.forEach((model) => {
-      const provider = model.provider?.providerName || "Other";
-      const group = groups.get(provider) ?? [];
+      const vendor = getModelVendor(
+        model.name,
+        model.provider?.providerName,
+        model.displayName,
+      );
+      const group = groups.get(vendor) ?? [];
       group.push(model);
-      groups.set(provider, group);
+      groups.set(vendor, group);
     });
     return Array.from(groups.entries());
   }, [filteredModels]);
-  const getProviderGroupLabel = (providerName: string) => {
-    if (providerName === ServiceProvider.SiliconFlow) {
-      return "模型服务商 · 硅基流动（SiliconFlow）";
-    }
-    return `模型服务商 · ${providerName}`;
+  const getVendorGroupLabel = (vendorName: string) => {
+    return `模型厂商 · ${vendorName}`;
   };
 
   const updateModelPopoverLayout = useCallback(() => {
@@ -726,19 +744,23 @@ export function ChatActions(props: ChatActionsProps) {
   useEffect(() => {
     if (!showModelSelector || !props.homeMode) return;
 
-    updateModelPopoverLayout();
+    // The opening click measures the anchor before the popover is mounted.
+    // Measuring again in this effect can replace the placement after the
+    // first paint (especially when autoFocus scrolls the page), which makes
+    // the popover visibly jump. Only viewport resizes need a re-measure here.
     const viewport = window.visualViewport;
     window.addEventListener("resize", updateModelPopoverLayout);
-    window.addEventListener("scroll", updateModelPopoverLayout, true);
     viewport?.addEventListener("resize", updateModelPopoverLayout);
-    viewport?.addEventListener("scroll", updateModelPopoverLayout);
     return () => {
       window.removeEventListener("resize", updateModelPopoverLayout);
-      window.removeEventListener("scroll", updateModelPopoverLayout, true);
       viewport?.removeEventListener("resize", updateModelPopoverLayout);
-      viewport?.removeEventListener("scroll", updateModelPopoverLayout);
     };
   }, [props.homeMode, showModelSelector, updateModelPopoverLayout]);
+
+  useEffect(() => {
+    if (!showModelSelector) return;
+    focusWithoutScroll(modelSearchRef.current);
+  }, [showModelSelector]);
 
   const closePopovers = () => {
     setShowModelSelector(false);
@@ -792,7 +814,11 @@ export function ChatActions(props: ChatActionsProps) {
         <div className={styles["composer-anchor"]} ref={modelAnchorRef}>
           <ComposerToolButton
             icon={
-              <ModelIcon model={currentModel} provider={currentProviderName} />
+              <ModelIcon
+                model={currentModel}
+                provider={currentProviderName}
+                displayName={currentModelInfo?.displayName}
+              />
             }
             label={currentModelName}
             active={showModelSelector}
@@ -831,7 +857,7 @@ export function ChatActions(props: ChatActionsProps) {
               <div className={styles["composer-model-search"]}>
                 <SearchIcon aria-hidden="true" />
                 <input
-                  autoFocus
+                  ref={modelSearchRef}
                   value={modelSearch}
                   placeholder={`${Locale.Settings.Model}...`}
                   aria-label={Locale.Settings.Model}
@@ -844,23 +870,25 @@ export function ChatActions(props: ChatActionsProps) {
                 />
               </div>
               <div className={styles["composer-model-list"]}>
-                {groupedModels.map(([providerName, providerModels]) => (
+                {groupedModels.map(([vendorName, vendorModels]) => (
                   <section
                     className={styles["composer-model-group"]}
-                    key={providerName}
+                    key={vendorName}
                   >
                     <div className={styles["composer-model-group-title"]}>
-                      <span>{getProviderGroupLabel(providerName)}</span>
-                      <small>{providerModels.length}</small>
+                      <span>{getVendorGroupLabel(vendorName)}</span>
+                      <small>{vendorModels.length}</small>
                     </div>
-                    {providerModels.map((model) => {
+                    {vendorModels.map((model) => {
                       const selected =
                         model.name === currentModel &&
-                        providerName === currentProviderName;
+                        model.provider?.providerName === currentProviderName;
                       return (
                         <button
                           type="button"
-                          key={`${model.name}@${providerName}`}
+                          key={`${model.name}@${
+                            model.provider?.providerName ?? "Other"
+                          }`}
                           className={clsx(
                             styles["composer-model-item"],
                             selected && styles["composer-model-item-selected"],
@@ -870,7 +898,8 @@ export function ChatActions(props: ChatActionsProps) {
                           <span className={styles["composer-model-avatar"]}>
                             <ModelIcon
                               model={model.name}
-                              provider={providerName}
+                              provider={model.provider?.providerName}
+                              displayName={model.displayName}
                               size={28}
                             />
                           </span>
@@ -1344,7 +1373,10 @@ export function ChatComposer(props: ChatComposerProps) {
           aria={props.sendLabel ?? Locale.Chat.Send}
           title={props.sendLabel ?? Locale.Chat.Send}
           className={styles["chat-input-send"]}
-          disabled={props.sendDisabled}
+          disabled={shouldDisableComposerSend(
+            props.uploading,
+            props.sendDisabled,
+          )}
           onClick={props.onSend ?? props.onSubmit}
         />
       </div>
@@ -1433,6 +1465,7 @@ function _Chat() {
         )
       : session.topic || DEFAULT_TOPIC;
   const config = useAppConfig();
+  const allModels = useAllModels();
   const fontSize = config.fontSize;
   const fontFamily = config.fontFamily;
 
@@ -2236,6 +2269,26 @@ function _Chat() {
                       !(message.preview || message.content.length === 0) &&
                       !isContext;
                     const showTyping = message.preview || message.streaming;
+                    const resolvedMessageModel = !isUser
+                      ? getMessageModelDisplayName({
+                          messageModel: message.model,
+                          messageProvider: message.provider,
+                          sessionModel: session.mask.modelConfig.model,
+                          sessionProvider:
+                            session.mask.modelConfig.providerName,
+                          models: allModels,
+                        })
+                      : undefined;
+                    const assistantMetadata = !isUser
+                      ? getAssistantMessageMetadata({
+                          featuredAssistantName: featuredAssistant?.name,
+                          maskName: session.mask.name,
+                          defaultTopicName: DEFAULT_TOPIC,
+                          defaultAssistantName: "默认助理",
+                          messageModel: resolvedMessageModel,
+                          sessionModel: session.mask.modelConfig.model,
+                        })
+                      : undefined;
 
                     const shouldShowClearContextDivider =
                       i === clearContextIndex - 1;
@@ -2251,107 +2304,55 @@ function _Chat() {
                         >
                           <div className={styles["chat-message-container"]}>
                             <div className={styles["chat-message-header"]}>
-                              {!isUser && (
-                                <div className={styles["chat-message-avatar"]}>
-                                  <div className={styles["chat-message-edit"]}>
-                                    <IconButton
-                                      icon={<EditIcon />}
-                                      aria={Locale.Chat.Actions.Edit}
-                                      onClick={() => onEditMessage(message)}
+                              {!isUser && assistantMetadata && (
+                                <div
+                                  className={styles["chat-message-identity"]}
+                                >
+                                  <div
+                                    className={styles["chat-message-avatar"]}
+                                  >
+                                    <MaskAvatar
+                                      avatar={
+                                        featuredAssistant?.avatar ??
+                                        session.mask.avatar
+                                      }
+                                      model={assistantMetadata.modelName}
                                     />
                                   </div>
-                                  <MaskAvatar
-                                    avatar={
-                                      featuredAssistant?.avatar ??
-                                      session.mask.avatar
-                                    }
-                                    model={
-                                      message.model ||
-                                      session.mask.modelConfig.model
-                                    }
-                                  />
-                                </div>
-                              )}
-                              {!isUser && (
-                                <div className={styles["chat-model-name"]}>
-                                  {message.model}
-                                </div>
-                              )}
-
-                              {showActions && (
-                                <div className={styles["chat-message-actions"]}>
-                                  <div className={styles["chat-input-actions"]}>
-                                    {message.streaming ? (
-                                      <ChatAction
-                                        text={Locale.Chat.Actions.Stop}
-                                        icon={<StopIcon />}
-                                        onClick={() =>
-                                          onUserStop(message.id ?? i)
-                                        }
-                                      />
-                                    ) : (
-                                      <>
-                                        {isUser && (
-                                          <ChatAction
-                                            text={Locale.Chat.Actions.Edit}
-                                            icon={<EditIcon />}
-                                            onClick={() =>
-                                              onEditMessage(message)
-                                            }
-                                          />
-                                        )}
-                                        <ChatAction
-                                          text={Locale.Chat.Actions.Retry}
-                                          icon={<ResetIcon />}
-                                          onClick={() => onResend(message)}
-                                        />
-
-                                        <ChatAction
-                                          text={Locale.Chat.Actions.Delete}
-                                          icon={<DeleteIcon />}
-                                          onClick={() =>
-                                            onDelete(message.id ?? i)
-                                          }
-                                        />
-
-                                        <ChatAction
-                                          text={Locale.Chat.Actions.Pin}
-                                          icon={<PinIcon />}
-                                          onClick={() => onPinMessage(message)}
-                                        />
-                                        <ChatAction
-                                          text={Locale.Chat.Actions.Copy}
-                                          icon={<CopyIcon />}
-                                          onClick={() =>
-                                            copyToClipboard(
-                                              getMessageTextContent(message),
-                                            )
-                                          }
-                                        />
-                                        {config.ttsConfig.enable && (
-                                          <ChatAction
-                                            text={
-                                              speechStatus
-                                                ? Locale.Chat.Actions.StopSpeech
-                                                : Locale.Chat.Actions.Speech
-                                            }
-                                            icon={
-                                              speechStatus ? (
-                                                <SpeakStopIcon />
-                                              ) : (
-                                                <SpeakIcon />
-                                              )
-                                            }
-                                            onClick={() =>
-                                              openaiSpeech(
-                                                getMessageTextContent(message),
-                                              )
-                                            }
-                                          />
-                                        )}
-                                      </>
-                                    )}
+                                  <div
+                                    className={styles["chat-assistant-name"]}
+                                  >
+                                    {assistantMetadata.assistantName}
                                   </div>
+                                </div>
+                              )}
+
+                              {!isUser && assistantMetadata && (
+                                <div className={styles["chat-message-meta"]}>
+                                  <div
+                                    className={
+                                      styles["chat-message-action-date"]
+                                    }
+                                  >
+                                    {isContext
+                                      ? Locale.Chat.IsContext
+                                      : message.date.toLocaleString()}
+                                  </div>
+                                  {assistantMetadata.modelName && (
+                                    <div className={styles["chat-model-name"]}>
+                                      {assistantMetadata.modelName}
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+
+                              {isUser && (
+                                <div
+                                  className={styles["chat-message-action-date"]}
+                                >
+                                  {isContext
+                                    ? Locale.Chat.IsContext
+                                    : message.date.toLocaleString()}
                                 </div>
                               )}
                             </div>
@@ -2440,11 +2441,82 @@ function _Chat() {
                               </div>
                             )}
 
-                            <div className={styles["chat-message-action-date"]}>
-                              {isContext
-                                ? Locale.Chat.IsContext
-                                : message.date.toLocaleString()}
-                            </div>
+                            {showActions && (
+                              <div className={styles["chat-message-actions"]}>
+                                <div
+                                  className={
+                                    styles["chat-message-action-buttons"]
+                                  }
+                                >
+                                  {message.streaming ? (
+                                    <ChatAction
+                                      text={Locale.Chat.Actions.Stop}
+                                      icon={<StopIcon />}
+                                      onClick={() =>
+                                        onUserStop(message.id ?? i)
+                                      }
+                                    />
+                                  ) : (
+                                    <>
+                                      {isUser && (
+                                        <ChatAction
+                                          text={Locale.Chat.Actions.Edit}
+                                          icon={<EditIcon />}
+                                          onClick={() => onEditMessage(message)}
+                                        />
+                                      )}
+                                      <ChatAction
+                                        text={Locale.Chat.Actions.Retry}
+                                        icon={<ResetIcon />}
+                                        onClick={() => onResend(message)}
+                                      />
+                                      <ChatAction
+                                        text={Locale.Chat.Actions.Delete}
+                                        icon={<DeleteIcon />}
+                                        onClick={() =>
+                                          onDelete(message.id ?? i)
+                                        }
+                                      />
+                                      <ChatAction
+                                        text={Locale.Chat.Actions.Pin}
+                                        icon={<PinIcon />}
+                                        onClick={() => onPinMessage(message)}
+                                      />
+                                      <ChatAction
+                                        text={Locale.Chat.Actions.Copy}
+                                        icon={<CopyIcon />}
+                                        onClick={() =>
+                                          copyToClipboard(
+                                            getMessageTextContent(message),
+                                          )
+                                        }
+                                      />
+                                      {config.ttsConfig.enable && (
+                                        <ChatAction
+                                          text={
+                                            speechStatus
+                                              ? Locale.Chat.Actions.StopSpeech
+                                              : Locale.Chat.Actions.Speech
+                                          }
+                                          icon={
+                                            speechStatus ? (
+                                              <SpeakStopIcon />
+                                            ) : (
+                                              <SpeakIcon />
+                                            )
+                                          }
+                                          onClick={() =>
+                                            openaiSpeech(
+                                              getMessageTextContent(message),
+                                            )
+                                          }
+                                        />
+                                      )}
+                                    </>
+                                  )}
+                                </div>
+                              </div>
+                            )}
                           </div>
                         </div>
                         {shouldShowClearContextDivider && (

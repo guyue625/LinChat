@@ -14,13 +14,10 @@ import {
   Compass as DiscoveryIcon,
   MessageCircle as ChatIcon,
   MoreHorizontal,
-  Moon,
   PanelLeftClose as CollapseIcon,
   Plug as McpIcon,
   Plus as AddIcon,
   Search as SearchIcon,
-  Settings as SettingsIcon,
-  Sun,
   Trash2 as DeleteIcon,
   X as CloseIcon,
 } from "lucide-react";
@@ -39,7 +36,7 @@ import { Theme } from "../store/config";
 
 import { DEFAULT_SIDEBAR_WIDTH, NARROW_SIDEBAR_WIDTH, Path } from "../constant";
 
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { isIOS, useMobileScreen } from "../utils";
 import dynamic from "next/dynamic";
 import { Selector, showConfirm, showToast } from "./ui-lib";
@@ -153,7 +150,7 @@ export function useSideBarState() {
     document.documentElement.style.setProperty("--sidebar-width", sideBarWidth);
   }, [config.sidebarWidth, isMobileScreen, shouldNarrow]);
 
-  return { shouldNarrow, toggleSideBar };
+  return { isMobileScreen, shouldNarrow, toggleSideBar };
 }
 
 export function SideBarContainer(props: {
@@ -241,7 +238,7 @@ export function SideBarTail(props: {
 
 export function SideBar(props: { className?: string }) {
   useHotKey();
-  const { shouldNarrow, toggleSideBar } = useSideBarState();
+  const { isMobileScreen, shouldNarrow, toggleSideBar } = useSideBarState();
   const [showDiscoverySelector, setshowDiscoverySelector] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
@@ -577,19 +574,13 @@ export function SideBar(props: { className?: string }) {
             <ChatList maskId={activeMaskId} />
           )}
         </SideBarBody>
-        <AccountDock shouldNarrow={shouldNarrow} />
+        <AccountDock
+          shouldNarrow={shouldNarrow}
+          isDarkTheme={isDarkTheme}
+          onSettings={() => navigate(Path.Settings)}
+          onToggleTheme={toggleTheme}
+        />
         <SideBarTail
-          primaryAction={
-            <>
-              <IconButton
-                icon={<SettingsIcon />}
-                aria={Locale.Settings.Title}
-                title={Locale.Settings.Title}
-                onClick={() => navigate(Path.Settings)}
-                shadow
-              />
-            </>
-          }
           secondaryAction={
             <IconButton
               icon={<AddIcon />}
@@ -784,10 +775,15 @@ export function SideBar(props: { className?: string }) {
           )}
         </div>
       </SideBarBody>
-      <AccountDock shouldNarrow={shouldNarrow} />
-      <SideBarTail
-        primaryAction={
-          <>
+      <AccountDock
+        shouldNarrow={shouldNarrow}
+        isDarkTheme={isDarkTheme}
+        onSettings={() => navigate(Path.Settings)}
+        onToggleTheme={toggleTheme}
+      />
+      {isMobileScreen && (
+        <SideBarTail
+          primaryAction={
             <div className={clsx(styles["sidebar-action"], styles.mobile)}>
               <IconButton
                 icon={<DeleteIcon />}
@@ -798,27 +794,9 @@ export function SideBar(props: { className?: string }) {
                 }}
               />
             </div>
-            <div className={styles["sidebar-action"]}>
-              <Link to={Path.Settings}>
-                <IconButton
-                  aria={Locale.Settings.Title}
-                  icon={<SettingsIcon />}
-                  shadow
-                />
-              </Link>
-            </div>
-            <div className={styles["sidebar-action"]}>
-              <IconButton
-                aria={isDarkTheme ? "切换为浅色" : "切换为深色"}
-                title={isDarkTheme ? "切换为浅色" : "切换为深色"}
-                icon={isDarkTheme ? <Sun /> : <Moon />}
-                onClick={toggleTheme}
-                shadow
-              />
-            </div>
-          </>
-        }
-      />
+          }
+        />
+      )}
       {recentPanelOpen && (
         <RecentChatsPanel onClose={() => setRecentPanelOpen(false)} />
       )}

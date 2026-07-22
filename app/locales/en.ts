@@ -578,6 +578,22 @@ const en: LocaleType = {
         FetchSuccess: (count: number) =>
           `Fetched ${count} model(s) from upstream`,
         FetchFailed: (reason: string) => `Failed to fetch models: ${reason}`,
+        PickerTitle: "Select models to add",
+        Search: "Search models",
+        SelectVisible: "Select visible",
+        ClearVisible: "Clear visible",
+        SelectedCount: (selected: number, total: number) =>
+          `${selected} of ${total} selected`,
+        ConfirmSelection: "Add selected models",
+        SelectionRequired: "Select at least one model",
+        NoMatches: "No matching models",
+        AlreadyAdded: "Added",
+        AddModalTitle: "Add models",
+        ManualTitle: "Add manually",
+        UpstreamTitle: "Choose from upstream",
+        UpstreamHelp:
+          "Fetch available models from the configured /models endpoint",
+        AddSuccess: (count: number) => `Added ${count} model(s)`,
       },
       Google: {
         ApiKey: {

@@ -52,6 +52,145 @@
   gap: 8px;
 }
 
+.modelPicker {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.manualModelSection,
+.upstreamModelSection {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.manualModelSection {
+  padding-bottom: 16px;
+  border-bottom: var(--border-in-light);
+}
+
+.sectionTitle {
+  color: var(--black);
+  font-size: 14px;
+  font-weight: 650;
+}
+
+.sectionHint {
+  margin-top: 3px;
+  color: var(--black);
+  font-size: 12px;
+  opacity: 0.58;
+}
+
+.modalInput {
+  width: 100% !important;
+  min-height: 40px !important;
+  text-align: left !important;
+}
+
+.upstreamModelHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.modelPickerToolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.modelSearch {
+  width: auto !important;
+  flex: 1;
+}
+
+.selectAllButton {
+  border: 0;
+  border-radius: 8px;
+  padding: 8px 10px;
+  background: transparent;
+  color: var(--primary);
+  cursor: pointer;
+  font: inherit;
+  white-space: nowrap;
+
+  &:hover {
+    background: rgba(29, 147, 171, 0.1);
+  }
+}
+
+.modelPickerSummary {
+  color: var(--black);
+  font-size: 12px;
+  opacity: 0.65;
+}
+
+.modelPickerList {
+  display: flex;
+  max-height: min(52vh, 460px);
+  flex-direction: column;
+  gap: 6px;
+  overflow: auto;
+  padding-right: 4px;
+}
+
+.modelOption {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  cursor: pointer;
+
+  &:hover {
+    border-color: rgba(29, 147, 171, 0.25);
+    background: rgba(29, 147, 171, 0.06);
+  }
+
+  input {
+    width: 16px;
+    height: 16px;
+    margin: 2px 0 0;
+    accent-color: var(--primary);
+    flex-shrink: 0;
+  }
+}
+
+.modelOptionText {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 2px;
+  overflow: hidden;
+  color: var(--black);
+  word-break: break-all;
+
+  small {
+    opacity: 0.58;
+  }
+}
+
+.alreadyAdded {
+  flex-shrink: 0;
+  align-self: center;
+  border: 1px solid color-mix(in srgb, var(--primary) 35%, transparent);
+  border-radius: 999px;
+  padding: 3px 8px;
+  color: var(--primary);
+  font-size: 11px;
+}
+
+.noResults {
+  padding: 24px 12px;
+  color: var(--black);
+  text-align: center;
+  opacity: 0.6;
+}
+
 .addActions {
   width: min(470px, 48vw);
 
@@ -151,5 +290,20 @@
       width: 100%;
       grid-column: 1 / -1;
     }
+  }
+
+  .modelPickerToolbar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .upstreamModelHeader {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .selectAllButton {
+    align-self: flex-start;
+    padding-left: 0;
   }
 }

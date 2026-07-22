@@ -64,6 +64,7 @@ export type ChatMessage = RequestMessage & {
   isError?: boolean;
   id: string;
   model?: ModelType;
+  provider?: ServiceProvider;
   tools?: ChatMessageTool[];
   audio_url?: string;
   isMcpResponse?: boolean;
@@ -463,6 +464,7 @@ export const useChatStore = createPersistStore(
           role: "assistant",
           streaming: true,
           model: modelConfig.model,
+          provider: modelConfig.providerName,
         });
 
         // get recent messages
