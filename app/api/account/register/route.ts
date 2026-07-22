@@ -16,7 +16,7 @@ export async function POST(request: NextRequest) {
       invitationCode: body.invitationCode ?? "",
     });
     const response = NextResponse.json({ user: result.user }, { status: 201 });
-    setSessionCookie(response, result.sessionToken);
+    setSessionCookie(response, result.sessionToken, request);
     return response;
   } catch (error) {
     return accountErrorResponse(error);

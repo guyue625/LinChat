@@ -14,7 +14,7 @@ export async function POST(request: NextRequest) {
       password: body.password ?? "",
     });
     const response = NextResponse.json({ user: result.user });
-    setSessionCookie(response, result.sessionToken);
+    setSessionCookie(response, result.sessionToken, request);
     return response;
   } catch (error) {
     return accountErrorResponse(error);

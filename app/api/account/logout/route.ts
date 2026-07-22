@@ -13,7 +13,7 @@ export async function POST(request: NextRequest) {
       request.cookies.get(ACCOUNT_SESSION_COOKIE)?.value ?? "",
     );
     const response = NextResponse.json({ ok: true });
-    clearSessionCookie(response);
+    clearSessionCookie(response, request);
     return response;
   } catch (error) {
     return accountErrorResponse(error);

@@ -112,7 +112,6 @@ export function AccountDock(props: {
             </span>
           )}
         </button>
-        {utilityControls}
       </div>
     );
   }
