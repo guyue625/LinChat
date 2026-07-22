@@ -35,6 +35,13 @@ ENV OPENAI_API_KEY=""
 ENV GOOGLE_API_KEY=""
 ENV CODE=""
 ENV ENABLE_MCP=""
+ENV ACCOUNT_AUTH_ENABLED="false"
+ENV ACCOUNT_ADMIN_USERNAME=""
+ENV ACCOUNT_ADMIN_PASSWORD=""
+ENV ACCOUNT_SESSION_SECRET=""
+ENV ACCOUNT_INITIAL_INVITATION=""
+ENV ACCOUNT_INITIAL_INVITATION_USES="1"
+ENV ACCOUNT_DATA_FILE="/app/data/accounts.json"
 
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/.next/standalone ./
@@ -42,6 +49,7 @@ COPY --from=builder /app/.next/static ./.next/static
 COPY --from=builder /app/.next/server ./.next/server
 
 RUN mkdir -p /app/app/mcp && chmod 777 /app/app/mcp
+RUN mkdir -p /app/data && chmod 700 /app/data
 COPY --from=builder /app/app/mcp/mcp_config.default.json /app/app/mcp/mcp_config.json
 
 EXPOSE 3000

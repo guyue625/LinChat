@@ -1,7 +1,6 @@
-import DeleteIcon from "../icons/delete.svg";
-import RenameIcon from "../icons/rename.svg";
 import TopicIcon from "../icons/topic.svg";
 import MoreIcon from "../icons/more-horizontal.svg";
+import { PencilLine as RenameIcon, Trash2 as DeleteIcon } from "lucide-react";
 
 import styles from "./home.module.scss";
 import {
@@ -22,6 +21,24 @@ import { useRef, useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { showConfirm, showPrompt } from "./ui-lib";
 import clsx from "clsx";
+import { deriveTopicFromMessages } from "../utils/session-topic";
+
+function getDisplayTopic(session: {
+  topic: string;
+  topicManuallyEdited?: boolean;
+  messages: { role?: string; content?: unknown }[];
+  mask: Mask;
+}) {
+  if (
+    !session.topicManuallyEdited &&
+    (session.topic === Locale.Store.DefaultTopic ||
+      session.topic === session.mask.name)
+  ) {
+    return deriveTopicFromMessages(session.messages, session.topic);
+  }
+
+  return session.topic || Locale.Store.DefaultTopic;
+}
 
 export function ChatItem(props: {
   onClick?: () => void;
@@ -144,11 +161,16 @@ export function ChatList(props: {
   const normalizedQuery = props.query?.trim().toLowerCase();
   const matchingSessions = sessions
     .map((session, storeIndex) => ({ session, storeIndex }))
+    .map(({ session, storeIndex }) => ({
+      session,
+      storeIndex,
+      displayTopic: getDisplayTopic(session),
+    }))
     .filter(({ session }) => !props.maskId || session.mask.id === props.maskId)
     .filter(
-      ({ session }) =>
+      ({ displayTopic }) =>
         !normalizedQuery ||
-        session.topic.toLowerCase().includes(normalizedQuery),
+        displayTopic.toLowerCase().includes(normalizedQuery),
     );
   const visibleSessions = props.limit
     ? matchingSessions.slice(0, props.limit)
@@ -239,9 +261,9 @@ export function ChatList(props: {
             {...provided.droppableProps}
           >
             {visibleSessions.map(
-              ({ session: item, storeIndex }, visibleIndex) => (
+              ({ session: item, storeIndex, displayTopic }, visibleIndex) => (
                 <ChatItem
-                  title={item.topic}
+                  title={displayTopic}
                   count={item.messages.length}
                   key={item.id}
                   id={item.id}

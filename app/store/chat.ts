@@ -38,6 +38,10 @@ import { collectModelsWithDefaultModel } from "../utils/model";
 import { createEmptyMask, Mask } from "./mask";
 import { executeMcpAction, getAllTools, isMcpEnabled } from "../mcp/actions";
 import { extractMcpJson, isMcpJson } from "../mcp/utils";
+import {
+  deriveSessionTopic,
+  shouldApplyAutomaticTopic,
+} from "../utils/session-topic";
 
 const localStorage = safeLocalStorage();
 
@@ -86,6 +90,8 @@ export interface ChatSession {
   topic: string;
   /** Prevent automatic title generation from overwriting a user rename. */
   topicManuallyEdited?: boolean;
+  /** Allow the model-generated title to refine the immediate local fallback. */
+  topicAutomaticallyDerived?: boolean;
 
   memoryPrompt: string;
   messages: ChatMessage[];
@@ -251,6 +257,8 @@ export const useChatStore = createPersistStore(
 
         newSession.topic = currentSession.topic;
         newSession.topicManuallyEdited = currentSession.topicManuallyEdited;
+        newSession.topicAutomaticallyDerived =
+          currentSession.topicAutomaticallyDerived;
         // 深拷贝消息
         newSession.messages = currentSession.messages.map((msg) => ({
           ...msg,
@@ -347,6 +355,7 @@ export const useChatStore = createPersistStore(
         get().updateTargetSession(session, (session) => {
           session.topic = normalizedTopic;
           session.topicManuallyEdited = true;
+          session.topicAutomaticallyDerived = false;
           session.lastUpdate = Date.now();
         });
       },
@@ -471,6 +480,21 @@ export const useChatStore = createPersistStore(
             savedUserMessage,
             botMessage,
           ]);
+
+          const localTopic = deriveSessionTopic(content, DEFAULT_TOPIC);
+          if (
+            !isMcpResponse &&
+            localTopic !== DEFAULT_TOPIC &&
+            shouldApplyAutomaticTopic({
+              currentTopic: session.topic,
+              defaultTopic: DEFAULT_TOPIC,
+              maskName: session.mask.name,
+              manuallyEdited: session.topicManuallyEdited,
+            })
+          ) {
+            session.topic = localTopic;
+            session.topicAutomaticallyDerived = true;
+          }
         });
 
         const api: ClientApi = getClientApi(modelConfig.providerName);
@@ -713,7 +737,7 @@ export const useChatStore = createPersistStore(
         if (
           (config.enableAutoGenerateTitle &&
             !session.topicManuallyEdited &&
-            usesAutomaticPlaceholder &&
+            (usesAutomaticPlaceholder || session.topicAutomaticallyDerived) &&
             Boolean(firstMeaningfulUserMessage)) ||
           refreshTitle
         ) {
@@ -754,6 +778,7 @@ export const useChatStore = createPersistStore(
                   session.topic =
                     message.length > 0 ? trimTopic(message) : DEFAULT_TOPIC;
                   session.topicManuallyEdited = false;
+                  session.topicAutomaticallyDerived = false;
                 });
               }
             },

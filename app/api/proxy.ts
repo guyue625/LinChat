@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSideConfig } from "@/app/config/server";
+import { ModelProvider } from "@/app/constant";
+import { auth } from "./auth";
 
 export async function handle(
   req: NextRequest,
@@ -9,6 +11,10 @@ export async function handle(
 
   if (req.method === "OPTIONS") {
     return NextResponse.json({ body: "OK" }, { status: 200 });
+  }
+  const authResult = await auth(req, ModelProvider.GPT);
+  if (authResult.error) {
+    return NextResponse.json(authResult, { status: 401 });
   }
   const serverConfig = getServerSideConfig();
 
@@ -34,16 +40,16 @@ export async function handle(
     }),
   );
   // if dalle3 use openai api key
-    const baseUrl = req.headers.get("x-base-url");
-    if (baseUrl?.includes("api.openai.com")) {
-      if (!serverConfig.apiKey) {
-        return NextResponse.json(
-          { error: "OpenAI API key not configured" },
-          { status: 500 },
-        );
-      }
-      headers.set("Authorization", `Bearer ${serverConfig.apiKey}`);
+  const baseUrl = req.headers.get("x-base-url");
+  if (baseUrl?.includes("api.openai.com")) {
+    if (!serverConfig.apiKey) {
+      return NextResponse.json(
+        { error: "OpenAI API key not configured" },
+        { status: 500 },
+      );
     }
+    headers.set("Authorization", `Bearer ${serverConfig.apiKey}`);
+  }
 
   const controller = new AbortController();
   const fetchOptions: RequestInit = {

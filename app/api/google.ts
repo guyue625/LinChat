@@ -16,7 +16,7 @@ export async function handle(
     return NextResponse.json({ body: "OK" }, { status: 200 });
   }
 
-  const authResult = auth(req, ModelProvider.GeminiPro);
+  const authResult = await auth(req, ModelProvider.GeminiPro);
   if (authResult.error) {
     return NextResponse.json(authResult, {
       status: 401,
@@ -52,7 +52,7 @@ export async function handle(
 export const GET = handle;
 export const POST = handle;
 
-export const runtime = "edge";
+export const runtime = "nodejs";
 export const preferredRegion = [
   "bom1",
   "cle1",

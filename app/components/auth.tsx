@@ -1,189 +1,339 @@
 import styles from "./auth.module.scss";
-import { IconButton } from "./button";
-import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import { Path, SAAS_CHAT_URL } from "../constant";
+import { useEffect, useMemo, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useAccessStore } from "../store";
-import Locale from "../locales";
-import Delete from "../icons/close.svg";
-import Arrow from "../icons/arrow.svg";
-import Logo from "../icons/logo.svg";
-import { useMobileScreen } from "@/app/utils";
-import { BrandLogo } from "./brand-logo";
-import { getClientConfig } from "../config/client";
-import { PasswordInput } from "./ui-lib";
-import LeftIcon from "@/app/icons/left.svg";
-import { safeLocalStorage } from "@/app/utils";
-import {
-  trackSettingsPageGuideToCPaymentClick,
-  trackAuthorizationPageButtonToCPaymentClick,
-} from "../utils/auth-settings-events";
-import clsx from "clsx";
+import { AuthCharacter, getAuthCharacterPose } from "./auth-character";
+import EyeIcon from "../icons/eye.svg";
+import EyeOffIcon from "../icons/eye-off.svg";
+import LeftIcon from "../icons/left.svg";
+import { useAccount } from "./account-context";
+import { safeReturnPath } from "./account-utils";
 
-const storage = safeLocalStorage();
+type Mode = "login" | "register" | "reset" | "legacy";
+type ActiveField = "username" | "password" | "invitation" | null;
 
 export function AuthPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const accessStore = useAccessStore();
-  const goHome = () => navigate(Path.Home);
-  const goChat = () => navigate(Path.Chat);
-  const goSaas = () => {
-    trackAuthorizationPageButtonToCPaymentClick();
-    window.location.href = SAAS_CHAT_URL;
-  };
-
-  const resetAccessCode = () => {
-    accessStore.update((access) => {
-      access.openaiApiKey = "";
-      access.accessCode = "";
-    });
-  }; // Reset access code to empty string
-
-  useEffect(() => {
-    if (getClientConfig()?.isApp) {
-      navigate(Path.Settings);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  return (
-    <div className={styles["auth-page"]}>
-      <TopBanner></TopBanner>
-      <div className={styles["auth-header"]}>
-        <IconButton
-          icon={<LeftIcon />}
-          text={Locale.Auth.Return}
-          onClick={() => navigate(Path.Home)}
-        ></IconButton>
-      </div>
-      <div className={clsx("no-dark", styles["auth-logo"])}>
-        <BrandLogo width={80} height={80} />
-      </div>
-
-      <div className={styles["auth-title"]}>{Locale.Auth.Title}</div>
-      <div className={styles["auth-tips"]}>{Locale.Auth.Tips}</div>
-
-      <PasswordInput
-        style={{ marginTop: "3vh", marginBottom: "3vh" }}
-        aria={Locale.Settings.ShowPassword}
-        aria-label={Locale.Auth.Input}
-        value={accessStore.accessCode}
-        type="text"
-        placeholder={Locale.Auth.Input}
-        onChange={(e) => {
-          accessStore.update(
-            (access) => (access.accessCode = e.currentTarget.value),
-          );
-        }}
-      />
-
-      {!accessStore.hideUserApiKey ? (
-        <>
-          <div className={styles["auth-tips"]}>{Locale.Auth.SubTips}</div>
-          <PasswordInput
-            style={{ marginTop: "3vh", marginBottom: "3vh" }}
-            aria={Locale.Settings.ShowPassword}
-            aria-label={Locale.Settings.Access.OpenAI.ApiKey.Placeholder}
-            value={accessStore.openaiApiKey}
-            type="text"
-            placeholder={Locale.Settings.Access.OpenAI.ApiKey.Placeholder}
-            onChange={(e) => {
-              accessStore.update(
-                (access) => (access.openaiApiKey = e.currentTarget.value),
-              );
-            }}
-          />
-          <PasswordInput
-            style={{ marginTop: "3vh", marginBottom: "3vh" }}
-            aria={Locale.Settings.ShowPassword}
-            aria-label={Locale.Settings.Access.Google.ApiKey.Placeholder}
-            value={accessStore.googleApiKey}
-            type="text"
-            placeholder={Locale.Settings.Access.Google.ApiKey.Placeholder}
-            onChange={(e) => {
-              accessStore.update(
-                (access) => (access.googleApiKey = e.currentTarget.value),
-              );
-            }}
-          />
-        </>
-      ) : null}
-
-      <div className={styles["auth-actions"]}>
-        <IconButton
-          text={Locale.Auth.Confirm}
-          type="primary"
-          onClick={goChat}
-        />
-        <IconButton
-          text={Locale.Auth.SaasTips}
-          onClick={() => {
-            goSaas();
-          }}
-        />
-      </div>
-    </div>
+  const { enabled, loading, refresh, user } = useAccount();
+  const [mode, setMode] = useState<Mode>("login");
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [invitationCode, setInvitationCode] = useState("");
+  const [resetToken, setResetToken] = useState("");
+  const [passwordVisible, setPasswordVisible] = useState(false);
+  const [activeField, setActiveField] = useState<ActiveField>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+  const [failed, setFailed] = useState(false);
+  const accountEnabled = loading ? null : enabled;
+  const returnTo = useMemo(
+    () => safeReturnPath(new URLSearchParams(location.search).get("returnTo")),
+    [location.search],
   );
-}
 
-function TopBanner() {
-  const [isHovered, setIsHovered] = useState(false);
-  const [isVisible, setIsVisible] = useState(true);
-  const isMobile = useMobileScreen();
   useEffect(() => {
-    // 检查 localStorage 中是否有标记
-    const bannerDismissed = storage.getItem("bannerDismissed");
-    // 如果标记不存在，存储默认值并显示横幅
-    if (!bannerDismissed) {
-      storage.setItem("bannerDismissed", "false");
-      setIsVisible(true); // 显示横幅
-    } else if (bannerDismissed === "true") {
-      // 如果标记为 "true"，则隐藏横幅
-      setIsVisible(false);
+    if (loading) return;
+    if (user) {
+      navigate(returnTo, { replace: true });
+      return;
     }
-  }, []);
+    if (!enabled) setMode("legacy");
+  }, [enabled, loading, navigate, returnTo, user]);
 
-  const handleMouseEnter = () => {
-    setIsHovered(true);
+  const pose = useMemo(
+    () =>
+      getAuthCharacterPose({
+        activeField,
+        passwordVisible,
+        submitting,
+        failed,
+      }),
+    [activeField, failed, passwordVisible, submitting],
+  );
+
+  const switchMode = (nextMode: Mode) => {
+    setMode(nextMode);
+    setError("");
+    setSuccess("");
+    setFailed(false);
   };
 
-  const handleMouseLeave = () => {
-    setIsHovered(false);
+  const submitAccount = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setSubmitting(true);
+    setError("");
+    setSuccess("");
+    setFailed(false);
+    try {
+      const endpoint = mode === "reset" ? "reset" : mode;
+      const response = await fetch(`/api/account/${endpoint}`, {
+        method: "POST",
+        credentials: "same-origin",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(
+          mode === "reset"
+            ? { token: resetToken, newPassword: password }
+            : { username, password, invitationCode },
+        ),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "操作失败，请稍后重试");
+      if (mode === "reset") {
+        setPassword("");
+        setResetToken("");
+        setMode("login");
+        setSuccess("密码已经更新，请使用新密码登录。");
+      } else {
+        await refresh();
+        navigate(returnTo, { replace: true });
+      }
+    } catch (requestError) {
+      setError(
+        requestError instanceof Error ? requestError.message : "操作失败",
+      );
+      setFailed(true);
+      window.setTimeout(() => setFailed(false), 650);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
-  const handleClose = () => {
-    setIsVisible(false);
-    storage.setItem("bannerDismissed", "true");
+  const submitLegacy = (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!accessStore.accessCode.trim()) {
+      setError("请输入访问码");
+      setFailed(true);
+      return;
+    }
+    navigate(returnTo, { replace: true });
   };
 
-  if (!isVisible) {
-    return null;
-  }
   return (
-    <div
-      className={styles["top-banner"]}
-      onMouseEnter={handleMouseEnter}
-      onMouseLeave={handleMouseLeave}
-    >
-      <div className={clsx(styles["top-banner-inner"], "no-dark")}>
-        <Logo className={styles["top-banner-logo"]}></Logo>
-        <span>
-          {Locale.Auth.TopTips}
-          <a
-            href={SAAS_CHAT_URL}
-            rel="stylesheet"
-            onClick={() => {
-              trackSettingsPageGuideToCPaymentClick();
-            }}
-          >
-            {Locale.Settings.Access.SaasStart.ChatNow}
-            <Arrow style={{ marginLeft: "4px" }} />
-          </a>
-        </span>
-      </div>
-      {(isHovered || isMobile) && (
-        <Delete className={styles["top-banner-close"]} onClick={handleClose} />
-      )}
-    </div>
+    <main className={styles["auth-page"]}>
+      <button
+        className={styles["back-button"]}
+        type="button"
+        onClick={() => navigate(returnTo)}
+      >
+        <LeftIcon />
+        返回
+      </button>
+
+      <section className={styles["auth-stage"]}>
+        <div className={styles["character-panel"]}>
+          <div className={styles["brand-mark"]}>N</div>
+          <div className={styles["brand-copy"]}>
+            <strong>NextChat</strong>
+            <span>你的私人 AI 工作台</span>
+          </div>
+          <AuthCharacter pose={pose} usernameLength={username.length} />
+          <div className={styles["privacy-note"]}>
+            密码仅以加密摘要保存，管理员也无法查看原文。
+          </div>
+        </div>
+
+        <div className={styles["form-panel"]}>
+          <div className={styles["mode-tabs"]} aria-label="认证方式">
+            {accountEnabled !== false && (
+              <>
+                <button
+                  type="button"
+                  data-active={mode === "login" || mode === "reset"}
+                  onClick={() => switchMode("login")}
+                >
+                  登录
+                </button>
+                <button
+                  type="button"
+                  data-active={mode === "register"}
+                  onClick={() => switchMode("register")}
+                >
+                  邀请注册
+                </button>
+              </>
+            )}
+            <button
+              type="button"
+              data-active={mode === "legacy"}
+              onClick={() => switchMode("legacy")}
+            >
+              访问码
+            </button>
+          </div>
+
+          {mode === "legacy" ? (
+            <form className={styles["auth-form"]} onSubmit={submitLegacy}>
+              <div className={styles["form-heading"]}>
+                <span className={styles.eyebrow}>兼容入口</span>
+                <h1>使用部署访问码</h1>
+                <p>适用于仍使用旧版 CODE 环境变量的部署。</p>
+              </div>
+              <label>
+                <span>访问码</span>
+                <input
+                  type="password"
+                  autoComplete="current-password"
+                  value={accessStore.accessCode}
+                  onFocus={() => setActiveField("password")}
+                  onBlur={() => setActiveField(null)}
+                  onChange={(event) =>
+                    accessStore.update(
+                      (access) => (access.accessCode = event.target.value),
+                    )
+                  }
+                  placeholder="输入管理员提供的访问码"
+                />
+              </label>
+              {error && <div className={styles["form-error"]}>{error}</div>}
+              <button className={styles["submit-button"]} type="submit">
+                进入 NextChat
+              </button>
+            </form>
+          ) : (
+            <form
+              className={styles["auth-form"]}
+              data-failed={failed}
+              onSubmit={submitAccount}
+            >
+              <div className={styles["form-heading"]}>
+                <span className={styles.eyebrow}>
+                  {mode === "login"
+                    ? "WELCOME BACK"
+                    : mode === "register"
+                    ? "INVITATION ONLY"
+                    : "ONE-TIME RESET"}
+                </span>
+                <h1>
+                  {mode === "login"
+                    ? "欢迎回来"
+                    : mode === "register"
+                    ? "创建你的账号"
+                    : "设置新密码"}
+                </h1>
+                <p>
+                  {mode === "login"
+                    ? "继续你的对话、灵感和工作流。"
+                    : mode === "register"
+                    ? "注册需要管理员生成的邀请码。"
+                    : "输入管理员提供的一次性重置凭证。"}
+                </p>
+              </div>
+
+              {mode === "reset" ? (
+                <label>
+                  <span>密码重置凭证</span>
+                  <input
+                    type="text"
+                    autoComplete="off"
+                    value={resetToken}
+                    onFocus={() => setActiveField("invitation")}
+                    onBlur={() => setActiveField(null)}
+                    onChange={(event) => setResetToken(event.target.value)}
+                    placeholder="NCR-…"
+                    required
+                  />
+                </label>
+              ) : (
+                <label>
+                  <span>用户名</span>
+                  <input
+                    type="text"
+                    autoComplete="username"
+                    value={username}
+                    onFocus={() => setActiveField("username")}
+                    onBlur={() => setActiveField(null)}
+                    onChange={(event) => setUsername(event.target.value)}
+                    placeholder="3-32 位字母、数字或 _.-"
+                    required
+                  />
+                </label>
+              )}
+
+              <label>
+                <span>{mode === "reset" ? "新密码" : "密码"}</span>
+                <div className={styles["password-field"]}>
+                  <input
+                    type={passwordVisible ? "text" : "password"}
+                    autoComplete={
+                      mode === "login" ? "current-password" : "new-password"
+                    }
+                    value={password}
+                    onFocus={() => setActiveField("password")}
+                    onBlur={() => setActiveField(null)}
+                    onChange={(event) => setPassword(event.target.value)}
+                    placeholder="至少 8 位"
+                    required
+                  />
+                  <button
+                    type="button"
+                    aria-label={passwordVisible ? "隐藏密码" : "显示密码"}
+                    onMouseDown={(event) => event.preventDefault()}
+                    onClick={() => setPasswordVisible((visible) => !visible)}
+                  >
+                    {passwordVisible ? <EyeOffIcon /> : <EyeIcon />}
+                  </button>
+                </div>
+              </label>
+
+              {mode === "register" && (
+                <label>
+                  <span>邀请码</span>
+                  <input
+                    type="text"
+                    autoComplete="off"
+                    value={invitationCode}
+                    onFocus={() => setActiveField("invitation")}
+                    onBlur={() => setActiveField(null)}
+                    onChange={(event) => setInvitationCode(event.target.value)}
+                    placeholder="输入管理员提供的邀请码"
+                    required
+                  />
+                </label>
+              )}
+
+              {success && (
+                <div className={styles["form-success"]}>{success}</div>
+              )}
+              {error && <div className={styles["form-error"]}>{error}</div>}
+              <button
+                className={styles["submit-button"]}
+                type="submit"
+                disabled={submitting || accountEnabled === null}
+              >
+                {submitting
+                  ? "请稍候…"
+                  : mode === "login"
+                  ? "登录"
+                  : mode === "register"
+                  ? "注册并登录"
+                  : "更新密码"}
+              </button>
+
+              {mode === "login" && (
+                <button
+                  className={styles["text-button"]}
+                  type="button"
+                  onClick={() => switchMode("reset")}
+                >
+                  使用一次性凭证重置密码
+                </button>
+              )}
+              {mode === "reset" && (
+                <button
+                  className={styles["text-button"]}
+                  type="button"
+                  onClick={() => switchMode("login")}
+                >
+                  返回登录
+                </button>
+              )}
+            </form>
+          )}
+        </div>
+      </section>
+    </main>
   );
 }

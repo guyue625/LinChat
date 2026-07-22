@@ -45,6 +45,7 @@ import dynamic from "next/dynamic";
 import { Selector, showConfirm, showToast } from "./ui-lib";
 import clsx from "clsx";
 import { isMcpEnabled } from "../mcp/actions";
+import { AccountDock } from "./account-dock";
 
 const DISCOVERY = [
   { name: Locale.Plugin.Name, path: Path.Plugins },
@@ -256,6 +257,7 @@ export function SideBar(props: { className?: string }) {
   const assistantSwitcherRef = useRef<HTMLButtonElement>(null);
   const assistantSwitcherMenuRef = useRef<HTMLDivElement>(null);
   const maskStore = useMaskStore();
+
   const customAssistants = Object.values(maskStore.masks).sort(
     (a, b) => b.createdAt - a.createdAt,
   );
@@ -575,15 +577,18 @@ export function SideBar(props: { className?: string }) {
             <ChatList maskId={activeMaskId} />
           )}
         </SideBarBody>
+        <AccountDock shouldNarrow={shouldNarrow} />
         <SideBarTail
           primaryAction={
-            <IconButton
-              icon={<SettingsIcon />}
-              aria={Locale.Settings.Title}
-              title={Locale.Settings.Title}
-              onClick={() => navigate(Path.Settings)}
-              shadow
-            />
+            <>
+              <IconButton
+                icon={<SettingsIcon />}
+                aria={Locale.Settings.Title}
+                title={Locale.Settings.Title}
+                onClick={() => navigate(Path.Settings)}
+                shadow
+              />
+            </>
           }
           secondaryAction={
             <IconButton
@@ -779,6 +784,7 @@ export function SideBar(props: { className?: string }) {
           )}
         </div>
       </SideBarBody>
+      <AccountDock shouldNarrow={shouldNarrow} />
       <SideBarTail
         primaryAction={
           <>

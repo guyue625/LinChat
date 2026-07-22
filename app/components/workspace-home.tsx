@@ -1,6 +1,6 @@
-import { FormEvent, useCallback, useState } from "react";
+import { useCallback, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Check, ChevronsUpDown, SendHorizontal, X } from "lucide-react";
+import { Check, ChevronsUpDown } from "lucide-react";
 import { Path } from "../constant";
 import { useChatStore } from "../store";
 import { Mask } from "../store/mask";
@@ -10,10 +10,8 @@ import {
   FeaturedAssistant,
 } from "../data/featured-assistants";
 import { deepClone } from "../utils/clone";
-import { uploadImage as uploadImageRemote } from "../utils/chat";
 import { EmojiAvatar } from "./emoji";
-import { ChatActions } from "./chat";
-import chatStyles from "./chat.module.scss";
+import { ChatComposer } from "./chat";
 import styles from "./workspace-home.module.scss";
 
 export function WorkspaceHome() {
@@ -65,35 +63,9 @@ export function WorkspaceHome() {
     setAttachImages([]);
   };
 
-  const submit = (event: FormEvent) => {
-    event.preventDefault();
+  const submit = () => {
     if (!input.trim() && attachImages.length === 0) return;
     void startChat(active, input);
-  };
-
-  const uploadImage = async () => {
-    const files = await new Promise<FileList | null>((resolve) => {
-      const fileInput = document.createElement("input");
-      fileInput.type = "file";
-      fileInput.accept =
-        "image/png, image/jpeg, image/webp, image/heic, image/heif";
-      fileInput.multiple = true;
-      fileInput.onchange = () => resolve(fileInput.files);
-      fileInput.click();
-    });
-    if (!files?.length) return;
-
-    setUploading(true);
-    try {
-      const uploaded = await Promise.all(
-        Array.from(files)
-          .slice(0, 3 - attachImages.length)
-          .map((file) => uploadImageRemote(file)),
-      );
-      setAttachImages((current) => [...current, ...uploaded].slice(0, 3));
-    } finally {
-      setUploading(false);
-    }
   };
 
   return (
@@ -176,70 +148,30 @@ export function WorkspaceHome() {
           <p>{active.greeting}</p>
         </header>
 
-        <form className={styles.composer} onSubmit={submit}>
-          <textarea
+        <div className={styles.composer}>
+          <ChatComposer
             value={input}
-            onChange={(event) => setInput(event.target.value)}
-            onKeyDown={(event) => {
-              if (event.key === "Enter" && !event.shiftKey) {
-                event.preventDefault();
-                submit(event);
-              }
-            }}
+            onInput={setInput}
+            onSubmit={submit}
             placeholder={`给 ${active.name} 发消息…`}
+            attachImages={attachImages}
+            setAttachImages={setAttachImages}
+            uploading={uploading}
+            setUploading={setUploading}
+            mask={draftMask}
+            onMaskChange={updateDraftMask}
+            homeMode
             rows={4}
             autoFocus
+            showPromptModal={() => undefined}
+            scrollToBottom={() => undefined}
+            showPromptHints={() => undefined}
+            hitBottom
+            setShowShortcutKeyModal={setUnusedModal}
+            setShowChatSidePanel={setUnusedModal}
+            sendDisabled={!input.trim() && attachImages.length === 0}
           />
-          {attachImages.length > 0 && (
-            <div className={styles.attachments}>
-              {attachImages.map((image, index) => (
-                <div
-                  className={styles.attachment}
-                  key={image.slice(-32) + index}
-                  style={{ backgroundImage: `url("${image}")` }}
-                >
-                  <button
-                    type="button"
-                    aria-label="移除图片"
-                    onClick={() =>
-                      setAttachImages((images) =>
-                        images.filter((_, imageIndex) => imageIndex !== index),
-                      )
-                    }
-                  >
-                    <X />
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
-          <div className={chatStyles["composer-footer"]}>
-            <ChatActions
-              uploadImage={() => void uploadImage()}
-              setAttachImages={setAttachImages}
-              setUploading={setUploading}
-              showPromptModal={() => undefined}
-              scrollToBottom={() => undefined}
-              showPromptHints={() => undefined}
-              hitBottom
-              uploading={uploading}
-              setShowShortcutKeyModal={setUnusedModal}
-              setShowChatSidePanel={setUnusedModal}
-              mask={draftMask}
-              onMaskChange={updateDraftMask}
-              homeMode
-            />
-            <button
-              className={chatStyles["chat-input-send"]}
-              type="submit"
-              disabled={!input.trim() && attachImages.length === 0}
-              aria-label="发送"
-              title="发送"
-            >
-              <SendHorizontal />
-            </button>
-          </div>
-        </form>
+        </div>
 
         <div className={styles.suggestions}>
           {active.suggestions.map((suggestion) => (

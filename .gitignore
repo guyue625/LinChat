@@ -56,4 +56,9 @@ masks.json
 app/mcp/mcp_config.json
 # local browser QA artifacts
 .tmp-chrome-*/
+.tmp-account-e2e*
 *-qa.png
+
+# local account database
+data/accounts.json
+data/accounts.json.*.tmp

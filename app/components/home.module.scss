@@ -1008,16 +1008,6 @@
   stroke-opacity: 1 !important;
 }
 
-.chat-item-context-menu button svg [fill]:not([fill="none"]),
-.chat-item-context-menu button svg [style*="fill"],
-.sidebar-utility-actions button svg [fill]:not([fill="none"]),
-.sidebar-utility-actions button svg [style*="fill"],
-.sidebar-tail button svg [fill]:not([fill="none"]),
-.sidebar-tail button svg [style*="fill"] {
-  fill: currentColor !important;
-  fill-opacity: 1 !important;
-}
-
 .chat-item-context-menu {
   padding: 6px;
   border-color: color-mix(in srgb, var(--black) 14%, transparent);

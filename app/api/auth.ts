@@ -2,6 +2,11 @@ import { NextRequest } from "next/server";
 import { getServerSideConfig } from "../config/server";
 import md5 from "spark-md5";
 import { ACCESS_CODE_PREFIX, ModelProvider } from "../constant";
+import {
+  getAccountAuthService,
+  isAccountAuthEnabled,
+} from "../lib/account-auth-server";
+import { shouldRejectAccountRequest } from "./account-access";
 
 function getIP(req: NextRequest) {
   let ip = req.ip ?? req.headers.get("x-real-ip");
@@ -24,7 +29,7 @@ function parseApiKey(bearToken: string) {
   };
 }
 
-export function auth(req: NextRequest, modelProvider: ModelProvider) {
+export async function auth(req: NextRequest, modelProvider: ModelProvider) {
   const authToken = req.headers.get("Authorization") ?? "";
 
   // check if it is openai api key or user token
@@ -33,16 +38,35 @@ export function auth(req: NextRequest, modelProvider: ModelProvider) {
   const hashedCode = md5.hash(accessCode ?? "").trim();
 
   const serverConfig = getServerSideConfig();
+  const hasValidLegacyCode = serverConfig.codes.has(hashedCode);
+  const accountAuthEnabled = isAccountAuthEnabled();
+  const accountUser = accountAuthEnabled
+    ? await (
+        await getAccountAuthService()
+      ).getUserBySession(req.cookies.get("nextchat_session")?.value ?? "")
+    : null;
   console.log("[Auth] allowed hashed codes: ", [...serverConfig.codes]);
   console.log("[Auth] got access code:", accessCode);
   console.log("[Auth] hashed access code:", hashedCode);
   console.log("[User IP] ", getIP(req));
   console.log("[Time] ", new Date().toLocaleString());
 
-  if (serverConfig.needCode && !serverConfig.codes.has(hashedCode) && !apiKey) {
+  if (
+    shouldRejectAccountRequest({
+      accountAuthEnabled,
+      hasAccountUser: Boolean(accountUser),
+      needLegacyCode: serverConfig.needCode,
+      hasValidLegacyCode,
+      hasApiKey: Boolean(apiKey),
+    })
+  ) {
     return {
       error: true,
-      msg: !accessCode ? "empty access code" : "wrong access code",
+      msg: accountAuthEnabled
+        ? "account session required"
+        : !accessCode
+        ? "empty access code"
+        : "wrong access code",
     };
   }
 

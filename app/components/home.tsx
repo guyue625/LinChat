@@ -29,6 +29,7 @@ import { type ClientApi, getClientApi } from "../client/api";
 import { useAccessStore } from "../store";
 import clsx from "clsx";
 import { initializeMcpSystem, isMcpEnabled } from "../mcp/actions";
+import { AccountProvider } from "./account-context";
 
 export function Loading(props: { noLogo?: boolean }) {
   const isInitialLoading = !props.noLogo;
@@ -83,6 +84,15 @@ const Artifacts = dynamic(async () => (await import("./artifacts")).Artifacts, {
 const Settings = dynamic(async () => (await import("./settings")).Settings, {
   loading: () => <Loading noLogo />,
 });
+
+const AdminPage = dynamic(async () => (await import("./admin")).AdminPage, {
+  loading: () => <Loading noLogo />,
+});
+
+const ProfilePage = dynamic(
+  async () => (await import("./profile")).ProfilePage,
+  { loading: () => <Loading noLogo /> },
+);
 
 const WorkspaceHome = dynamic(
   async () => (await import("./workspace-home")).WorkspaceHome,
@@ -212,6 +222,8 @@ function Screen() {
   const isHome = location.pathname === Path.Home;
   const isSettings = location.pathname === Path.Settings;
   const isAuth = location.pathname === Path.Auth;
+  const isProfile = location.pathname === Path.Profile;
+  const isAdmin = location.pathname === Path.Admin;
   const isSd = location.pathname === Path.Sd;
   const isSdNew = location.pathname === Path.SdNew;
 
@@ -236,14 +248,14 @@ function Screen() {
     if (isSdNew) return <Sd />;
     return (
       <>
-        {!isSettings && (
+        {!isSettings && !isAdmin && !isProfile && (
           <SideBar
             className={clsx({
               [styles["sidebar-show"]]: isHome,
             })}
           />
         )}
-        <WindowContent fullWidth={isSettings}>
+        <WindowContent fullWidth={isSettings || isAdmin || isProfile}>
           <Routes>
             <Route path={Path.Home} element={<WorkspaceHome />} />
             <Route path={Path.NewChat} element={<NewChat />} />
@@ -252,6 +264,8 @@ function Screen() {
             <Route path={Path.SearchChat} element={<SearchChat />} />
             <Route path={Path.Chat} element={<Chat />} />
             <Route path={Path.Settings} element={<Settings />} />
+            <Route path={Path.Profile} element={<ProfilePage />} />
+            <Route path={Path.Admin} element={<AdminPage />} />
             <Route path={Path.McpMarket} element={<McpMarketPage />} />
           </Routes>
         </WindowContent>
@@ -316,7 +330,9 @@ export function Home() {
   return (
     <ErrorBoundary>
       <Router>
-        <Screen />
+        <AccountProvider>
+          <Screen />
+        </AccountProvider>
       </Router>
     </ErrorBoundary>
   );
