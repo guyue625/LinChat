@@ -843,17 +843,19 @@
   opacity: 0.6;
 }
 
-.chat-message > .chat-message-container .chat-message-actions {
-  display: flex;
+.chat-message > .chat-message-container .chat-message-actions,
+.chat-message-user > .chat-message-container .chat-message-actions {
+  display: inline-flex;
   margin: 8px 0 0 10px;
   box-sizing: border-box;
   align-items: center;
-  width: fit-content;
-  padding: 4px;
-  border: 1px solid color-mix(in srgb, var(--black) 10%, transparent);
-  border-radius: 12px;
-  background: color-mix(in srgb, var(--white) 90%, var(--gray));
-  box-shadow: 0 5px 16px color-mix(in srgb, var(--black) 10%, transparent);
+  width: max-content;
+  max-width: 100%;
+  padding: 3px;
+  border: 1px solid color-mix(in srgb, var(--black) 8%, transparent);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--black) 4%, var(--white));
+  box-shadow: none;
   opacity: 0;
   visibility: hidden;
   pointer-events: none;
@@ -865,23 +867,29 @@
 
 .chat-message-action-buttons {
   display: inline-flex;
-  width: fit-content;
+  width: max-content;
+  max-width: 100%;
   flex: 0 0 auto;
   align-items: center;
   justify-content: flex-start;
-  gap: 2px;
+  gap: 1px;
 }
 
-.chat-message-action-buttons .chat-input-action {
+.chat-message-action-button {
+  appearance: none;
   display: inline-flex;
-  width: 30px !important;
+  width: 28px;
+  min-width: 28px;
+  max-width: 28px;
   height: 28px;
+  flex: 0 0 28px;
   padding: 0;
   border: 0;
-  border-radius: 8px;
+  border-radius: 7px;
   background: transparent;
   box-shadow: none;
-  color: color-mix(in srgb, var(--black) 64%, transparent) !important;
+  color: color-mix(in srgb, var(--black) 62%, transparent);
+  cursor: pointer;
   align-items: center;
   justify-content: center;
   overflow: hidden;
@@ -891,43 +899,40 @@
     transform 0.16s ease;
 }
 
-.chat-message-action-buttons .chat-input-action .icon {
+.chat-message-action-button .icon {
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
-.chat-message-action-buttons .chat-input-action:hover,
-.chat-message-action-buttons .chat-input-action:focus-visible {
-  width: 30px;
+.chat-message-action-button:hover,
+.chat-message-action-button:focus-visible {
   background: color-mix(in srgb, var(--black) 9%, transparent);
-  color: var(--black) !important;
+  color: var(--black);
   transform: translateY(-1px);
 }
 
-.chat-message-action-buttons .chat-input-action .text {
-  display: none;
+.chat-message-action-button:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--primary) 32%, transparent);
+  outline-offset: 1px;
 }
 
-.chat-message-action-buttons .chat-input-action svg {
-  width: 17px;
-  height: 17px;
-  color: currentColor !important;
-  opacity: 1 !important;
+.chat-message-action-button svg {
+  width: 16px;
+  height: 16px;
+  color: currentColor;
+  opacity: 1;
 }
 
-.chat-message-action-buttons .chat-input-action svg path[stroke],
-.chat-message-action-buttons .chat-input-action svg path[style*="stroke"] {
+.chat-message-action-button svg path[stroke],
+.chat-message-action-button svg path[style*="stroke"] {
   stroke: currentColor !important;
   stroke-opacity: 1 !important;
 }
 
-.chat-message-action-buttons
-  .chat-input-action
-  svg
-  path[fill]:not([fill-opacity]),
-.chat-message-action-buttons .chat-input-action svg path[fill-opacity="1"],
-.chat-message-action-buttons .chat-input-action svg path[style*="fill"] {
+.chat-message-action-button svg path[fill]:not([fill-opacity]),
+.chat-message-action-button svg path[fill-opacity="1"],
+.chat-message-action-button svg path[style*="fill"] {
   fill: currentColor !important;
 }
 

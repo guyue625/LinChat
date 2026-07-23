@@ -397,6 +397,7 @@ export function ChatAction(props: {
   text: string;
   icon: JSX.Element;
   onClick: () => void;
+  compact?: boolean;
 }) {
   const iconRef = useRef<HTMLDivElement>(null);
   const textRef = useRef<HTMLDivElement>(null);
@@ -414,6 +415,20 @@ export function ChatAction(props: {
       full: textWidth + iconWidth,
       icon: iconWidth,
     });
+  }
+
+  if (props.compact) {
+    return (
+      <button
+        type="button"
+        className={styles["chat-message-action-button"]}
+        aria-label={props.text}
+        title={props.text}
+        onClick={props.onClick}
+      >
+        <span className={styles["icon"]}>{props.icon}</span>
+      </button>
+    );
   }
 
   return (
@@ -2450,6 +2465,7 @@ function _Chat() {
                                 >
                                   {message.streaming ? (
                                     <ChatAction
+                                      compact
                                       text={Locale.Chat.Actions.Stop}
                                       icon={<StopIcon />}
                                       onClick={() =>
@@ -2460,17 +2476,20 @@ function _Chat() {
                                     <>
                                       {isUser && (
                                         <ChatAction
+                                          compact
                                           text={Locale.Chat.Actions.Edit}
                                           icon={<EditIcon />}
                                           onClick={() => onEditMessage(message)}
                                         />
                                       )}
                                       <ChatAction
+                                        compact
                                         text={Locale.Chat.Actions.Retry}
                                         icon={<ResetIcon />}
                                         onClick={() => onResend(message)}
                                       />
                                       <ChatAction
+                                        compact
                                         text={Locale.Chat.Actions.Delete}
                                         icon={<DeleteIcon />}
                                         onClick={() =>
@@ -2478,11 +2497,13 @@ function _Chat() {
                                         }
                                       />
                                       <ChatAction
+                                        compact
                                         text={Locale.Chat.Actions.Pin}
                                         icon={<PinIcon />}
                                         onClick={() => onPinMessage(message)}
                                       />
                                       <ChatAction
+                                        compact
                                         text={Locale.Chat.Actions.Copy}
                                         icon={<CopyIcon />}
                                         onClick={() =>
@@ -2493,6 +2514,7 @@ function _Chat() {
                                       />
                                       {config.ttsConfig.enable && (
                                         <ChatAction
+                                          compact
                                           text={
                                             speechStatus
                                               ? Locale.Chat.Actions.StopSpeech
