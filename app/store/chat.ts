@@ -42,6 +42,12 @@ import {
   deriveSessionTopic,
   shouldApplyAutomaticTopic,
 } from "../utils/session-topic";
+import {
+  GUEST_WORKSPACE,
+  readChatWorkspace,
+  writeChatWorkspace,
+  type WorkspaceOwner,
+} from "../utils/account-workspace";
 
 const localStorage = safeLocalStorage();
 
@@ -236,7 +242,42 @@ const DEFAULT_CHAT_STATE = {
   sessions: [createEmptySession()],
   currentSessionIndex: 0,
   lastInput: "",
+  /** Which account workspace the in-memory sessions belong to. */
+  workspaceOwner: GUEST_WORKSPACE as WorkspaceOwner,
+  /** True while a workspace swap is in flight (avoids flash of wrong data). */
+  workspaceSwitching: false,
 };
+
+function normalizeSessionIndex(sessions: ChatSession[], index: number) {
+  if (sessions.length === 0) return 0;
+  if (index < 0 || index >= sessions.length) return 0;
+  return index;
+}
+
+function isMeaningfulSession(session: ChatSession) {
+  if (session.messages.length > 0) return true;
+  if (session.topicManuallyEdited) return true;
+  if (
+    session.topic &&
+    session.topic !== DEFAULT_TOPIC &&
+    session.topic !== session.mask?.name
+  ) {
+    return true;
+  }
+  return false;
+}
+
+function cloneChatSnapshot(state: {
+  sessions: ChatSession[];
+  currentSessionIndex: number;
+  lastInput: string;
+}) {
+  return {
+    sessions: JSON.parse(JSON.stringify(state.sessions)) as ChatSession[],
+    currentSessionIndex: state.currentSessionIndex,
+    lastInput: state.lastInput ?? "",
+  };
+}
 
 export const useChatStore = createPersistStore(
   DEFAULT_CHAT_STATE,
@@ -283,6 +324,128 @@ export const useChatStore = createPersistStore(
           sessions: [createEmptySession()],
           currentSessionIndex: 0,
         }));
+      },
+
+      /**
+       * Swap the active chat sessions between guest and per-account workspaces.
+       * Current view is snapshotted before loading the target workspace so
+       * logout no longer leaks account history into the guest sidebar.
+       *
+       * @param force When true, re-load the target snapshot even if the owner
+       *              did not change (used on first account-state hydration).
+       */
+      async switchWorkspace(
+        nextOwner: WorkspaceOwner,
+        options?: { force?: boolean },
+      ) {
+        const current = get();
+        const currentOwner =
+          (current.workspaceOwner as WorkspaceOwner | undefined) ??
+          GUEST_WORKSPACE;
+        const force = options?.force === true;
+
+        if (
+          currentOwner === nextOwner &&
+          !current.workspaceSwitching &&
+          !force
+        ) {
+          return;
+        }
+
+        set({ workspaceSwitching: true } as any);
+
+        try {
+          const leavingSnapshot = cloneChatSnapshot(current);
+          const leavingHasData =
+            leavingSnapshot.sessions.some(isMeaningfulSession);
+
+          // Same-owner force refresh: rehydrate from the partitioned snapshot.
+          if (currentOwner === nextOwner && force) {
+            let incoming = await readChatWorkspace(nextOwner);
+            if (!incoming && leavingHasData) {
+              // Bootstrap partitioned storage from the shared pre-feature blob.
+              await writeChatWorkspace(nextOwner, leavingSnapshot);
+              incoming = leavingSnapshot;
+            }
+            const sessions =
+              incoming?.sessions && incoming.sessions.length > 0
+                ? (incoming.sessions as ChatSession[])
+                : [createEmptySession()];
+            set({
+              sessions,
+              currentSessionIndex: normalizeSessionIndex(
+                sessions,
+                incoming?.currentSessionIndex ?? 0,
+              ),
+              lastInput: incoming?.lastInput ?? "",
+              workspaceOwner: nextOwner,
+              workspaceSwitching: false,
+            } as any);
+            return;
+          }
+
+          // Persist the workspace we are leaving.
+          if (leavingHasData || currentOwner !== GUEST_WORKSPACE) {
+            await writeChatWorkspace(currentOwner, leavingSnapshot);
+          }
+
+          let incoming = await readChatWorkspace(nextOwner);
+
+          // First login after this feature: claim the currently open sessions
+          // for the account so the user does not "lose" their history.
+          if (
+            !incoming &&
+            nextOwner !== GUEST_WORKSPACE &&
+            currentOwner === GUEST_WORKSPACE &&
+            leavingHasData
+          ) {
+            incoming = leavingSnapshot;
+            await writeChatWorkspace(nextOwner, leavingSnapshot);
+            await writeChatWorkspace(GUEST_WORKSPACE, {
+              sessions: [createEmptySession()],
+              currentSessionIndex: 0,
+              lastInput: "",
+            });
+          }
+
+          // Logging out / viewing as guest with no guest history → clean slate
+          // so account sessions never linger in the sidebar.
+          if (
+            !incoming &&
+            nextOwner === GUEST_WORKSPACE &&
+            currentOwner !== GUEST_WORKSPACE
+          ) {
+            incoming = {
+              sessions: [createEmptySession()],
+              currentSessionIndex: 0,
+              lastInput: "",
+            };
+            await writeChatWorkspace(GUEST_WORKSPACE, incoming);
+          }
+
+          const sessions =
+            incoming?.sessions && incoming.sessions.length > 0
+              ? (incoming.sessions as ChatSession[])
+              : [createEmptySession()];
+          const currentSessionIndex = normalizeSessionIndex(
+            sessions,
+            incoming?.currentSessionIndex ?? 0,
+          );
+
+          set({
+            sessions,
+            currentSessionIndex,
+            lastInput: incoming?.lastInput ?? "",
+            workspaceOwner: nextOwner,
+            workspaceSwitching: false,
+          } as any);
+        } catch (error) {
+          console.error("[Workspace] switch failed", error);
+          set({
+            workspaceOwner: nextOwner,
+            workspaceSwitching: false,
+          } as any);
+        }
       },
 
       selectSession(index: number) {
@@ -922,12 +1085,19 @@ export const useChatStore = createPersistStore(
   },
   {
     name: StoreKey.Chat,
-    version: 3.3,
+    version: 3.4,
     migrate(persistedState, version) {
       const state = persistedState as any;
       const newState = JSON.parse(
         JSON.stringify(state),
       ) as typeof DEFAULT_CHAT_STATE;
+
+      if (version < 3.4) {
+        newState.workspaceOwner =
+          (state.workspaceOwner as WorkspaceOwner | undefined) ??
+          GUEST_WORKSPACE;
+        newState.workspaceSwitching = false;
+      }
 
       if (version < 2) {
         newState.sessions = [];

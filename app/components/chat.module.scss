@@ -335,24 +335,6 @@
   display: flex;
   align-items: center;
 
-  .chat-message-actions {
-    display: flex;
-    box-sizing: border-box;
-    font-size: 12px;
-    align-items: flex-end;
-    justify-content: space-between;
-    transition: all ease 0.3s;
-    transform: scale(0.9) translateY(5px);
-    margin: 0 10px;
-    opacity: 0;
-    pointer-events: none;
-
-    .chat-input-actions {
-      display: flex;
-      flex-wrap: nowrap;
-    }
-  }
-
   .chat-model-name {
     font-size: 12px;
     color: var(--black);
@@ -365,14 +347,6 @@
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-
-  &:hover {
-    .chat-message-actions {
-      opacity: 1;
-      pointer-events: all;
-      transform: scale(1) translateY(0);
-    }
-  }
 }
 
 .chat-message-user > .chat-message-container {
@@ -806,6 +780,7 @@
   white-space: nowrap;
 }
 
+// Header meta (date · model) — hidden until message hover (same as action bar).
 .chat-message-meta {
   display: flex;
   min-width: 0;
@@ -843,6 +818,7 @@
   opacity: 0.6;
 }
 
+// Action toolbar under message — same hover reveal as meta.
 .chat-message > .chat-message-container .chat-message-actions,
 .chat-message-user > .chat-message-container .chat-message-actions {
   display: inline-flex;
@@ -852,9 +828,9 @@
   width: max-content;
   max-width: 100%;
   padding: 3px;
-  border: 1px solid color-mix(in srgb, var(--black) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--black) 10%, transparent);
   border-radius: 10px;
-  background: color-mix(in srgb, var(--black) 4%, var(--white));
+  background: color-mix(in srgb, var(--black) 5%, var(--white));
   box-shadow: none;
   opacity: 0;
   visibility: hidden;
@@ -863,6 +839,18 @@
   transition:
     opacity 0.16s ease,
     visibility 0.16s ease;
+}
+
+// Shared hover/focus reveal: meta + action buttons appear together.
+.chat-message > .chat-message-container:hover .chat-message-meta,
+.chat-message > .chat-message-container:focus-within .chat-message-meta,
+.chat-message > .chat-message-container:hover .chat-message-actions,
+.chat-message > .chat-message-container:focus-within .chat-message-actions,
+.chat-message-user > .chat-message-container:hover .chat-message-actions,
+.chat-message-user > .chat-message-container:focus-within .chat-message-actions {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
 }
 
 .chat-message-action-buttons {
@@ -888,11 +876,11 @@
   border-radius: 7px;
   background: transparent;
   box-shadow: none;
-  color: color-mix(in srgb, var(--black) 62%, transparent);
+  color: color-mix(in srgb, var(--black) 78%, transparent);
   cursor: pointer;
   align-items: center;
   justify-content: center;
-  overflow: hidden;
+  overflow: visible;
   transition:
     background 0.16s ease,
     color 0.16s ease,
@@ -900,14 +888,33 @@
 }
 
 .chat-message-action-button .icon {
-  display: flex;
+  display: inline-flex;
+  width: 16px;
+  height: 16px;
   align-items: center;
   justify-content: center;
+  line-height: 0;
+  color: inherit;
+}
+
+// Lucide icons use currentColor — keep them crisp in both themes.
+.chat-message-action-button .icon :global(svg),
+.chat-message-action-button :global(svg) {
+  display: block;
+  width: 16px;
+  height: 16px;
+  min-width: 16px;
+  min-height: 16px;
+  color: currentColor;
+  stroke: currentColor;
+  fill: none;
+  opacity: 1;
+  filter: none !important;
 }
 
 .chat-message-action-button:hover,
 .chat-message-action-button:focus-visible {
-  background: color-mix(in srgb, var(--black) 9%, transparent);
+  background: color-mix(in srgb, var(--black) 10%, transparent);
   color: var(--black);
   transform: translateY(-1px);
 }
@@ -915,35 +922,6 @@
 .chat-message-action-button:focus-visible {
   outline: 2px solid color-mix(in srgb, var(--primary) 32%, transparent);
   outline-offset: 1px;
-}
-
-.chat-message-action-button svg {
-  width: 16px;
-  height: 16px;
-  color: currentColor;
-  opacity: 1;
-}
-
-.chat-message-action-button svg path[stroke],
-.chat-message-action-button svg path[style*="stroke"] {
-  stroke: currentColor !important;
-  stroke-opacity: 1 !important;
-}
-
-.chat-message-action-button svg path[fill]:not([fill-opacity]),
-.chat-message-action-button svg path[fill-opacity="1"],
-.chat-message-action-button svg path[style*="fill"] {
-  fill: currentColor !important;
-}
-
-.chat-message > .chat-message-container:hover .chat-message-meta,
-.chat-message > .chat-message-container:focus-within .chat-message-meta,
-.chat-message > .chat-message-container:hover .chat-message-actions,
-.chat-message > .chat-message-container:focus-within .chat-message-actions {
-  opacity: 1;
-  visibility: visible;
-  pointer-events: auto;
-  transform: none;
 }
 
 .chat-message-item {
@@ -1475,15 +1453,9 @@
 
 .chat-message-user .chat-message-actions {
   position: static;
-  display: flex;
+  display: inline-flex;
   margin: 8px 0 0;
-  opacity: 0;
-  visibility: hidden;
-  pointer-events: none;
-  transform: none;
-  transition:
-    opacity 0.16s ease,
-    visibility 0.16s ease;
+  // visibility/opacity controlled by shared hover rules above
 }
 
 .chat-message-user > .chat-message-container > .chat-message-item {
@@ -1495,6 +1467,7 @@
   line-height: 1.6;
 }
 
+// User bubble date — same hover reveal as assistant meta.
 .chat-message-user .chat-message-action-date {
   display: block;
   width: auto;
@@ -1502,6 +1475,7 @@
   opacity: 0;
   visibility: hidden;
   text-align: right;
+  pointer-events: none;
   transition:
     opacity 0.16s ease,
     visibility 0.16s ease;
@@ -1512,15 +1486,6 @@
   > .chat-message-container:focus-within
   .chat-message-action-date {
   opacity: 0.48;
-  visibility: visible;
-  pointer-events: auto;
-}
-
-.chat-message-user > .chat-message-container:hover .chat-message-actions,
-.chat-message-user
-  > .chat-message-container:focus-within
-  .chat-message-actions {
-  opacity: 1;
   visibility: visible;
   pointer-events: auto;
 }
@@ -1537,6 +1502,7 @@
     max-width: calc(100vw - 120px);
   }
 
+  // Touch devices: no reliable hover — keep meta + actions always visible.
   .chat-message-meta {
     width: calc(100% - 48px);
     margin-left: 48px;
@@ -1551,12 +1517,16 @@
     max-width: 100%;
   }
 
-  .chat-message > .chat-message-container .chat-message-actions {
-    margin: 8px 0 0 10px;
+  .chat-message > .chat-message-container .chat-message-actions,
+  .chat-message-user > .chat-message-container .chat-message-actions,
+  .chat-message-user .chat-message-action-date {
     opacity: 1;
     visibility: visible;
     pointer-events: auto;
-    transform: none;
+  }
+
+  .chat-message > .chat-message-container .chat-message-actions {
+    margin: 8px 0 0 10px;
   }
 
   .chat-message > .chat-message-container .chat-message-actions,
@@ -1567,13 +1537,6 @@
 
   .chat-message-user > .chat-message-container {
     max-width: 88%;
-  }
-
-  .chat-message-user .chat-message-action-date,
-  .chat-message-user .chat-message-actions {
-    opacity: 1;
-    visibility: visible;
-    pointer-events: auto;
   }
 
   .chat-message-user .chat-message-actions {

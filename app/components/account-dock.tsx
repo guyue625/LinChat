@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import {
   ChevronUp,
+  Loader2,
   LogIn,
   LogOut,
   Moon,
@@ -29,14 +30,14 @@ export function AccountDock(props: {
   onToggleTheme: () => void;
 }) {
   const { isDarkTheme, onSettings, onToggleTheme, shouldNarrow } = props;
-  const { enabled, loading, logout, user } = useAccount();
+  const { enabled, loading, loggingOut, logout, user } = useAccount();
   const [open, setOpen] = useState(false);
   const dockRef = useRef<HTMLDivElement>(null);
   const location = useLocation();
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (!open) return;
+    if (!open || loggingOut) return;
     const closeOutside = (event: PointerEvent) => {
       if (!dockRef.current?.contains(event.target as Node)) setOpen(false);
     };
@@ -49,7 +50,11 @@ export function AccountDock(props: {
       document.removeEventListener("pointerdown", closeOutside);
       document.removeEventListener("keydown", closeEscape);
     };
-  }, [open]);
+  }, [open, loggingOut]);
+
+  useEffect(() => {
+    if (loggingOut) setOpen(false);
+  }, [loggingOut]);
 
   const returnTo = `${location.pathname}${location.search}`;
 
@@ -61,6 +66,7 @@ export function AccountDock(props: {
         role="menuitem"
         aria-label="设置"
         title="设置"
+        disabled={loggingOut}
         onClick={() => {
           setOpen(false);
           onSettings();
@@ -74,6 +80,7 @@ export function AccountDock(props: {
         role="menuitem"
         aria-label={isDarkTheme ? "切换为浅色" : "切换为深色"}
         title={isDarkTheme ? "切换为浅色" : "切换为深色"}
+        disabled={loggingOut}
         onClick={() => {
           setOpen(false);
           onToggleTheme();
@@ -136,6 +143,7 @@ export function AccountDock(props: {
             <button
               type="button"
               role="menuitem"
+              disabled={loggingOut}
               onClick={() => {
                 setOpen(false);
                 navigate(Path.Profile);
@@ -149,6 +157,7 @@ export function AccountDock(props: {
             <button
               type="button"
               role="menuitem"
+              disabled={loggingOut}
               onClick={() => {
                 setOpen(false);
                 navigate(Path.Admin);
@@ -162,13 +171,19 @@ export function AccountDock(props: {
             type="button"
             role="menuitem"
             className={styles.logout}
-            onClick={async () => {
-              setOpen(false);
-              await logout();
+            disabled={loggingOut}
+            aria-busy={loggingOut}
+            onClick={() => {
+              if (loggingOut) return;
+              void logout();
             }}
           >
-            <LogOut />
-            退出登录
+            {loggingOut ? (
+              <Loader2 className={styles.spinner} aria-hidden="true" />
+            ) : (
+              <LogOut />
+            )}
+            {loggingOut ? "正在退出…" : "退出登录"}
           </button>
         </div>
       )}
@@ -178,20 +193,36 @@ export function AccountDock(props: {
         className={styles.account}
         aria-haspopup="menu"
         aria-expanded={open}
-        onClick={() => setOpen((value) => !value)}
-        title={shouldNarrow ? name : undefined}
+        disabled={loggingOut}
+        aria-busy={loggingOut}
+        onClick={() => {
+          if (loggingOut) return;
+          setOpen((value) => !value);
+        }}
+        title={loggingOut ? "正在退出…" : shouldNarrow ? name : undefined}
       >
         <AccountAvatar avatar={user.avatar} name={name} size={38} />
         {!shouldNarrow && (
           <>
             <span className={styles.copy}>
-              <strong>{name}</strong>
+              <strong>{loggingOut ? "正在退出…" : name}</strong>
               <small>
-                {user.role === "admin" ? "管理员" : `@${user.username}`}
+                {loggingOut
+                  ? "请稍候"
+                  : user.role === "admin"
+                  ? "管理员"
+                  : `@${user.username}`}
               </small>
             </span>
-            <ChevronUp className={styles.chevron} />
+            {loggingOut ? (
+              <Loader2 className={styles.spinner} aria-hidden="true" />
+            ) : (
+              <ChevronUp className={styles.chevron} />
+            )}
           </>
+        )}
+        {shouldNarrow && loggingOut && (
+          <Loader2 className={styles.spinnerNarrow} aria-hidden="true" />
         )}
       </button>
     </div>

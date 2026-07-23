@@ -17,7 +17,10 @@ class IndexedDBStorage implements StateStorage {
   public async setItem(name: string, value: string): Promise<void> {
     try {
       const _value = JSON.parse(value);
-      if (!_value?.state?._hasHydrated) {
+      // Workspace snapshot keys are written by account-workspace helpers and
+      // do not go through the zustand persist rehydrate flag.
+      const isWorkspaceSnapshot = name.includes("::");
+      if (!_value?.state?._hasHydrated && !isWorkspaceSnapshot) {
         console.warn("skip setItem", name);
         return;
       }

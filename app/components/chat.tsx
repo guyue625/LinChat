@@ -12,35 +12,35 @@ import React, {
 import {
   Bot as MaskIcon,
   Command as PromptIcon,
+  Copy as CopyIcon,
   Eraser as BreakIcon,
   History as BrainIcon,
   ImagePlus as ImageIcon,
   Keyboard as ShortcutkeyIcon,
+  Pause as StopIcon,
+  Pencil as EditIcon,
+  Pin as PinIcon,
   Plus as AddIcon,
+  RotateCcw as ResetIcon,
   Search as SearchIcon,
   SendHorizontal as SendIcon,
   Settings2 as SettingsIcon,
   Trash2 as DeleteIcon,
+  Volume2 as SpeakIcon,
+  VolumeX as SpeakStopIcon,
 } from "lucide-react";
 import DownIcon from "../icons/down.svg";
 import RenameIcon from "../icons/edit.svg";
-import EditIcon from "../icons/rename.svg";
 import ExportIcon from "../icons/export-arrow.svg";
 import ReturnIcon from "../icons/return.svg";
-import CopyIcon from "../icons/copy.svg";
-import SpeakIcon from "../icons/speak.svg";
-import SpeakStopIcon from "../icons/speak-stop.svg";
 import LoadingIcon from "../icons/three-dots.svg";
 import LoadingButtonIcon from "../icons/loading.svg";
-import ResetIcon from "../icons/reload.svg";
 import ReloadIcon from "../icons/refresh.svg";
-import PinIcon from "../icons/pin.svg";
 import ConfirmIcon from "../icons/confirm.svg";
 import CloseIcon from "../icons/close.svg";
 import CancelIcon from "../icons/cancel.svg";
 
 import BottomIcon from "../icons/bottom.svg";
-import StopIcon from "../icons/pause.svg";
 import SizeIcon from "../icons/size.svg";
 import QualityIcon from "../icons/hd.svg";
 import StyleIcon from "../icons/palette.svg";
@@ -424,9 +424,15 @@ export function ChatAction(props: {
         className={styles["chat-message-action-button"]}
         aria-label={props.text}
         title={props.text}
-        onClick={props.onClick}
+        onClick={(event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          props.onClick();
+        }}
       >
-        <span className={styles["icon"]}>{props.icon}</span>
+        <span className={styles["icon"]} aria-hidden="true">
+          {props.icon}
+        </span>
       </button>
     );
   }

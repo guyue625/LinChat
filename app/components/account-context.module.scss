@@ -1,0 +1,87 @@
+.logoutOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  box-sizing: border-box;
+  background: rgba(4, 10, 18, 0.55);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  cursor: wait;
+  animation: logout-overlay-in 0.18s ease-out both;
+  // Block all interaction with the page underneath.
+  touch-action: none;
+  user-select: none;
+}
+
+.logoutCard {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  min-width: min(280px, 100%);
+  padding: 28px 32px;
+  border: 1px solid color-mix(in srgb, #22d3ee 28%, transparent);
+  border-radius: 20px;
+  background:
+    radial-gradient(
+      ellipse 80% 70% at 50% 0%,
+      rgba(34, 211, 238, 0.12),
+      transparent 65%
+    ),
+    color-mix(in srgb, #0b1624 92%, transparent);
+  box-shadow:
+    0 24px 70px rgba(0, 0, 0, 0.45),
+    0 0 0 1px rgba(255, 255, 255, 0.04) inset;
+  color: #e8f4ff;
+  text-align: center;
+}
+
+.logoutSpinner {
+  width: 34px;
+  height: 34px;
+  color: #67e8f9;
+  animation: logout-spin 0.75s linear infinite;
+}
+
+.logoutTitle {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 650;
+  letter-spacing: 0.01em;
+}
+
+.logoutHint {
+  margin: 0;
+  color: color-mix(in srgb, #e8f4ff 55%, transparent);
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+
+@keyframes logout-overlay-in {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes logout-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .logoutOverlay {
+    animation: none;
+  }
+
+  .logoutSpinner {
+    animation: none;
+  }
+}

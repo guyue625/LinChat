@@ -28,6 +28,11 @@ import { getModelProvider } from "../utils/model";
 
 let fetchState = 0; // 0 not fetch, 1 fetching, 2 done
 
+/** Allow a subsequent fetch() after logout / login workspace swaps. */
+export function resetAccessFetch() {
+  fetchState = 0;
+}
+
 const isApp = getClientConfig()?.buildMode === "export";
 
 const DEFAULT_OPENAI_URL = isApp ? OPENAI_BASE_URL : ApiPath.OpenAI;
@@ -249,9 +254,10 @@ export const useAccessStore = createPersistStore(
         (this.enabledAccessControl() && ensure(get(), ["accessCode"]))
       );
     },
-    fetch() {
+    fetch(options?: { includeServerModels?: boolean }) {
       if (fetchState > 0 || getClientConfig()?.buildMode === "export") return;
       fetchState = 1;
+      const includeServerModels = options?.includeServerModels !== false;
       fetch("/api/config", {
         method: "post",
         body: null,
@@ -261,6 +267,13 @@ export const useAccessStore = createPersistStore(
       })
         .then((res) => res.json())
         .then((res) => {
+          if (!includeServerModels) {
+            return {
+              ...res,
+              customModels: "",
+              defaultModel: "",
+            } as DangerConfig;
+          }
           const defaultModel = res.defaultModel ?? "";
           if (defaultModel !== "") {
             const [model, providerName] = getModelProvider(defaultModel);
@@ -280,6 +293,14 @@ export const useAccessStore = createPersistStore(
         .finally(() => {
           fetchState = 2;
         });
+    },
+
+    /** Strip server-provisioned model catalogue (used after logout). */
+    clearServerModels() {
+      set(() => ({
+        customModels: "",
+        defaultModel: "",
+      }));
     },
   }),
   {

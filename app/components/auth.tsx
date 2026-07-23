@@ -2,7 +2,6 @@ import styles from "./auth.module.scss";
 import { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAccessStore } from "../store";
-import { AuthCharacter, getAuthCharacterPose } from "./auth-character";
 import EyeIcon from "../icons/eye.svg";
 import EyeOffIcon from "../icons/eye-off.svg";
 import LeftIcon from "../icons/left.svg";
@@ -10,7 +9,41 @@ import { useAccount } from "./account-context";
 import { safeReturnPath } from "./account-utils";
 
 type Mode = "login" | "register" | "reset" | "legacy";
-type ActiveField = "username" | "password" | "invitation" | null;
+
+const MATRIX_GLYPHS = "01アイウエオカキクケコサシスセソABCDEF<>[]{}#$";
+
+function MatrixBackground() {
+  const columns = useMemo(
+    () =>
+      Array.from({ length: 18 }, (_, col) => ({
+        id: col,
+        glyphs: Array.from(
+          { length: 22 },
+          (_, row) => MATRIX_GLYPHS[(col * 7 + row * 3) % MATRIX_GLYPHS.length],
+        ),
+      })),
+    [],
+  );
+
+  return (
+    <div className={styles["bg-layer"]} aria-hidden="true">
+      <div className={styles["matrix-rain"]}>
+        {columns.map((col) => (
+          <div key={col.id} className={styles["matrix-col"]}>
+            {col.glyphs.map((g, i) => (
+              <span key={i}>{g}</span>
+            ))}
+          </div>
+        ))}
+      </div>
+      <div className={styles["circuit-particles"]}>
+        {Array.from({ length: 14 }, (_, i) => (
+          <span key={i} className={styles.particle} />
+        ))}
+      </div>
+    </div>
+  );
+}
 
 export function AuthPage() {
   const navigate = useNavigate();
@@ -23,7 +56,6 @@ export function AuthPage() {
   const [invitationCode, setInvitationCode] = useState("");
   const [resetToken, setResetToken] = useState("");
   const [passwordVisible, setPasswordVisible] = useState(false);
-  const [activeField, setActiveField] = useState<ActiveField>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
@@ -42,17 +74,6 @@ export function AuthPage() {
     }
     if (!enabled) setMode("legacy");
   }, [enabled, loading, navigate, returnTo, user]);
-
-  const pose = useMemo(
-    () =>
-      getAuthCharacterPose({
-        activeField,
-        passwordVisible,
-        submitting,
-        failed,
-      }),
-    [activeField, failed, passwordVisible, submitting],
-  );
 
   const switchMode = (nextMode: Mode) => {
     setMode(nextMode);
@@ -113,6 +134,8 @@ export function AuthPage() {
 
   return (
     <main className={styles["auth-page"]}>
+      <MatrixBackground />
+
       <button
         className={styles["back-button"]}
         type="button"
@@ -124,15 +147,22 @@ export function AuthPage() {
 
       <section className={styles["auth-stage"]}>
         <div className={styles["character-panel"]}>
-          <div className={styles["brand-mark"]}>N</div>
-          <div className={styles["brand-copy"]}>
-            <strong>NextChat</strong>
-            <span>你的私人 AI 工作台</span>
+          <div className={styles["brand-row"]}>
+            <div className={styles["brand-mark"]} aria-hidden="true">
+              AI
+            </div>
+            <div className={styles["brand-copy"]}>
+              <strong>LinChat</strong>
+              <span>你的AI助手</span>
+            </div>
           </div>
-          <AuthCharacter pose={pose} usernameLength={username.length} />
-          <div className={styles["privacy-note"]}>
-            密码仅以加密摘要保存，管理员也无法查看原文。
+
+          <div className={styles["ai-orb"]} aria-hidden="true">
+            <span className={styles["ai-orb-core"]} />
+            <span className={styles["ai-orb-label"]}>Neural Core</span>
           </div>
+
+          <div className={styles["privacy-note"]}>做一个懂你的AI助手</div>
         </div>
 
         <div className={styles["form-panel"]}>
@@ -167,25 +197,25 @@ export function AuthPage() {
           {mode === "legacy" ? (
             <form className={styles["auth-form"]} onSubmit={submitLegacy}>
               <div className={styles["form-heading"]}>
-                <span className={styles.eyebrow}>兼容入口</span>
+                <span className={styles.eyebrow}>COMPAT GATE</span>
                 <h1>使用部署访问码</h1>
                 <p>适用于仍使用旧版 CODE 环境变量的部署。</p>
               </div>
               <label>
                 <span>访问码</span>
-                <input
-                  type="password"
-                  autoComplete="current-password"
-                  value={accessStore.accessCode}
-                  onFocus={() => setActiveField("password")}
-                  onBlur={() => setActiveField(null)}
-                  onChange={(event) =>
-                    accessStore.update(
-                      (access) => (access.accessCode = event.target.value),
-                    )
-                  }
-                  placeholder="输入管理员提供的访问码"
-                />
+                <div className={styles["field-shell"]}>
+                  <input
+                    type="password"
+                    autoComplete="current-password"
+                    value={accessStore.accessCode}
+                    onChange={(event) =>
+                      accessStore.update(
+                        (access) => (access.accessCode = event.target.value),
+                      )
+                    }
+                    placeholder="输入管理员提供的访问码"
+                  />
+                </div>
               </label>
               {error && <div className={styles["form-error"]}>{error}</div>}
               <button className={styles["submit-button"]} type="submit">
@@ -201,7 +231,7 @@ export function AuthPage() {
               <div className={styles["form-heading"]}>
                 <span className={styles.eyebrow}>
                   {mode === "login"
-                    ? "WELCOME BACK"
+                    ? "SECURE ACCESS"
                     : mode === "register"
                     ? "INVITATION ONLY"
                     : "ONE-TIME RESET"}
@@ -215,7 +245,7 @@ export function AuthPage() {
                 </h1>
                 <p>
                   {mode === "login"
-                    ? "继续你的对话、灵感和工作流。"
+                    ? "同步你的会话、模型与工作流。"
                     : mode === "register"
                     ? "注册需要管理员生成的邀请码。"
                     : "输入管理员提供的一次性重置凭证。"}
@@ -225,72 +255,74 @@ export function AuthPage() {
               {mode === "reset" ? (
                 <label>
                   <span>密码重置凭证</span>
-                  <input
-                    type="text"
-                    autoComplete="off"
-                    value={resetToken}
-                    onFocus={() => setActiveField("invitation")}
-                    onBlur={() => setActiveField(null)}
-                    onChange={(event) => setResetToken(event.target.value)}
-                    placeholder="NCR-…"
-                    required
-                  />
+                  <div className={styles["field-shell"]}>
+                    <input
+                      type="text"
+                      autoComplete="off"
+                      value={resetToken}
+                      onChange={(event) => setResetToken(event.target.value)}
+                      placeholder="NCR-…"
+                      required
+                    />
+                  </div>
                 </label>
               ) : (
                 <label>
                   <span>用户名</span>
-                  <input
-                    type="text"
-                    autoComplete="username"
-                    value={username}
-                    onFocus={() => setActiveField("username")}
-                    onBlur={() => setActiveField(null)}
-                    onChange={(event) => setUsername(event.target.value)}
-                    placeholder="3-32 位字母、数字或 _.-"
-                    required
-                  />
+                  <div className={styles["field-shell"]}>
+                    <input
+                      type="text"
+                      autoComplete="username"
+                      value={username}
+                      onChange={(event) => setUsername(event.target.value)}
+                      placeholder="3-32 位字母、数字或 _.-"
+                      required
+                    />
+                  </div>
                 </label>
               )}
 
               <label>
                 <span>{mode === "reset" ? "新密码" : "密码"}</span>
-                <div className={styles["password-field"]}>
-                  <input
-                    type={passwordVisible ? "text" : "password"}
-                    autoComplete={
-                      mode === "login" ? "current-password" : "new-password"
-                    }
-                    value={password}
-                    onFocus={() => setActiveField("password")}
-                    onBlur={() => setActiveField(null)}
-                    onChange={(event) => setPassword(event.target.value)}
-                    placeholder="至少 8 位"
-                    required
-                  />
-                  <button
-                    type="button"
-                    aria-label={passwordVisible ? "隐藏密码" : "显示密码"}
-                    onMouseDown={(event) => event.preventDefault()}
-                    onClick={() => setPasswordVisible((visible) => !visible)}
-                  >
-                    {passwordVisible ? <EyeOffIcon /> : <EyeIcon />}
-                  </button>
+                <div className={styles["field-shell"]}>
+                  <div className={styles["password-field"]}>
+                    <input
+                      type={passwordVisible ? "text" : "password"}
+                      autoComplete={
+                        mode === "login" ? "current-password" : "new-password"
+                      }
+                      value={password}
+                      onChange={(event) => setPassword(event.target.value)}
+                      placeholder="至少 8 位"
+                      required
+                    />
+                    <button
+                      type="button"
+                      aria-label={passwordVisible ? "隐藏密码" : "显示密码"}
+                      onMouseDown={(event) => event.preventDefault()}
+                      onClick={() => setPasswordVisible((visible) => !visible)}
+                    >
+                      {passwordVisible ? <EyeOffIcon /> : <EyeIcon />}
+                    </button>
+                  </div>
                 </div>
               </label>
 
               {mode === "register" && (
                 <label>
                   <span>邀请码</span>
-                  <input
-                    type="text"
-                    autoComplete="off"
-                    value={invitationCode}
-                    onFocus={() => setActiveField("invitation")}
-                    onBlur={() => setActiveField(null)}
-                    onChange={(event) => setInvitationCode(event.target.value)}
-                    placeholder="输入管理员提供的邀请码"
-                    required
-                  />
+                  <div className={styles["field-shell"]}>
+                    <input
+                      type="text"
+                      autoComplete="off"
+                      value={invitationCode}
+                      onChange={(event) =>
+                        setInvitationCode(event.target.value)
+                      }
+                      placeholder="输入管理员提供的邀请码"
+                      required
+                    />
+                  </div>
                 </label>
               )}
 
@@ -304,7 +336,7 @@ export function AuthPage() {
                 disabled={submitting || accountEnabled === null}
               >
                 {submitting
-                  ? "请稍候…"
+                  ? "鉴权中…"
                   : mode === "login"
                   ? "登录"
                   : mode === "register"

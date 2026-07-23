@@ -10,6 +10,7 @@ import {
   Clipboard,
   Database,
   KeyRound,
+  Loader2,
   LogOut,
   RefreshCw,
   Search,
@@ -135,6 +136,7 @@ export function AdminPage() {
   const {
     enabled,
     loading: accountLoading,
+    loggingOut,
     logout: logoutAccount,
     user,
   } = useAccount();
@@ -284,6 +286,7 @@ export function AdminPage() {
   };
 
   const logoutFromAdmin = async () => {
+    if (loggingOut) return;
     await logoutAccount();
     navigate(Path.Auth);
   };
@@ -325,9 +328,18 @@ export function AdminPage() {
             <RefreshCw className={loading ? styles.spinning : undefined} />
             刷新
           </button>
-          <button type="button" onClick={logoutFromAdmin}>
-            <LogOut />
-            退出
+          <button
+            type="button"
+            onClick={logoutFromAdmin}
+            disabled={loggingOut}
+            aria-busy={loggingOut}
+          >
+            {loggingOut ? (
+              <Loader2 className={styles.spinning} aria-hidden="true" />
+            ) : (
+              <LogOut />
+            )}
+            {loggingOut ? "正在退出…" : "退出"}
           </button>
         </div>
       </header>

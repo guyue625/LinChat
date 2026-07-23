@@ -580,16 +580,7 @@ export function SideBar(props: { className?: string }) {
           onSettings={() => navigate(Path.Settings)}
           onToggleTheme={toggleTheme}
         />
-        <SideBarTail
-          secondaryAction={
-            <IconButton
-              icon={<AddIcon />}
-              text={shouldNarrow ? undefined : "新话题"}
-              onClick={createAssistantTopic}
-              shadow
-            />
-          }
-        />
+        {/* Bottom "新话题" removed — top "开启新话题" already covers this. */}
       </SideBarContainer>
     );
   }

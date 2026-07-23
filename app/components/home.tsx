@@ -30,6 +30,7 @@ import { useAccessStore } from "../store";
 import clsx from "clsx";
 import { initializeMcpSystem, isMcpEnabled } from "../mcp/actions";
 import { AccountProvider } from "./account-context";
+import { AccountWorkspaceSync } from "./account-workspace-sync";
 
 export function Loading(props: { noLogo?: boolean }) {
   const isInitialLoading = !props.noLogo;
@@ -292,6 +293,23 @@ export function useLoadData() {
 
   useEffect(() => {
     (async () => {
+      // Skip server model merge for account guests — AccountWorkspaceSync
+      // deliberately clears the catalogue so logged-out visitors cannot use
+      // account-provisioned models.
+      try {
+        const session = await fetch("/api/account/session", {
+          credentials: "same-origin",
+          cache: "no-store",
+        });
+        if (session.ok) {
+          const data = await session.json();
+          if (data?.enabled && !data?.user) {
+            return;
+          }
+        }
+      } catch {
+        // fall through and merge if session probe fails
+      }
       const models = await api.llm.models();
       config.mergeModels(models);
     })();
@@ -331,6 +349,7 @@ export function Home() {
     <ErrorBoundary>
       <Router>
         <AccountProvider>
+          <AccountWorkspaceSync />
           <Screen />
         </AccountProvider>
       </Router>

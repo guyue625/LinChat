@@ -1,204 +1,1002 @@
+// ─── Tech AI login: deep-space blue + electric cyan neon ───────────────────
+@use "sass:math";
+
 .auth-page {
-  --auth-ink: #17211b;
-  --auth-muted: #68736c;
-  --auth-paper: #f4f1e8;
-  --auth-accent: #ff6b35;
+  --auth-bg-0: #020617;
+  --auth-bg-1: #0a1628;
+  --auth-ink: #e8f4ff;
+  --auth-muted: #7a93b0;
+  --auth-cyan: #22d3ee;
+  --auth-cyan-dim: rgba(34, 211, 238, 0.45);
+  --auth-violet: #8b5cf6;
+  --auth-violet-dim: rgba(139, 92, 246, 0.4);
+  --auth-glass: rgba(10, 22, 40, 0.55);
+  --auth-glass-border: rgba(34, 211, 238, 0.22);
+  --auth-danger: #fb7185;
+  --auth-success: #34d399;
+
   position: relative;
   display: grid;
   place-items: center;
   width: 100%;
   min-height: 100%;
-  padding: 64px 24px;
+  padding: 48px 20px;
   box-sizing: border-box;
-  overflow: auto;
+  overflow: hidden;
   color: var(--auth-ink);
   background:
-    radial-gradient(circle at 15% 20%, rgba(255, 107, 53, 0.14), transparent 28%),
-    radial-gradient(circle at 85% 80%, rgba(45, 111, 79, 0.16), transparent 32%),
-    var(--auth-paper);
+    radial-gradient(ellipse 80% 60% at 50% -10%, rgba(34, 211, 238, 0.12), transparent 55%),
+    radial-gradient(ellipse 50% 40% at 90% 80%, rgba(139, 92, 246, 0.14), transparent 50%),
+    radial-gradient(ellipse 40% 30% at 10% 70%, rgba(14, 165, 233, 0.1), transparent 45%),
+    linear-gradient(165deg, var(--auth-bg-0) 0%, var(--auth-bg-1) 55%, #050b16 100%);
+  font-family:
+    "Segoe UI",
+    "PingFang SC",
+    "Microsoft YaHei",
+    system-ui,
+    sans-serif;
 }
 
+// Soft scanlines
 .auth-page::before {
   content: "";
   position: fixed;
   inset: 0;
+  z-index: 0;
   pointer-events: none;
-  opacity: 0.28;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 160 160' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.16'/%3E%3C/svg%3E");
+  opacity: 0.07;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0, 0, 0, 0.35) 2px,
+    rgba(0, 0, 0, 0.35) 3px
+  );
 }
+
+// Vignette / depth
+.auth-page::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background: radial-gradient(
+    ellipse 70% 70% at 50% 45%,
+    transparent 30%,
+    rgba(2, 6, 23, 0.65) 100%
+  );
+}
+
+// ─── Animated matrix / circuit background ──────────────────────────────────
+
+.bg-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.matrix-rain {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  justify-content: space-between;
+  padding: 0 2%;
+  opacity: 0.35;
+  mask-image: linear-gradient(180deg, transparent, #000 12%, #000 75%, transparent);
+}
+
+.matrix-col {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-family: "Cascadia Code", "Fira Code", "Consolas", monospace;
+  font-size: 11px;
+  line-height: 1.35;
+  color: var(--auth-cyan);
+  text-shadow: 0 0 8px var(--auth-cyan-dim);
+  animation: matrix-fall linear infinite;
+  opacity: 0.55;
+
+  span {
+    opacity: 0.25;
+  }
+
+  span:nth-child(3n) {
+    opacity: 0.7;
+    color: #a5f3fc;
+  }
+
+  span:nth-child(5n) {
+    opacity: 1;
+    color: #fff;
+    text-shadow: 0 0 12px var(--auth-cyan);
+  }
+}
+
+@for $i from 1 through 18 {
+  .matrix-col:nth-child(#{$i}) {
+    // Use math.floor instead of `%` so units never collide with modulo.
+    $mod7: $i - math.floor(math.div($i, 7)) * 7;
+    $mod3: $i - math.floor(math.div($i, 3)) * 3;
+    animation-duration: #{9 + $mod7 * 1.4}s;
+    animation-delay: #{-1 * ($i * 0.7)}s;
+    font-size: #{10 + $mod3}px;
+  }
+}
+
+@keyframes matrix-fall {
+  0% {
+    transform: translateY(-30%);
+  }
+  100% {
+    transform: translateY(30%);
+  }
+}
+
+.circuit-particles {
+  position: absolute;
+  inset: 0;
+}
+
+.particle {
+  position: absolute;
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: var(--auth-cyan);
+  box-shadow:
+    0 0 8px var(--auth-cyan),
+    0 0 16px var(--auth-cyan-dim);
+  animation: particle-drift ease-in-out infinite;
+  opacity: 0.7;
+}
+
+@for $i from 1 through 14 {
+  .particle:nth-child(#{$i}) {
+    $left-n: 4 +
+      (($i * 65) - math.floor(math.div($i * 65, 920)) * 920) * 0.1;
+    $top-n: 8 + (($i * 11) - math.floor(math.div($i * 11, 84)) * 84);
+    $mod5: $i - math.floor(math.div($i, 5)) * 5;
+    $mod3: $i - math.floor(math.div($i, 3)) * 3;
+    // Append percent via string so Sass never parses modulo as a `%` unit.
+    left: #{$left-n}#{"%"};
+    top: #{$top-n}#{"%"};
+    animation-duration: #{10 + $mod5 * 2}s;
+    animation-delay: #{-0.8 * $i}s;
+    background: if($mod3 == 0, var(--auth-violet), var(--auth-cyan));
+    box-shadow:
+      0 0 8px if($mod3 == 0, var(--auth-violet), var(--auth-cyan)),
+      0 0 18px if($mod3 == 0, var(--auth-violet-dim), var(--auth-cyan-dim));
+  }
+}
+
+@keyframes particle-drift {
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+    opacity: 0.35;
+  }
+  40% {
+    transform: translate(18px, -28px) scale(1.4);
+    opacity: 0.95;
+  }
+  70% {
+    transform: translate(-12px, 14px) scale(0.85);
+    opacity: 0.55;
+  }
+}
+
+// ─── Back ──────────────────────────────────────────────────────────────────
 
 .back-button {
   position: absolute;
-  top: 24px;
-  left: 24px;
-  z-index: 2;
+  top: 22px;
+  left: 22px;
+  z-index: 5;
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  border: 0;
-  background: transparent;
-  color: var(--auth-ink);
+  padding: 8px 12px;
+  border: 1px solid rgba(34, 211, 238, 0.18);
+  border-radius: 999px;
+  background: rgba(8, 16, 32, 0.55);
+  color: var(--auth-muted);
   cursor: pointer;
+  font-size: 13px;
   font-weight: 600;
+  backdrop-filter: blur(10px);
+  transition:
+    color 0.2s,
+    border-color 0.2s,
+    box-shadow 0.2s;
 
-  svg { width: 18px; }
+  svg {
+    width: 16px;
+    height: 16px;
+  }
+
+  &:hover {
+    color: var(--auth-cyan);
+    border-color: var(--auth-cyan-dim);
+    box-shadow: 0 0 18px rgba(34, 211, 238, 0.15);
+  }
 }
+
+// ─── Stage: floating holographic card ──────────────────────────────────────
 
 .auth-stage {
   position: relative;
-  z-index: 1;
+  z-index: 2;
   display: grid;
-  grid-template-columns: minmax(340px, 0.9fr) minmax(400px, 1.1fr);
-  width: min(980px, 100%);
-  min-height: 620px;
-  border: 1px solid rgba(23, 33, 27, 0.14);
-  border-radius: 28px;
+  grid-template-columns: minmax(280px, 0.85fr) minmax(360px, 1.15fr);
+  width: min(920px, 100%);
+  min-height: 560px;
+  border-radius: 24px;
   overflow: hidden;
-  background: rgba(255, 255, 255, 0.72);
-  box-shadow: 0 28px 80px rgba(36, 45, 39, 0.16);
-  backdrop-filter: blur(18px);
+  background: var(--auth-glass);
+  border: 1px solid var(--auth-glass-border);
+  box-shadow:
+    0 0 0 1px rgba(139, 92, 246, 0.12),
+    0 0 40px rgba(34, 211, 238, 0.12),
+    0 0 80px rgba(139, 92, 246, 0.1),
+    0 32px 80px rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(22px) saturate(1.35);
+  animation: card-float-in 0.75s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
+
+// Neon rim glow
+.auth-stage::before {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  z-index: -1;
+  border-radius: 25px;
+  background: linear-gradient(
+    135deg,
+    rgba(34, 211, 238, 0.55),
+    rgba(139, 92, 246, 0.25) 40%,
+    transparent 60%,
+    rgba(34, 211, 238, 0.35)
+  );
+  opacity: 0.55;
+  filter: blur(1px);
+  pointer-events: none;
+  animation: rim-pulse 4.5s ease-in-out infinite;
+}
+
+@keyframes card-float-in {
+  from {
+    opacity: 0;
+    transform: translateY(28px) scale(0.97);
+    filter: blur(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    filter: blur(0);
+  }
+}
+
+@keyframes rim-pulse {
+  0%,
+  100% {
+    opacity: 0.4;
+  }
+  50% {
+    opacity: 0.75;
+  }
+}
+
+// ─── Left brand panel ──────────────────────────────────────────────────────
 
 .character-panel {
   position: relative;
   display: flex;
   flex-direction: column;
-  min-height: 620px;
-  padding: 34px 38px;
+  min-height: 560px;
+  padding: 32px 30px;
   box-sizing: border-box;
   overflow: hidden;
-  background: #244f3b;
-  color: #fff8e9;
+  background:
+    radial-gradient(circle at 30% 20%, rgba(34, 211, 238, 0.14), transparent 42%),
+    radial-gradient(circle at 80% 80%, rgba(139, 92, 246, 0.16), transparent 45%),
+    linear-gradient(165deg, #071526 0%, #0b1a2e 50%, #06101f 100%);
+  color: var(--auth-ink);
+  border-right: 1px solid rgba(34, 211, 238, 0.12);
 }
 
 .character-panel::after {
   content: "";
   position: absolute;
-  width: 360px;
-  height: 360px;
-  right: -170px;
-  bottom: -160px;
-  border: 45px solid rgba(255, 248, 233, 0.08);
+  width: 280px;
+  height: 280px;
+  right: -90px;
+  bottom: -90px;
+  border: 1px solid rgba(34, 211, 238, 0.12);
   border-radius: 50%;
+  box-shadow: 0 0 40px rgba(34, 211, 238, 0.08);
+  pointer-events: none;
+}
+
+.brand-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  position: relative;
+  z-index: 2;
 }
 
 .brand-mark {
+  position: relative;
   display: grid;
   place-items: center;
-  width: 42px;
-  height: 42px;
-  border-radius: 14px 14px 14px 4px;
-  background: var(--auth-accent);
-  color: white;
-  font: 800 22px/1 Georgia, serif;
+  width: 46px;
+  height: 46px;
+  border-radius: 14px;
+  background: linear-gradient(145deg, rgba(34, 211, 238, 0.25), rgba(139, 92, 246, 0.2));
+  border: 1px solid rgba(34, 211, 238, 0.35);
+  color: var(--auth-cyan);
+  font: 800 18px/1 "Segoe UI", system-ui, sans-serif;
+  letter-spacing: -0.04em;
+  box-shadow:
+    0 0 20px rgba(34, 211, 238, 0.25),
+    inset 0 0 12px rgba(34, 211, 238, 0.1);
+  animation: logo-breathe 3.2s ease-in-out infinite;
+}
+
+.brand-mark::after {
+  content: "";
+  position: absolute;
+  inset: -4px;
+  border-radius: 16px;
+  border: 1px solid rgba(34, 211, 238, 0.25);
+  animation: logo-ring 3.2s ease-in-out infinite;
+  pointer-events: none;
+}
+
+@keyframes logo-breathe {
+  0%,
+  100% {
+    box-shadow:
+      0 0 14px rgba(34, 211, 238, 0.2),
+      inset 0 0 10px rgba(34, 211, 238, 0.08);
+  }
+  50% {
+    box-shadow:
+      0 0 28px rgba(34, 211, 238, 0.45),
+      0 0 48px rgba(139, 92, 246, 0.2),
+      inset 0 0 14px rgba(34, 211, 238, 0.15);
+  }
+}
+
+@keyframes logo-ring {
+  0%,
+  100% {
+    opacity: 0.35;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.85;
+    transform: scale(1.06);
+  }
 }
 
 .brand-copy {
   display: flex;
   flex-direction: column;
-  margin-top: 14px;
 
-  strong { font: 700 22px/1.2 Georgia, "Times New Roman", serif; }
-  span { margin-top: 5px; color: rgba(255, 248, 233, 0.68); font-size: 13px; }
+  strong {
+    font: 700 18px/1.2 "Segoe UI", system-ui, sans-serif;
+    letter-spacing: 0.02em;
+    background: linear-gradient(90deg, #e8f4ff, #67e8f9);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  span {
+    margin-top: 3px;
+    color: var(--auth-muted);
+    font-size: 12px;
+  }
+}
+
+// AI core panel — hexagonal chip + soft glow (replaces plain circle)
+.ai-orb {
+  position: relative;
+  z-index: 2;
+  width: min(240px, 78%);
+  aspect-ratio: 1;
+  margin: auto;
+  display: grid;
+  place-items: center;
+  animation: orb-float 5.5s ease-in-out infinite;
+}
+
+// Soft ambient glow behind the chip
+.ai-orb::before {
+  content: "";
+  position: absolute;
+  width: 68%;
+  height: 68%;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    rgba(34, 211, 238, 0.28) 0%,
+    rgba(139, 92, 246, 0.12) 42%,
+    transparent 70%
+  );
+  filter: blur(2px);
+  animation: logo-breathe 3.2s ease-in-out infinite;
+  pointer-events: none;
+}
+
+// Orbit ring
+.ai-orb::after {
+  content: "";
+  position: absolute;
+  inset: 8%;
+  border-radius: 50%;
+  border: 1px dashed rgba(34, 211, 238, 0.22);
+  animation: orb-spin 22s linear infinite;
+  pointer-events: none;
+}
+
+.ai-orb-core {
+  position: relative;
+  z-index: 1;
+  width: 58%;
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+  clip-path: polygon(50% 0%, 93% 25%, 93% 75%, 50% 100%, 7% 75%, 7% 25%);
+  background:
+    linear-gradient(145deg, rgba(34, 211, 238, 0.22), rgba(139, 92, 246, 0.18)),
+    linear-gradient(180deg, #0c2238 0%, #06101f 100%);
+  box-shadow:
+    0 0 0 1px rgba(34, 211, 238, 0.35),
+    0 0 28px rgba(34, 211, 238, 0.22),
+    0 0 48px rgba(139, 92, 246, 0.14),
+    inset 0 0 24px rgba(34, 211, 238, 0.1);
+  color: #a5f3fc;
+  font-size: 0;
+  user-select: none;
+}
+
+// Inner glyph (robot / circuit mark)
+.ai-orb-core::before {
+  content: "";
+  position: absolute;
+  inset: 18%;
+  clip-path: polygon(50% 0%, 93% 25%, 93% 75%, 50% 100%, 7% 75%, 7% 25%);
+  border: 1px solid rgba(34, 211, 238, 0.28);
+  opacity: 0.7;
+  pointer-events: none;
+}
+
+.ai-orb-core::after {
+  content: "⌘";
+  font-size: clamp(28px, 5vw, 40px);
+  line-height: 1;
+  color: #e0f7ff;
+  text-shadow:
+    0 0 12px rgba(34, 211, 238, 0.7),
+    0 0 28px rgba(34, 211, 238, 0.35);
+  font-weight: 300;
+}
+
+.ai-orb-label {
+  position: absolute;
+  bottom: 6%;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 2;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(34, 211, 238, 0.28);
+  background: rgba(4, 12, 24, 0.72);
+  color: #7dd3fc;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  box-shadow: 0 0 16px rgba(34, 211, 238, 0.12);
+}
+
+@keyframes orb-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+@keyframes orb-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .character-wrap {
-  --eye-offset: 0px;
+  display: none; // legacy SVG character unused in tech theme
+}
+
+.privacy-note {
   position: relative;
-  width: min(330px, 100%);
-  margin: auto auto 10px;
+  z-index: 2;
+  max-width: 260px;
+  color: var(--auth-muted);
+  font-size: 11.5px;
+  line-height: 1.65;
+  border-left: 2px solid rgba(34, 211, 238, 0.35);
+  padding-left: 12px;
 }
 
-.character { position: relative; z-index: 2; width: 100%; overflow: visible; }
-.character-shadow { position: absolute; left: 18%; right: 18%; bottom: 4%; height: 18px; border-radius: 50%; background: rgba(0,0,0,.22); filter: blur(8px); }
-.character-head { fill: #f2b68e; stroke: #17211b; stroke-width: 5; }
-.character-ear { fill: none; stroke: #17211b; stroke-width: 13; stroke-linecap: round; }
-.character-hair { fill: #17211b; }
-.character-body { fill: #ff6b35; stroke: #17211b; stroke-width: 5; }
-.character-eyes { fill: #17211b; transform: translateX(var(--eye-offset)); transition: transform .2s ease; }
-.character-brows, .character-mouth { fill: none; stroke: #17211b; stroke-width: 5; stroke-linecap: round; }
-.character-arms path, .character-cover-arms path { fill: none; stroke: #f2b68e; stroke-width: 22; stroke-linecap: round; transition: transform .35s cubic-bezier(.2,.8,.2,1), opacity .2s; }
-.character-cover-arms { opacity: 0; }
+// ─── Form panel ────────────────────────────────────────────────────────────
 
-.character-wrap[data-pose="covering"], .character-wrap[data-pose="peeking"] {
-  .character-cover-arms { opacity: 1; }
-  .character-arm-left { transform: translate(-25px, 20px); }
-  .character-arm-right { transform: translate(25px, 20px); }
+.form-panel {
+  display: flex;
+  flex-direction: column;
+  padding: 28px 44px 40px;
+  background: linear-gradient(
+    180deg,
+    rgba(8, 18, 34, 0.35) 0%,
+    rgba(6, 12, 24, 0.2) 100%
+  );
 }
 
-.character-wrap[data-pose="peeking"] .character-cover-arms path:last-child { transform: translateX(14px) rotate(8deg); transform-origin: 160px 130px; }
-.character-wrap[data-pose="thinking"] .character { animation: character-think 1s ease-in-out infinite alternate; }
-.character-wrap[data-pose="failed"] .character { animation: character-shake .42s ease-in-out; }
+.mode-tabs {
+  display: flex;
+  align-self: flex-end;
+  gap: 2px;
+  padding: 4px;
+  border-radius: 12px;
+  background: rgba(2, 8, 20, 0.55);
+  border: 1px solid rgba(34, 211, 238, 0.12);
+}
 
-.character-bubble {
+.mode-tabs button {
+  border: 0;
+  border-radius: 9px;
+  padding: 8px 14px;
+  background: transparent;
+  color: var(--auth-muted);
+  cursor: pointer;
+  font-size: 12.5px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  transition:
+    color 0.18s,
+    background 0.18s,
+    box-shadow 0.18s;
+}
+
+.mode-tabs button[data-active="true"] {
+  background: linear-gradient(
+    135deg,
+    rgba(34, 211, 238, 0.18),
+    rgba(139, 92, 246, 0.16)
+  );
+  color: #e0f7ff;
+  box-shadow:
+    0 0 0 1px rgba(34, 211, 238, 0.28),
+    0 0 16px rgba(34, 211, 238, 0.12);
+}
+
+.mode-tabs button:hover:not([data-active="true"]) {
+  color: #c5e8ff;
+}
+
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  width: 100%;
+  max-width: 400px;
+  margin: auto;
+}
+
+.auth-form[data-failed="true"] {
+  animation: form-shake 0.4s ease-in-out;
+}
+
+.form-heading {
+  margin-bottom: 4px;
+}
+
+.eyebrow {
+  display: inline-block;
+  color: var(--auth-cyan);
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.22em;
+  text-shadow: 0 0 12px var(--auth-cyan-dim);
+}
+
+.form-heading h1 {
+  margin: 10px 0 8px;
+  font: 700 32px/1.15 "Segoe UI", system-ui, sans-serif;
+  letter-spacing: -0.03em;
+  color: #f0f9ff;
+  text-shadow: 0 0 30px rgba(34, 211, 238, 0.15);
+}
+
+.form-heading p {
+  margin: 0;
+  color: var(--auth-muted);
+  font-size: 13.5px;
+  line-height: 1.5;
+}
+
+// ─── Inputs with neon underline sweep ──────────────────────────────────────
+
+.auth-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  color: #9fb6cc;
+  font-size: 12.5px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+}
+
+.field-shell {
+  position: relative;
+  width: 100%;
+  max-width: 100%;
+  display: block;
+}
+
+.auth-form input,
+.auth-form input[type="text"],
+.auth-form input[type="password"] {
+  // Beat global `input[type=...] { max-width: 50% }` from globals.scss
+  width: 100% !important;
+  max-width: 100% !important;
+  height: 50px;
+  min-height: 50px;
+  padding: 0 15px;
+  box-sizing: border-box;
+  border: 1px solid rgba(34, 211, 238, 0.16);
+  border-radius: 12px;
+  outline: none;
+  background: rgba(4, 12, 24, 0.65);
+  color: var(--auth-ink);
+  font-size: 14.5px;
+  text-align: left !important;
+  transition:
+    border-color 0.2s,
+    box-shadow 0.2s,
+    background 0.2s;
+  caret-color: var(--auth-cyan);
+}
+
+.auth-form input::placeholder {
+  color: rgba(122, 147, 176, 0.65);
+}
+
+.auth-form input:focus {
+  border-color: rgba(34, 211, 238, 0.55);
+  background: rgba(6, 16, 32, 0.85);
+  box-shadow:
+    0 0 0 3px rgba(34, 211, 238, 0.1),
+    0 0 24px rgba(34, 211, 238, 0.12);
+}
+
+// Neon underline sweep on focus
+.field-shell::after {
+  content: "";
   position: absolute;
-  z-index: 3;
-  top: 18%;
-  right: -8px;
-  padding: 9px 13px;
-  border-radius: 14px 14px 3px 14px;
-  background: #fff8e9;
-  color: #244f3b;
+  left: 12px;
+  right: 12px;
+  bottom: 0;
+  height: 2px;
+  border-radius: 2px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    var(--auth-cyan),
+    var(--auth-violet),
+    var(--auth-cyan),
+    transparent
+  );
+  background-size: 200% 100%;
+  opacity: 0;
+  transform: scaleX(0.3);
+  transition:
+    opacity 0.25s,
+    transform 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+  pointer-events: none;
+}
+
+.field-shell:focus-within::after {
+  opacity: 1;
+  transform: scaleX(1);
+  animation: neon-sweep 1.6s linear infinite;
+}
+
+@keyframes neon-sweep {
+  0% {
+    background-position: 100% 0;
+  }
+  100% {
+    background-position: -100% 0;
+  }
+}
+
+.password-field {
+  position: relative;
+  width: 100%;
+}
+
+.password-field input {
+  padding-right: 48px;
+}
+
+.password-field button {
+  position: absolute;
+  z-index: 2;
+  top: 50%;
+  right: 9px;
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: 0;
+  border-radius: 9px;
+  transform: translateY(-50%);
+  background: transparent;
+  color: var(--auth-muted);
+  cursor: pointer;
+  transition:
+    color 0.15s,
+    background 0.15s;
+}
+
+.password-field button:hover {
+  background: rgba(34, 211, 238, 0.1);
+  color: var(--auth-cyan);
+}
+
+.password-field svg {
+  width: 18px;
+  height: 18px;
+  color: inherit;
+  fill: currentColor;
+}
+
+.password-field svg path {
+  fill: currentColor;
+}
+
+.form-error {
+  margin-top: -2px;
+  padding: 10px 12px;
+  border-left: 3px solid var(--auth-danger);
+  border-radius: 6px;
+  background: rgba(251, 113, 133, 0.1);
+  color: #fda4af;
+  font-size: 13px;
+}
+
+.form-success {
+  margin-top: -2px;
+  padding: 10px 12px;
+  border-left: 3px solid var(--auth-success);
+  border-radius: 6px;
+  background: rgba(52, 211, 153, 0.1);
+  color: #6ee7b7;
+  font-size: 13px;
+}
+
+// ─── Liquid metal submit button ────────────────────────────────────────────
+
+.submit-button {
+  position: relative;
+  height: 52px;
+  margin-top: 4px;
+  border: 0;
+  border-radius: 14px;
+  overflow: hidden;
+  color: #041018;
+  cursor: pointer;
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  background: linear-gradient(
+    120deg,
+    #67e8f9 0%,
+    #22d3ee 25%,
+    #a78bfa 55%,
+    #22d3ee 80%,
+    #67e8f9 100%
+  );
+  background-size: 220% 100%;
+  box-shadow:
+    0 0 24px rgba(34, 211, 238, 0.35),
+    0 10px 28px rgba(34, 211, 238, 0.18),
+    inset 0 1px 0 rgba(255, 255, 255, 0.35);
+  animation: btn-breathe 2.8s ease-in-out infinite;
+  transition:
+    transform 0.2s,
+    box-shadow 0.2s,
+    opacity 0.2s,
+    filter 0.2s;
+}
+
+.submit-button::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    105deg,
+    transparent 30%,
+    rgba(255, 255, 255, 0.35) 48%,
+    transparent 62%
+  );
+  background-size: 200% 100%;
+  animation: metal-shine 3.6s ease-in-out infinite;
+  pointer-events: none;
+}
+
+.submit-button:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow:
+    0 0 36px rgba(34, 211, 238, 0.5),
+    0 14px 32px rgba(139, 92, 246, 0.25),
+    inset 0 1px 0 rgba(255, 255, 255, 0.4);
+  filter: brightness(1.05);
+}
+
+.submit-button:disabled {
+  cursor: wait;
+  opacity: 0.55;
+  animation: none;
+}
+
+@keyframes btn-breathe {
+  0%,
+  100% {
+    background-position: 0% 50%;
+    box-shadow:
+      0 0 18px rgba(34, 211, 238, 0.28),
+      0 8px 22px rgba(34, 211, 238, 0.14),
+      inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  }
+  50% {
+    background-position: 100% 50%;
+    box-shadow:
+      0 0 32px rgba(34, 211, 238, 0.48),
+      0 0 48px rgba(139, 92, 246, 0.22),
+      0 10px 28px rgba(34, 211, 238, 0.2),
+      inset 0 1px 0 rgba(255, 255, 255, 0.4);
+  }
+}
+
+@keyframes metal-shine {
+  0%,
+  100% {
+    background-position: 140% 0;
+  }
+  50% {
+    background-position: -40% 0;
+  }
+}
+
+.text-button {
+  align-self: center;
+  border: 0;
+  background: transparent;
+  color: var(--auth-cyan);
+  cursor: pointer;
   font-size: 12px;
   font-weight: 700;
-  box-shadow: 0 9px 20px rgba(0,0,0,.12);
+  opacity: 0.85;
+  transition: opacity 0.15s, text-shadow 0.15s;
+
+  &:hover {
+    opacity: 1;
+    text-shadow: 0 0 12px var(--auth-cyan-dim);
+  }
 }
 
-.privacy-note { position: relative; z-index: 2; max-width: 280px; color: rgba(255,248,233,.65); font-size: 12px; line-height: 1.6; }
-.form-panel { display: flex; flex-direction: column; padding: 34px 58px 48px; }
-.mode-tabs { display: flex; align-self: flex-end; gap: 4px; padding: 4px; border-radius: 12px; background: rgba(36,79,59,.08); }
-.mode-tabs button { border: 0; border-radius: 9px; padding: 8px 13px; background: transparent; color: var(--auth-muted); cursor: pointer; font-weight: 700; }
-.mode-tabs button[data-active="true"] { background: white; color: #244f3b; box-shadow: 0 3px 12px rgba(23,33,27,.1); }
-.auth-form { display: flex; flex-direction: column; gap: 19px; width: 100%; max-width: 410px; margin: auto; }
-.auth-form[data-failed="true"] { animation: form-shake .4s ease-in-out; }
-.form-heading { margin-bottom: 6px; }
-.eyebrow { color: var(--auth-accent); font-size: 11px; font-weight: 900; letter-spacing: .18em; }
-.form-heading h1 { margin: 10px 0 8px; font: 700 38px/1.1 Georgia, "Times New Roman", serif; letter-spacing: -.03em; }
-.form-heading p { margin: 0; color: var(--auth-muted); font-size: 14px; }
-.auth-form label { display: flex; flex-direction: column; gap: 8px; color: #39443d; font-size: 13px; font-weight: 700; }
-.auth-form input { width: 100%; height: 50px; padding: 0 15px; box-sizing: border-box; border: 1px solid rgba(23,33,27,.18); border-radius: 13px; outline: none; background: rgba(255,255,255,.8); color: var(--auth-ink); font-size: 15px; text-align: left; transition: border-color .2s, box-shadow .2s, background .2s; }
-.auth-form input:focus { border-color: #2d7655; background: white; box-shadow: 0 0 0 4px rgba(45,118,85,.12); }
-.password-field { position: relative; width: 100%; }
-.password-field input { padding-right: 48px; }
-.password-field button { position: absolute; z-index: 2; top: 50%; right: 9px; display: grid; place-items: center; width: 34px; height: 34px; padding: 0; border: 0; border-radius: 9px; transform: translateY(-50%); background: transparent; color: #66736b; cursor: pointer; }
-.password-field button:hover { background: rgba(36,79,59,.08); }
-.password-field svg { width: 18px; height: 18px; }
-.form-error { margin-top: -4px; padding: 10px 12px; border-left: 3px solid #c6402f; border-radius: 6px; background: rgba(198,64,47,.08); color: #a33426; font-size: 13px; }
-.form-success { margin-top: -4px; padding: 10px 12px; border-left: 3px solid #2d7655; border-radius: 6px; background: rgba(45,118,85,.09); color: #245f46; font-size: 13px; }
-.submit-button { height: 52px; margin-top: 3px; border: 0; border-radius: 14px; background: #244f3b; color: white; cursor: pointer; font-size: 15px; font-weight: 800; box-shadow: 0 10px 24px rgba(36,79,59,.2); transition: transform .2s, box-shadow .2s, opacity .2s; }
-.submit-button:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 14px 28px rgba(36,79,59,.26); }
-.submit-button:disabled { cursor: wait; opacity: .62; }
-.text-button { align-self: center; border: 0; background: transparent; color: #2d7655; cursor: pointer; font-size: 12px; font-weight: 750; }
+@keyframes form-shake {
+  20%,
+  60% {
+    transform: translateX(-8px);
+  }
+  40%,
+  80% {
+    transform: translateX(8px);
+  }
+}
 
-@keyframes form-shake { 20%, 60% { transform: translateX(-8px); } 40%, 80% { transform: translateX(8px); } }
-@keyframes character-shake { 25% { transform: rotate(-3deg); } 75% { transform: rotate(3deg); } }
-@keyframes character-think { from { transform: translateY(0); } to { transform: translateY(-7px); } }
+// ─── Responsive ────────────────────────────────────────────────────────────
 
 @media (max-width: 760px) {
-  .auth-page { padding: 70px 14px 24px; }
-  .back-button { top: 18px; left: 16px; }
-  .auth-stage { grid-template-columns: 1fr; min-height: 0; border-radius: 22px; }
-  .character-panel { min-height: 230px; padding: 24px; }
-  .character-wrap { position: absolute; width: 190px; right: 8px; bottom: -34px; margin: 0; }
-  .character-bubble { display: none; }
-  .privacy-note { max-width: 46%; margin-top: auto; }
-  .form-panel { padding: 24px 22px 34px; }
-  .mode-tabs { align-self: stretch; justify-content: center; margin-bottom: 28px; }
-  .form-heading h1 { font-size: 32px; }
+  .auth-page {
+    padding: 72px 14px 28px;
+  }
+
+  .back-button {
+    top: 16px;
+    left: 14px;
+  }
+
+  .auth-stage {
+    grid-template-columns: 1fr;
+    min-height: 0;
+    border-radius: 20px;
+  }
+
+  .character-panel {
+    min-height: 180px;
+    padding: 22px;
+    border-right: 0;
+    border-bottom: 1px solid rgba(34, 211, 238, 0.12);
+  }
+
+  .ai-orb {
+    position: absolute;
+    width: 110px;
+    right: 12px;
+    bottom: 8px;
+    margin: 0;
+  }
+
+  .ai-orb-label {
+    display: none;
+  }
+
+  .privacy-note {
+    max-width: 55%;
+    margin-top: auto;
+  }
+
+  .form-panel {
+    padding: 22px 20px 32px;
+  }
+
+  .mode-tabs {
+    align-self: stretch;
+    justify-content: center;
+    margin-bottom: 20px;
+  }
+
+  .form-heading h1 {
+    font-size: 26px;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .character, .auth-form, .submit-button { animation: none !important; transition: none !important; }
+  .matrix-col,
+  .particle,
+  .ai-orb,
+  .ai-orb::before,
+  .brand-mark,
+  .brand-mark::after,
+  .submit-button,
+  .submit-button::before,
+  .auth-stage,
+  .auth-stage::before,
+  .field-shell:focus-within::after {
+    animation: none !important;
+  }
+
+  .submit-button {
+    transition: none !important;
+  }
 }
 
+// Force dark aesthetics even if app theme is light — login is its own stage
+:global(.light) .auth-page,
 :global(.dark) .auth-page {
-  --auth-ink: #edf3ec;
-  --auth-muted: #a7b1aa;
-  --auth-paper: #111713;
-  background: radial-gradient(circle at 15% 20%, rgba(255,107,53,.1), transparent 28%), #111713;
+  color: var(--auth-ink);
 }
-
-:global(.dark) .auth-stage { border-color: rgba(255,255,255,.11); background: rgba(27,35,30,.88); }
-:global(.dark) .form-panel input { border-color: rgba(255,255,255,.14); background: rgba(255,255,255,.06); color: #edf3ec; }
-:global(.dark) .mode-tabs button[data-active="true"] { background: #2a342e; color: #f6f1e7; }
-:global(.dark) .auth-form label { color: #d5ddd7; }
