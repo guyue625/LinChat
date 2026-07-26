@@ -43,6 +43,7 @@ import {
   shouldApplyAutomaticTopic,
 } from "../utils/session-topic";
 import {
+  createWorkspaceGenerationGuard,
   GUEST_WORKSPACE,
   readChatWorkspace,
   writeChatWorkspace,
@@ -50,6 +51,7 @@ import {
 } from "../utils/account-workspace";
 
 const localStorage = safeLocalStorage();
+const chatWorkspaceGeneration = createWorkspaceGenerationGuard();
 
 export type ChatMessageTool = {
   id: string;
@@ -338,6 +340,7 @@ export const useChatStore = createPersistStore(
         nextOwner: WorkspaceOwner,
         options?: { force?: boolean },
       ) {
+        const generation = chatWorkspaceGeneration.begin();
         const current = get();
         const currentOwner =
           (current.workspaceOwner as WorkspaceOwner | undefined) ??
@@ -362,9 +365,11 @@ export const useChatStore = createPersistStore(
           // Same-owner force refresh: rehydrate from the partitioned snapshot.
           if (currentOwner === nextOwner && force) {
             let incoming = await readChatWorkspace(nextOwner);
+            if (!chatWorkspaceGeneration.isCurrent(generation)) return;
             if (!incoming && leavingHasData) {
               // Bootstrap partitioned storage from the shared pre-feature blob.
               await writeChatWorkspace(nextOwner, leavingSnapshot);
+              if (!chatWorkspaceGeneration.isCurrent(generation)) return;
               incoming = leavingSnapshot;
             }
             const sessions =
@@ -387,9 +392,11 @@ export const useChatStore = createPersistStore(
           // Persist the workspace we are leaving.
           if (leavingHasData || currentOwner !== GUEST_WORKSPACE) {
             await writeChatWorkspace(currentOwner, leavingSnapshot);
+            if (!chatWorkspaceGeneration.isCurrent(generation)) return;
           }
 
           let incoming = await readChatWorkspace(nextOwner);
+          if (!chatWorkspaceGeneration.isCurrent(generation)) return;
 
           // First login after this feature: claim the currently open sessions
           // for the account so the user does not "lose" their history.
@@ -401,6 +408,7 @@ export const useChatStore = createPersistStore(
           ) {
             incoming = leavingSnapshot;
             await writeChatWorkspace(nextOwner, leavingSnapshot);
+            if (!chatWorkspaceGeneration.isCurrent(generation)) return;
             await writeChatWorkspace(GUEST_WORKSPACE, {
               sessions: [createEmptySession()],
               currentSessionIndex: 0,
@@ -421,7 +429,10 @@ export const useChatStore = createPersistStore(
               lastInput: "",
             };
             await writeChatWorkspace(GUEST_WORKSPACE, incoming);
+            if (!chatWorkspaceGeneration.isCurrent(generation)) return;
           }
+
+          if (!chatWorkspaceGeneration.isCurrent(generation)) return;
 
           const sessions =
             incoming?.sessions && incoming.sessions.length > 0
@@ -440,8 +451,13 @@ export const useChatStore = createPersistStore(
             workspaceSwitching: false,
           } as any);
         } catch (error) {
+          if (!chatWorkspaceGeneration.isCurrent(generation)) return;
           console.error("[Workspace] switch failed", error);
+          const safeSessions = [createEmptySession()];
           set({
+            sessions: safeSessions,
+            currentSessionIndex: 0,
+            lastInput: "",
             workspaceOwner: nextOwner,
             workspaceSwitching: false,
           } as any);

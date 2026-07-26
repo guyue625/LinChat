@@ -18,7 +18,6 @@ import {
   Plug as McpIcon,
   Plus as AddIcon,
   Search as SearchIcon,
-  Trash2 as DeleteIcon,
   X as CloseIcon,
 } from "lucide-react";
 import { EmojiAvatar } from "./emoji";
@@ -39,7 +38,7 @@ import { DEFAULT_SIDEBAR_WIDTH, NARROW_SIDEBAR_WIDTH, Path } from "../constant";
 import { useLocation, useNavigate } from "react-router-dom";
 import { isIOS, useMobileScreen } from "../utils";
 import dynamic from "next/dynamic";
-import { Selector, showConfirm, showToast } from "./ui-lib";
+import { Selector, showToast } from "./ui-lib";
 import clsx from "clsx";
 import { isMcpEnabled } from "../mcp/actions";
 import { AccountDock } from "./account-dock";
@@ -54,8 +53,11 @@ const ChatList = dynamic(async () => (await import("./chat-list")).ChatList, {
   loading: () => null,
 });
 
-function RecentChatsPanel(props: { onClose: () => void }) {
-  const { onClose } = props;
+function RecentChatsPanel(props: {
+  onClose: () => void;
+  onSelect?: () => void;
+}) {
+  const { onClose, onSelect } = props;
   const [query, setQuery] = useState("");
 
   useEffect(() => {
@@ -98,7 +100,14 @@ function RecentChatsPanel(props: { onClose: () => void }) {
           />
         </label>
         <div className={styles["recent-panel-list"]}>
-          <ChatList variant="panel" query={query} onSelect={onClose} />
+          <ChatList
+            variant="panel"
+            query={query}
+            onSelect={() => {
+              onSelect?.();
+              onClose();
+            }}
+          />
         </div>
       </aside>
     </div>,
@@ -236,9 +245,14 @@ export function SideBarTail(props: {
   );
 }
 
-export function SideBar(props: { className?: string }) {
+export function SideBar(props: {
+  className?: string;
+  mobileOpen?: boolean;
+  onMobileClose?: () => void;
+}) {
   useHotKey();
   const { isMobileScreen, shouldNarrow, toggleSideBar } = useSideBarState();
+  const { className, mobileOpen = false, onMobileClose } = props;
   const [showDiscoverySelector, setshowDiscoverySelector] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
@@ -267,6 +281,13 @@ export function SideBar(props: { className?: string }) {
     config.update((nextConfig) => {
       nextConfig.theme = isDarkTheme ? Theme.Light : Theme.Dark;
     });
+  };
+  const closeMobileSidebar = () => {
+    if (isMobileScreen && mobileOpen && onMobileClose) {
+      onMobileClose();
+      return true;
+    }
+    return false;
   };
 
   useEffect(() => {
@@ -323,6 +344,7 @@ export function SideBar(props: { className?: string }) {
       chatStore.newSession(assistantToMask(assistant));
     }
 
+    closeMobileSidebar();
     navigate(Path.Chat);
   };
 
@@ -349,6 +371,7 @@ export function SideBar(props: { className?: string }) {
     }
 
     setAssistantSwitcherOpen(false);
+    closeMobileSidebar();
     navigate(Path.Chat);
   };
 
@@ -379,11 +402,12 @@ export function SideBar(props: { className?: string }) {
           ? assistantToMask(currentFeaturedAssistant)
           : currentMask,
       );
+      closeMobileSidebar();
       navigate(Path.Chat);
     };
 
     return (
-      <SideBarContainer shouldNarrow={shouldNarrow} {...props}>
+      <SideBarContainer shouldNarrow={shouldNarrow} className={className}>
         <SideBarHeader
           title={
             shouldNarrow ? undefined : (
@@ -420,7 +444,9 @@ export function SideBar(props: { className?: string }) {
                 icon={<CollapseIcon />}
                 aria={shouldNarrow ? "展开侧栏" : "收起侧栏"}
                 title={shouldNarrow ? "展开侧栏" : "收起侧栏"}
-                onClick={toggleSideBar}
+                onClick={() => {
+                  if (!closeMobileSidebar()) toggleSideBar();
+                }}
               />
             </div>
           }
@@ -571,7 +597,7 @@ export function SideBar(props: { className?: string }) {
             </button>
           )}
           {!shouldNarrow && topicsExpanded && (
-            <ChatList maskId={activeMaskId} />
+            <ChatList maskId={activeMaskId} onSelect={onMobileClose} />
           )}
         </SideBarBody>
         <AccountDock
@@ -586,7 +612,7 @@ export function SideBar(props: { className?: string }) {
   }
 
   return (
-    <SideBarContainer shouldNarrow={shouldNarrow} {...props}>
+    <SideBarContainer shouldNarrow={shouldNarrow} className={className}>
       <SideBarHeader
         title={
           shouldNarrow ? undefined : (
@@ -598,12 +624,14 @@ export function SideBar(props: { className?: string }) {
         }
         logo={
           <div className={styles["sidebar-utility-actions"]}>
-            <IconButton
-              icon={<CollapseIcon />}
-              aria={shouldNarrow ? "展开侧栏" : "收起侧栏"}
-              title={shouldNarrow ? "展开侧栏" : "收起侧栏"}
-              onClick={toggleSideBar}
-            />
+            {(!isMobileScreen || location.pathname !== Path.Home) && (
+              <IconButton
+                icon={<CollapseIcon />}
+                aria={shouldNarrow ? "展开侧栏" : "收起侧栏"}
+                title={shouldNarrow ? "展开侧栏" : "收起侧栏"}
+                onClick={toggleSideBar}
+              />
+            )}
             {!shouldNarrow && (
               <IconButton
                 icon={<NotificationIcon />}
@@ -699,7 +727,7 @@ export function SideBar(props: { className?: string }) {
         )}
         {!shouldNarrow && recentExpanded && (
           <>
-            <ChatList limit={5} />
+            <ChatList limit={5} onSelect={onMobileClose} />
             {chatStore.sessions.length > 5 && (
               <button
                 type="button"
@@ -772,24 +800,11 @@ export function SideBar(props: { className?: string }) {
         onSettings={() => navigate(Path.Settings)}
         onToggleTheme={toggleTheme}
       />
-      {isMobileScreen && (
-        <SideBarTail
-          primaryAction={
-            <div className={clsx(styles["sidebar-action"], styles.mobile)}>
-              <IconButton
-                icon={<DeleteIcon />}
-                onClick={async () => {
-                  if (await showConfirm(Locale.Home.DeleteChat)) {
-                    chatStore.deleteSession(chatStore.currentSessionIndex);
-                  }
-                }}
-              />
-            </div>
-          }
-        />
-      )}
       {recentPanelOpen && (
-        <RecentChatsPanel onClose={() => setRecentPanelOpen(false)} />
+        <RecentChatsPanel
+          onClose={() => setRecentPanelOpen(false)}
+          onSelect={onMobileClose}
+        />
       )}
     </SideBarContainer>
   );

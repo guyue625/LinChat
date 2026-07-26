@@ -11,7 +11,7 @@ const styleSource = fs.readFileSync(
 );
 
 function getRuleBody(selector: string) {
-  const selectorStart = styleSource.indexOf(selector);
+  const selectorStart = styleSource.indexOf(`${selector} {`);
   expect(selectorStart).toBeGreaterThanOrEqual(0);
 
   const bodyStart = styleSource.indexOf("{", selectorStart);
@@ -28,23 +28,19 @@ describe("chat message action toolbar styles", () => {
     const rule = getRuleBody(".chat-message-action-buttons");
 
     expect(rule).toMatch(/display:\s*inline-flex/);
-    expect(rule).toMatch(/width:\s*fit-content/);
+    expect(rule).toMatch(/width:\s*max-content/);
     expect(rule).toMatch(/flex:\s*0\s+0\s+auto/);
     expect(rule).toMatch(/justify-content:\s*flex-start/);
   });
 
   test("centers every action icon inside a fixed-size button", () => {
-    const buttonRule = getRuleBody(
-      ".chat-message-action-buttons .chat-input-action",
-    );
-    const iconRule = getRuleBody(
-      ".chat-message-action-buttons .chat-input-action .icon",
-    );
+    const buttonRule = getRuleBody(".chat-message-action-button");
+    const iconRule = getRuleBody(".chat-message-action-button .icon");
 
     expect(buttonRule).toMatch(/display:\s*inline-flex/);
     expect(buttonRule).toMatch(/align-items:\s*center/);
     expect(buttonRule).toMatch(/justify-content:\s*center/);
-    expect(iconRule).toMatch(/display:\s*flex/);
+    expect(iconRule).toMatch(/display:\s*inline-flex/);
     expect(iconRule).toMatch(/align-items:\s*center/);
     expect(iconRule).toMatch(/justify-content:\s*center/);
   });

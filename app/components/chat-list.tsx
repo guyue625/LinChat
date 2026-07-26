@@ -272,8 +272,8 @@ export function ChatList(props: {
                   dragDisabled={dragDisabled}
                   onClick={() => {
                     selectSession(storeIndex);
-                    navigate(Path.Chat);
                     props.onSelect?.();
+                    navigate(Path.Chat);
                   }}
                   onOpenMenu={({ x, y }) => {
                     setMenu({ storeIndex, x, y });

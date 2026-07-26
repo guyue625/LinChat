@@ -23,13 +23,13 @@ import { getHeaders } from "../client/api";
 import { getClientConfig } from "../config/client";
 import { createPersistStore } from "../utils/store";
 import { ensure } from "../utils/clone";
-import { DEFAULT_CONFIG } from "./config";
-import { getModelProvider } from "../utils/model";
 
 let fetchState = 0; // 0 not fetch, 1 fetching, 2 done
+let fetchGeneration = 0;
 
 /** Allow a subsequent fetch() after logout / login workspace swaps. */
 export function resetAccessFetch() {
+  fetchGeneration += 1;
   fetchState = 0;
 }
 
@@ -257,7 +257,8 @@ export const useAccessStore = createPersistStore(
     fetch(options?: { includeServerModels?: boolean }) {
       if (fetchState > 0 || getClientConfig()?.buildMode === "export") return;
       fetchState = 1;
-      const includeServerModels = options?.includeServerModels !== false;
+      const generation = fetchGeneration;
+      const includeServerModels = options?.includeServerModels === true;
       fetch("/api/config", {
         method: "post",
         body: null,
@@ -267,31 +268,30 @@ export const useAccessStore = createPersistStore(
       })
         .then((res) => res.json())
         .then((res) => {
+          if (generation !== fetchGeneration) return null;
           if (!includeServerModels) {
             return {
               ...res,
               customModels: "",
               defaultModel: "",
+              visionModels: "",
             } as DangerConfig;
-          }
-          const defaultModel = res.defaultModel ?? "";
-          if (defaultModel !== "") {
-            const [model, providerName] = getModelProvider(defaultModel);
-            DEFAULT_CONFIG.modelConfig.model = model;
-            DEFAULT_CONFIG.modelConfig.providerName = providerName as any;
           }
 
           return res;
         })
-        .then((res: DangerConfig) => {
+        .then((res: DangerConfig | null) => {
+          if (!res || generation !== fetchGeneration) return;
           console.log("[Config] got config from server", res);
           set(() => ({ ...res }));
         })
         .catch(() => {
-          console.error("[Config] failed to fetch config");
+          if (generation === fetchGeneration) {
+            console.error("[Config] failed to fetch config");
+          }
         })
         .finally(() => {
-          fetchState = 2;
+          if (generation === fetchGeneration) fetchState = 2;
         });
     },
 
@@ -300,6 +300,7 @@ export const useAccessStore = createPersistStore(
       set(() => ({
         customModels: "",
         defaultModel: "",
+        visionModels: "",
       }));
     },
   }),

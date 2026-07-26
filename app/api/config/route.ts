@@ -1,6 +1,12 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 
 import { getServerSideConfig } from "../../config/server";
+import {
+  getAccountAuthService,
+  isAccountAuthEnabled,
+} from "../../lib/account-auth-server";
+import { ACCOUNT_SESSION_COOKIE } from "../account/_shared";
+import { getVisibleDangerConfig } from "./visibility";
 
 const serverConfig = getServerSideConfig();
 
@@ -21,11 +27,24 @@ declare global {
   type DangerConfig = typeof DANGER_CONFIG;
 }
 
-async function handle() {
-  return NextResponse.json(DANGER_CONFIG);
+async function handle(request: NextRequest) {
+  let exposeServerModels = !isAccountAuthEnabled();
+  if (!exposeServerModels) {
+    try {
+      const service = await getAccountAuthService();
+      const token = request.cookies.get(ACCOUNT_SESSION_COOKIE)?.value ?? "";
+      exposeServerModels = Boolean(await service.getUserBySession(token));
+    } catch (error) {
+      // Fail closed when the account service is unavailable.
+      console.error("[Config] account session lookup failed", error);
+    }
+  }
+  return NextResponse.json(
+    getVisibleDangerConfig(DANGER_CONFIG, exposeServerModels),
+  );
 }
 
 export const GET = handle;
 export const POST = handle;
 
-export const runtime = "edge";
+export const runtime = "nodejs";

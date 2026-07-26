@@ -1,9 +1,5 @@
 import { ServiceProvider } from "@/app/constant";
-import {
-  ModalConfigValidator,
-  ModelConfig,
-  useAccessStore,
-} from "../store";
+import { ModalConfigValidator, ModelConfig, useAccessStore } from "../store";
 
 import Locale from "../locales";
 import { InputRange } from "./input-range";
@@ -13,12 +9,25 @@ import { groupBy } from "lodash-es";
 import styles from "./model-config.module.scss";
 import { filterModelsByProvider, getModelProvider } from "../utils/model";
 import { useEffect, useMemo } from "react";
+import { useAccount } from "./account-context";
+import {
+  shouldExposeModelWorkspace,
+  shouldPreserveRestoredModelSelection,
+} from "../utils/account-workspace";
 
 export function ModelConfigList(props: {
   modelConfig: ModelConfig;
   updateConfig: (updater: (config: ModelConfig) => void) => void;
 }) {
+  const { modelConfig, updateConfig } = props;
   const allModels = useAllModels();
+  const { enabled, loading, modelWorkspaceReady, user } = useAccount();
+  const showModels = shouldExposeModelWorkspace({
+    enabled,
+    loading,
+    modelWorkspaceReady,
+    user,
+  });
   const accessStore = useAccessStore();
   const selectedProvider = accessStore.useCustomConfig
     ? accessStore.provider
@@ -28,30 +37,43 @@ export function ModelConfigList(props: {
     [allModels, selectedProvider],
   );
   const groupModels = groupBy(selectableModels, "provider.providerName");
-  const value = `${props.modelConfig.model}@${props.modelConfig?.providerName}`;
-  const compressModelValue = `${props.modelConfig.compressModel}@${props.modelConfig?.compressProviderName}`;
+  const value = `${modelConfig.model}@${modelConfig?.providerName}`;
+  const compressModelValue = `${modelConfig.compressModel}@${modelConfig?.compressProviderName}`;
 
   useEffect(() => {
+    if (!showModels) return;
     const nextModel = selectableModels[0];
     if (!nextModel) return;
 
     const hasCurrentModel = selectableModels.some(
       (model) =>
-        model.name === props.modelConfig.model &&
-        model.provider?.providerName === props.modelConfig.providerName,
+        model.name === modelConfig.model &&
+        model.provider?.providerName === modelConfig.providerName,
     );
     const hasCurrentCompressModel =
-      !props.modelConfig.compressModel ||
+      !modelConfig.compressModel ||
       selectableModels.some(
         (model) =>
-          model.name === props.modelConfig.compressModel &&
-          model.provider?.providerName ===
-            props.modelConfig.compressProviderName,
+          model.name === modelConfig.compressModel &&
+          model.provider?.providerName === modelConfig.compressProviderName,
       );
+
+    if (
+      shouldPreserveRestoredModelSelection(
+        modelConfig.model,
+        hasCurrentModel,
+      ) ||
+      shouldPreserveRestoredModelSelection(
+        modelConfig.compressModel,
+        hasCurrentCompressModel,
+      )
+    ) {
+      return;
+    }
 
     if (hasCurrentModel && hasCurrentCompressModel) return;
 
-    props.updateConfig((config) => {
+    updateConfig((config) => {
       if (!hasCurrentModel) {
         config.model = ModalConfigValidator.model(nextModel.name);
         config.providerName = nextModel.provider
@@ -64,13 +86,16 @@ export function ModelConfigList(props: {
       }
     });
   }, [
-    props.modelConfig.compressModel,
-    props.modelConfig.compressProviderName,
-    props.modelConfig.model,
-    props.modelConfig.providerName,
-    props.updateConfig,
+    modelConfig.compressModel,
+    modelConfig.compressProviderName,
+    modelConfig.model,
+    modelConfig.providerName,
+    showModels,
+    updateConfig,
     selectableModels,
   ]);
+
+  if (!showModels) return null;
 
   return (
     <>

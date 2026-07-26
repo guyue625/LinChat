@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { ServiceProvider } from "../constant";
 import { useAccessStore } from "../store";
@@ -25,6 +25,11 @@ import ResetIcon from "../icons/reload.svg";
 import { IconButton } from "./button";
 import { Input, ListItem, Modal, showToast } from "./ui-lib";
 import styles from "./model-manager.module.scss";
+import { useAccount } from "./account-context";
+import {
+  resolveWorkspaceOwner,
+  shouldExposeModelWorkspace,
+} from "../utils/account-workspace";
 
 type AccessState = ReturnType<typeof useAccessStore.getState>;
 
@@ -139,6 +144,15 @@ export function ModelManager(props: {
   onChange: (customModels: string) => void;
 }) {
   const accessStore = useAccessStore();
+  const { enabled, loading, modelWorkspaceReady, user } = useAccount();
+  const showModels = shouldExposeModelWorkspace({
+    enabled,
+    loading,
+    modelWorkspaceReady,
+    user,
+  });
+  const workspaceOwner = resolveWorkspaceOwner({ enabled, user });
+  const fetchGenerationRef = useRef(0);
   const provider = accessStore.provider;
   const [draftName, setDraftName] = useState("");
   const [draftAlias, setDraftAlias] = useState("");
@@ -176,13 +190,14 @@ export function ModelManager(props: {
   }, [availableModels, modelSearch]);
 
   useEffect(() => {
+    fetchGenerationRef.current += 1;
     setDraftName("");
     setDraftAlias("");
     setShowAddModal(false);
     setEditing(undefined);
     setAvailableModels(undefined);
     setModelSearch("");
-  }, [provider]);
+  }, [provider, showModels, workspaceOwner]);
 
   const openAddModal = () => {
     setDraftName("");
@@ -257,6 +272,8 @@ export function ModelManager(props: {
   };
 
   const fetchModels = async () => {
+    const generation = ++fetchGenerationRef.current;
+    const ownerAtStart = workspaceOwner;
     setFetching(true);
     try {
       const upstreamModels = await fetchUpstreamModels(
@@ -264,6 +281,12 @@ export function ModelManager(props: {
       );
       if (upstreamModels.length === 0) {
         throw new Error(Locale.Settings.Access.CustomModel.EmptyResponse);
+      }
+      if (
+        generation !== fetchGenerationRef.current ||
+        ownerAtStart !== workspaceOwner
+      ) {
+        return;
       }
       const availableNames = new Set(upstreamModels.map((model) => model.name));
       const configuredNames = new Set(
@@ -279,7 +302,12 @@ export function ModelManager(props: {
       const reason = error instanceof Error ? error.message : String(error);
       showToast(Locale.Settings.Access.CustomModel.FetchFailed(reason));
     } finally {
-      setFetching(false);
+      if (
+        generation === fetchGenerationRef.current &&
+        ownerAtStart === workspaceOwner
+      ) {
+        setFetching(false);
+      }
     }
   };
 
@@ -308,6 +336,8 @@ export function ModelManager(props: {
       return next;
     });
   };
+
+  if (!showModels) return null;
 
   return (
     <>

@@ -25,12 +25,15 @@ import { SideBar } from "./sidebar";
 import { useAppConfig } from "../store/config";
 import { AuthPage } from "./auth";
 import { getClientConfig } from "../config/client";
-import { type ClientApi, getClientApi } from "../client/api";
-import { useAccessStore } from "../store";
+import { getClientApi } from "../client/api";
 import clsx from "clsx";
 import { initializeMcpSystem, isMcpEnabled } from "../mcp/actions";
-import { AccountProvider } from "./account-context";
+import { AccountProvider, useAccount } from "./account-context";
 import { AccountWorkspaceSync } from "./account-workspace-sync";
+import {
+  resolveWorkspaceOwner,
+  shouldExposeModelWorkspace,
+} from "../utils/account-workspace";
 
 export function Loading(props: { noLogo?: boolean }) {
   const isInitialLoading = !props.noLogo;
@@ -229,8 +232,18 @@ function Screen() {
   const isSdNew = location.pathname === Path.SdNew;
 
   const isMobileScreen = useMobileScreen();
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const shouldTightBorder =
     getClientConfig()?.isApp || (config.tightBorder && !isMobileScreen);
+
+  useEffect(() => {
+    // The mobile sidebar is an overlay opened from the chat header. Close its
+    // transient state whenever navigation leaves the chat route; the home
+    // route still controls its own always-visible mobile sidebar state.
+    if (!isMobileScreen || location.pathname !== Path.Chat) {
+      setMobileSidebarOpen(false);
+    }
+  }, [isMobileScreen, location.pathname]);
 
   useEffect(() => {
     loadAsyncGoogleFont();
@@ -252,8 +265,10 @@ function Screen() {
         {!isSettings && !isAdmin && !isProfile && (
           <SideBar
             className={clsx({
-              [styles["sidebar-show"]]: isHome,
+              [styles["sidebar-show"]]: isHome || mobileSidebarOpen,
             })}
+            mobileOpen={mobileSidebarOpen}
+            onMobileClose={() => setMobileSidebarOpen(false)}
           />
         )}
         <WindowContent fullWidth={isSettings || isAdmin || isProfile}>
@@ -263,7 +278,12 @@ function Screen() {
             <Route path={Path.Masks} element={<MaskPage />} />
             <Route path={Path.Plugins} element={<PluginPage />} />
             <Route path={Path.SearchChat} element={<SearchChat />} />
-            <Route path={Path.Chat} element={<Chat />} />
+            <Route
+              path={Path.Chat}
+              element={
+                <Chat onOpenChatList={() => setMobileSidebarOpen(true)} />
+              }
+            />
             <Route path={Path.Settings} element={<Settings />} />
             <Route path={Path.Profile} element={<ProfilePage />} />
             <Route path={Path.Admin} element={<AdminPage />} />
@@ -287,44 +307,53 @@ function Screen() {
 }
 
 export function useLoadData() {
-  const config = useAppConfig();
-
-  const api: ClientApi = getClientApi(config.modelConfig.providerName);
+  const providerName = useAppConfig((state) => state.modelConfig.providerName);
+  const mergeModels = useAppConfig((state) => state.mergeModels);
+  const { enabled, loading, modelWorkspaceReady, user } = useAccount();
+  const owner = resolveWorkspaceOwner({ enabled, user });
+  const canLoadModels = shouldExposeModelWorkspace({
+    enabled,
+    loading,
+    modelWorkspaceReady,
+    user,
+  });
 
   useEffect(() => {
+    if (!canLoadModels) return;
+    let cancelled = false;
+
     (async () => {
       // Skip server model merge for account guests — AccountWorkspaceSync
       // deliberately clears the catalogue so logged-out visitors cannot use
       // account-provisioned models.
+      const api = getClientApi(providerName);
       try {
-        const session = await fetch("/api/account/session", {
-          credentials: "same-origin",
-          cache: "no-store",
-        });
-        if (session.ok) {
-          const data = await session.json();
-          if (data?.enabled && !data?.user) {
-            return;
-          }
+        const models = await api.llm.models();
+        if (!cancelled) mergeModels(models);
+      } catch (error) {
+        if (!cancelled) {
+          console.error("[Models] failed to load provider catalogue", error);
         }
-      } catch {
-        // fall through and merge if session probe fails
       }
-      const models = await api.llm.models();
-      config.mergeModels(models);
     })();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+
+    return () => {
+      cancelled = true;
+    };
+  }, [canLoadModels, mergeModels, owner, providerName]);
+}
+
+function AccountModelDataLoader() {
+  useLoadData();
+  return null;
 }
 
 export function Home() {
   useSwitchTheme();
-  useLoadData();
   useHtmlLang();
 
   useEffect(() => {
     console.log("[Config] got config from build time", getClientConfig());
-    useAccessStore.getState().fetch();
 
     const initMcp = async () => {
       try {
@@ -350,6 +379,7 @@ export function Home() {
       <Router>
         <AccountProvider>
           <AccountWorkspaceSync />
+          <AccountModelDataLoader />
           <Screen />
         </AccountProvider>
       </Router>

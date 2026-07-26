@@ -134,6 +134,10 @@ import { ModelIcon } from "./emoji";
 import { useAccount } from "./account-context";
 import { runWithAccountLogin } from "./account-login-guard";
 import { buildAuthPath } from "./account-utils";
+import {
+  resolveWorkspaceOwner,
+  shouldShowModelPicker,
+} from "../utils/account-workspace";
 import { deriveTopicFromMessages } from "../utils/session-topic";
 import {
   getAssistantMessageMetadata,
@@ -623,6 +627,16 @@ export function ChatActions(props: ChatActionsProps) {
     mask.modelConfig?.providerName || ServiceProvider.OpenAI;
   const allModels = useAllModels();
   const accessStore = useAccessStore();
+  const {
+    enabled: accountEnabled,
+    loading: accountLoading,
+    modelWorkspaceReady,
+    user: accountUser,
+  } = useAccount();
+  const workspaceOwner = resolveWorkspaceOwner({
+    enabled: accountEnabled,
+    user: accountUser,
+  });
   const selectedProvider = accessStore.useCustomConfig
     ? accessStore.provider
     : undefined;
@@ -633,6 +647,15 @@ export function ChatActions(props: ChatActionsProps) {
       ? [defaultModel, ...available.filter((model) => model !== defaultModel)]
       : available;
   }, [allModels, selectedProvider]);
+  const showModelPicker = shouldShowModelPicker(
+    {
+      enabled: accountEnabled,
+      loading: accountLoading,
+      modelWorkspaceReady,
+      user: accountUser,
+    },
+    models.length,
+  );
   const currentModelInfo = useMemo(() => {
     return models.find(
       (item) =>
@@ -645,6 +668,11 @@ export function ChatActions(props: ChatActionsProps) {
   const [showModelSelector, setShowModelSelector] = useState(false);
   const [showMoreMenu, setShowMoreMenu] = useState(false);
   const [modelSearch, setModelSearch] = useState("");
+  const modelSelectorOpen = showModelPicker && showModelSelector;
+  useEffect(() => {
+    setShowModelSelector(false);
+    setModelSearch("");
+  }, [workspaceOwner]);
   const modelAnchorRef = useRef<HTMLDivElement>(null);
   const modelSearchRef = useRef<HTMLInputElement>(null);
   const [modelPopoverLayout, setModelPopoverLayout] = useState<
@@ -825,14 +853,19 @@ export function ChatActions(props: ChatActionsProps) {
   // runtimes exist. Non-functional placeholder controls stay hidden.
   return (
     <div className={styles["chat-input-actions"]}>
-      {(showModelSelector || showMoreMenu) && (
+      {(modelSelectorOpen || showMoreMenu) && (
         <div
           className={styles["composer-popover-backdrop"]}
           onClick={closePopovers}
         />
       )}
       <div className={styles["composer-actions-start"]}>
-        <div className={styles["composer-anchor"]} ref={modelAnchorRef}>
+        <div
+          className={styles["composer-anchor"]}
+          ref={modelAnchorRef}
+          hidden={!showModelPicker}
+          style={{ display: showModelPicker ? undefined : "none" }}
+        >
           <ComposerToolButton
             icon={
               <ModelIcon
@@ -842,7 +875,7 @@ export function ChatActions(props: ChatActionsProps) {
               />
             }
             label={currentModelName}
-            active={showModelSelector}
+            active={modelSelectorOpen}
             className={styles["composer-model-button"]}
             onClick={() => {
               setShowMoreMenu(false);
@@ -855,7 +888,7 @@ export function ChatActions(props: ChatActionsProps) {
             </span>
             <DownIcon />
           </ComposerToolButton>
-          {showModelSelector && (
+          {modelSelectorOpen && (
             <div
               className={clsx(styles["composer-model-popover"], {
                 [styles["composer-model-popover-home"]]: props.homeMode,
@@ -1472,7 +1505,11 @@ export function ShortcutKeyModal(props: { onClose: () => void }) {
   );
 }
 
-function _Chat() {
+type ChatProps = {
+  onOpenChatList?: () => void;
+};
+
+function _Chat(props: ChatProps) {
   type RenderMessage = ChatMessage & { preview?: boolean };
 
   const chatStore = useChatStore();
@@ -2159,7 +2196,13 @@ function _Chat() {
                   icon={<ReturnIcon />}
                   bordered
                   title={Locale.Chat.Actions.ChatList}
-                  onClick={() => navigate(Path.Home)}
+                  onClick={() => {
+                    if (props.onOpenChatList) {
+                      props.onOpenChatList();
+                    } else {
+                      navigate(Path.Home);
+                    }
+                  }}
                 />
               </div>
             </div>
@@ -2652,8 +2695,8 @@ function _Chat() {
   );
 }
 
-export function Chat() {
+export function Chat(props: ChatProps = {}) {
   const chatStore = useChatStore();
   const session = chatStore.currentSession();
-  return <_Chat key={session.id}></_Chat>;
+  return <_Chat key={session.id} {...props}></_Chat>;
 }
