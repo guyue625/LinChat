@@ -4,43 +4,53 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { useAccessStore } from "../store";
 import EyeIcon from "../icons/eye.svg";
 import EyeOffIcon from "../icons/eye-off.svg";
-import LeftIcon from "../icons/left.svg";
 import { useAccount } from "./account-context";
 import { safeReturnPath } from "./account-utils";
 
 type Mode = "login" | "register" | "reset" | "legacy";
 
-const MATRIX_GLYPHS = "01アイウエオカキクケコサシスセソABCDEF<>[]{}#$";
+const RAIN_GLYPHS = "アイウエオカキクケコ01λΔΞΣ0123456789ABCDEF<>+-*/";
+const RAIN_COLS = 14;
+const RAIN_ROWS = 24;
 
-function MatrixBackground() {
-  const columns = useMemo(
-    () =>
-      Array.from({ length: 18 }, (_, col) => ({
-        id: col,
-        glyphs: Array.from(
-          { length: 22 },
-          (_, row) => MATRIX_GLYPHS[(col * 7 + row * 3) % MATRIX_GLYPHS.length],
-        ),
-      })),
-    [],
-  );
+// Deterministic glyph picker — SSR and client must render identical output.
+function rainGlyph(col: number, row: number) {
+  return RAIN_GLYPHS[
+    (col * 31 + row * 17 + col * row * 7) % RAIN_GLYPHS.length
+  ];
+}
 
+function CodeRain() {
   return (
-    <div className={styles["bg-layer"]} aria-hidden="true">
-      <div className={styles["matrix-rain"]}>
-        {columns.map((col) => (
-          <div key={col.id} className={styles["matrix-col"]}>
-            {col.glyphs.map((g, i) => (
-              <span key={i}>{g}</span>
-            ))}
-          </div>
+    <div className={styles["code-rain"]}>
+      {Array.from({ length: RAIN_COLS }, (_, col) => (
+        <span className={styles["rain-col"]} key={col}>
+          {/* Rows doubled so the -50% → 0 translate loops seamlessly */}
+          {Array.from({ length: RAIN_ROWS * 2 }, (_, row) => (
+            <i key={row}>{rainGlyph(col, row % RAIN_ROWS)}</i>
+          ))}
+        </span>
+      ))}
+    </div>
+  );
+}
+
+function SceneBackground() {
+  return (
+    <div className={styles.bg} aria-hidden="true">
+      <div className={styles["bg-aurora-a"]} />
+      <div className={styles["bg-aurora-b"]} />
+      <CodeRain />
+      <div className={styles["bg-horizon"]} />
+      <div className={styles["bg-grid"]} />
+      <div className={styles["bg-glints"]}>
+        {Array.from({ length: 8 }, (_, i) => (
+          <span key={i} />
         ))}
       </div>
-      <div className={styles["circuit-particles"]}>
-        {Array.from({ length: 14 }, (_, i) => (
-          <span key={i} className={styles.particle} />
-        ))}
-      </div>
+      <div className={styles.grain} />
+      <div className={styles.scanlines} />
+      <div className={styles.vignette} />
     </div>
   );
 }
@@ -134,35 +144,69 @@ export function AuthPage() {
 
   return (
     <main className={styles["auth-page"]}>
-      <MatrixBackground />
+      <SceneBackground />
 
-      <button
-        className={styles["back-button"]}
-        type="button"
-        onClick={() => navigate(returnTo)}
-      >
-        <LeftIcon />
-        返回
-      </button>
+      <div className={styles.coords} aria-hidden="true">
+        <span>N 30.25°</span>
+        <span>E 120.16°</span>
+        <span>LINK OK</span>
+      </div>
 
       <section className={styles["auth-stage"]}>
-        <div className={styles["character-panel"]}>
+        <span className={styles["hud-c"]} data-pos="tl" aria-hidden="true" />
+        <span className={styles["hud-c"]} data-pos="tr" aria-hidden="true" />
+        <span className={styles["hud-c"]} data-pos="bl" aria-hidden="true" />
+        <span className={styles["hud-c"]} data-pos="br" aria-hidden="true" />
+        <span className={styles["card-scan"]} aria-hidden="true" />
+        <div className={styles["brand-panel"]}>
+          <span className={styles["panel-ghost"]} aria-hidden="true">
+            時
+          </span>
           <div className={styles["brand-row"]}>
             <div className={styles["brand-mark"]} aria-hidden="true">
               AI
             </div>
             <div className={styles["brand-copy"]}>
               <strong>LinChat</strong>
-              <span>你的AI助手</span>
+              <span>MY DEAR WORKSPACE</span>
             </div>
           </div>
 
-          <div className={styles["ai-orb"]} aria-hidden="true">
-            <span className={styles["ai-orb-core"]} />
-            <span className={styles["ai-orb-label"]}>Neural Core</span>
+          <div className={styles["panel-copy"]}>
+            <p className={styles["panel-kicker"]}>WORKSPACE · 属于你的时光</p>
+            <h2 className={styles["panel-title"]}>
+              灵感不会
+              <br />
+              永远停留。
+            </h2>
+            <p className={styles["panel-lead"]}>
+              但每一次对话、每一个念头，都可以在这里安放。
+              登录，把时间接着过下去。
+            </p>
           </div>
 
-          <div className={styles["privacy-note"]}>做一个懂你的AI助手</div>
+          <div className={styles["sys-readout"]} aria-hidden="true">
+            <div>
+              <span>SIG</span>
+              <i style={{ "--v": "86%" } as React.CSSProperties} />
+              <b>86%</b>
+            </div>
+            <div>
+              <span>MEM</span>
+              <i style={{ "--v": "64%" } as React.CSSProperties} />
+              <b>64%</b>
+            </div>
+            <div>
+              <span>SYN</span>
+              <i style={{ "--v": "93%" } as React.CSSProperties} />
+              <b>93%</b>
+            </div>
+          </div>
+
+          <div className={styles["panel-status"]}>
+            <span className={styles["status-dot"]} />
+            <span>SESSION LINK · INTEGRITY OK</span>
+          </div>
         </div>
 
         <div className={styles["form-panel"]}>
@@ -219,7 +263,10 @@ export function AuthPage() {
               </label>
               {error && <div className={styles["form-error"]}>{error}</div>}
               <button className={styles["submit-button"]} type="submit">
-                进入 NextChat
+                <span>进入 NextChat</span>
+                <span className={styles["btn-arrow"]} aria-hidden="true">
+                  →
+                </span>
               </button>
             </form>
           ) : (
@@ -335,13 +382,18 @@ export function AuthPage() {
                 type="submit"
                 disabled={submitting || accountEnabled === null}
               >
-                {submitting
-                  ? "鉴权中…"
-                  : mode === "login"
-                  ? "登录"
-                  : mode === "register"
-                  ? "注册并登录"
-                  : "更新密码"}
+                <span>
+                  {submitting
+                    ? "鉴权中…"
+                    : mode === "login"
+                    ? "登录"
+                    : mode === "register"
+                    ? "注册并登录"
+                    : "更新密码"}
+                </span>
+                <span className={styles["btn-arrow"]} aria-hidden="true">
+                  →
+                </span>
               </button>
 
               {mode === "login" && (
