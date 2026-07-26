@@ -315,6 +315,7 @@
 .chat-message {
   display: flex;
   flex-direction: row;
+  padding: 16px 0;
 
   &:last-child {
     animation: slide-in ease 0.3s;
@@ -331,14 +332,16 @@
 }
 
 .chat-message-header {
-  margin-top: 20px;
+  margin-top: 0;
+  margin-bottom: 8px;
   display: flex;
   align-items: center;
+  gap: 8px;
 
   .chat-model-name {
     font-size: 12px;
-    color: var(--black);
-    margin-left: 6px;
+    color: color-mix(in srgb, var(--black) 60%, transparent);
+    font-weight: 500;
   }
 }
 
@@ -379,33 +382,61 @@
   box-sizing: border-box;
   max-width: 100%;
   margin-top: 10px;
-  border-radius: 10px;
-  background-color: color-mix(in srgb, var(--black) 5%, transparent);
-  padding: 10px;
+  border-radius: 12px;
+  background-color: var(--white);
+  padding: 14px 16px;
   font-size: 14px;
+  line-height: 1.7;
   user-select: text;
   word-break: break-word;
-  border: var(--border-in-light);
+  border: 1px solid color-mix(in srgb, var(--black) 6%, transparent);
   position: relative;
-  transition: all ease 0.3s;
+  transition: all ease 0.2s;
+  box-shadow: 0 1px 2px color-mix(in srgb, var(--black) 3%, transparent);
+
+  &:hover {
+    border-color: color-mix(in srgb, var(--black) 10%, transparent);
+    box-shadow: 0 2px 8px color-mix(in srgb, var(--black) 5%, transparent);
+  }
+}
+
+.chat-message-user .chat-message-item {
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--primary) 8%, var(--white)),
+    color-mix(in srgb, var(--primary) 4%, var(--white))
+  );
+  border-color: color-mix(in srgb, var(--primary) 12%, transparent);
+
+  &:hover {
+    border-color: color-mix(in srgb, var(--primary) 18%, transparent);
+    box-shadow: 0 2px 8px color-mix(in srgb, var(--primary) 8%, transparent);
+  }
 }
 
 .chat-message-audio {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  border-radius: 10px;
-  background-color: color-mix(in srgb, var(--black) 5%, transparent);
-  border: var(--border-in-light);
+  border-radius: 12px;
+  background-color: var(--white);
+  border: 1px solid color-mix(in srgb, var(--black) 6%, transparent);
   position: relative;
-  transition: all ease 0.3s;
+  transition: all ease 0.2s;
   margin-top: 10px;
   font-size: 14px;
   user-select: text;
   word-break: break-word;
   box-sizing: border-box;
+  box-shadow: 0 1px 2px color-mix(in srgb, var(--black) 3%, transparent);
+
   audio {
-    height: 30px; /* 调整高度 */
+    height: 30px;
+  }
+
+  &:hover {
+    border-color: color-mix(in srgb, var(--black) 10%, transparent);
+    box-shadow: 0 2px 8px color-mix(in srgb, var(--black) 5%, transparent);
   }
 }
 
@@ -433,8 +464,14 @@
 .chat-message-item-image,
 .chat-message-item-image-multi {
   box-sizing: border-box;
-  border-radius: 10px;
-  border: var(--border-in-light);
+  border-radius: 12px;
+  border: 1px solid color-mix(in srgb, var(--black) 6%, transparent);
+  box-shadow: 0 1px 3px color-mix(in srgb, var(--black) 4%, transparent);
+  transition: all ease 0.2s;
+
+  &:hover {
+    box-shadow: 0 4px 12px color-mix(in srgb, var(--black) 8%, transparent);
+  }
 }
 
 @media only screen and (max-width: 600px) {
