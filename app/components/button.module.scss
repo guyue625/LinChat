@@ -19,8 +19,9 @@
   }
 
   &.primary {
-    background-color: var(--primary);
-    color: var(--primary-contrast, white);
+    // Inverted CTA: near-white in dark, near-black in light.
+    background-color: var(--cta-bg);
+    color: var(--cta-fg);
 
     // Icons must read in the contrast color regardless of theme.
     // Stroke-styled icons (inline style="stroke:...") keep fill:none;
@@ -32,15 +33,15 @@
     path[style*="stroke"],
     [stroke] {
       fill: none !important;
-      stroke: var(--primary-contrast, white) !important;
+      stroke: var(--cta-fg) !important;
     }
 
     path:not([style*="stroke"]):not([stroke]) {
-      fill: var(--primary-contrast, white) !important;
+      fill: var(--cta-fg) !important;
     }
 
     &:hover:not([disabled]) {
-      filter: brightness(1.08);
+      background-color: var(--cta-bg-hover);
     }
   }
 

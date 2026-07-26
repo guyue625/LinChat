@@ -402,6 +402,7 @@ export function ChatAction(props: {
   icon: JSX.Element;
   onClick: () => void;
   compact?: boolean;
+  "data-action"?: string;
 }) {
   const iconRef = useRef<HTMLDivElement>(null);
   const textRef = useRef<HTMLDivElement>(null);
@@ -428,6 +429,7 @@ export function ChatAction(props: {
         className={styles["chat-message-action-button"]}
         aria-label={props.text}
         title={props.text}
+        data-action={props["data-action"]}
         onClick={(event) => {
           event.preventDefault();
           event.stopPropagation();
@@ -2281,6 +2283,16 @@ function _Chat(props: ChatProps) {
         </div>
         <div className={styles["chat-main"]}>
           <div className={styles["chat-body-container"]}>
+            {!hitBottom && (
+              <button
+                className={styles["scroll-to-latest"]}
+                type="button"
+                aria-label={Locale.Chat.InputActions.ToBottom}
+                onClick={scrollToBottom}
+              >
+                <BottomIcon />
+              </button>
+            )}
             <div
               className={styles["chat-body"]}
               ref={scrollRef}
@@ -2533,6 +2545,7 @@ function _Chat(props: ChatProps) {
                                       onClick={() =>
                                         onUserStop(message.id ?? i)
                                       }
+                                      data-action="stop"
                                     />
                                   ) : (
                                     <>
@@ -2629,8 +2642,6 @@ function _Chat(props: ChatProps) {
                 inputRef={inputRef}
                 inputId="chat-input"
                 onKeyDown={onInputKeyDown}
-                onFocus={scrollToBottom}
-                onClick={scrollToBottom}
                 rows={inputRows}
                 autoFocus={autoFocus}
                 inputStyle={{

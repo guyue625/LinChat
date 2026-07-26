@@ -133,16 +133,22 @@ export function PreCode(props: { children: any }) {
   return (
     <>
       <pre ref={ref}>
-        <span
-          className="copy-code-button"
-          onClick={() => {
-            if (ref.current) {
-              copyToClipboard(
-                ref.current.querySelector("code")?.innerText ?? "",
-              );
-            }
-          }}
-        ></span>
+        <div className="code-header">
+          <span className="code-language">
+            {props.children?.props?.className?.replace("language-", "") ||
+              "text"}
+          </span>
+          <span
+            className="copy-code-button"
+            onClick={() => {
+              if (ref.current) {
+                copyToClipboard(
+                  ref.current.querySelector("code")?.innerText ?? "",
+                );
+              }
+            }}
+          ></span>
+        </div>
         {props.children}
       </pre>
       {mermaidCode.length > 0 && (

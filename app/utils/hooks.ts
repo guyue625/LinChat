@@ -16,14 +16,14 @@ export function useAllModels() {
   });
   const models = useMemo(() => {
     if (!exposeModels) return [];
-    // With custom config, the curated workspace list is the source of truth:
-    // "-all" first disables the built-in catalog, then the user's "+" tokens
-    // re-enable exactly the models they added in the model manager.
-    const customTokens = [
-      accessStore.useCustomConfig ? "-all" : "",
-      configStore.customModels,
-      accessStore.customModels,
-    ].join(",");
+    // With custom config, the curated workspace list is the sole source of
+    // truth: "-all" disables the built-in catalog AND whatever the server
+    // enables via CUSTOM_MODELS (its tokens are dropped here on purpose —
+    // e.g. a server-side "all" would otherwise re-enable the whole catalog).
+    // Only the user's "+" tokens from the model manager survive.
+    const customTokens = accessStore.useCustomConfig
+      ? ["-all", configStore.customModels].join(",")
+      : [configStore.customModels, accessStore.customModels].join(",");
     return collectModelsWithDefaultModel(
       configStore.models,
       customTokens,

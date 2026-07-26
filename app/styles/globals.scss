@@ -23,6 +23,11 @@
   --black: #26262a;
   --gray: #f4f4f5;
   --primary: #1d9bbf;
+  // Inverted CTA (LobeHub/Vercel style): near-black button, white text.
+  // --primary keeps serving links / selection / focus accents.
+  --cta-bg: #202024;
+  --cta-fg: #fafafa;
+  --cta-bg-hover: #333338;
   --primary-contrast: #ffffff;
   --second: #f0f0f1;
   --hover-color: #e9e9ea;
@@ -49,6 +54,10 @@
   --black: #ececee;
   --gray: #0e0e10;
   --primary: #46b8d8;
+  // Dark-mode inverted CTA: near-white button, dark text.
+  --cta-bg: #fafafa;
+  --cta-fg: #0e0e10;
+  --cta-bg-hover: #e4e4e5;
   --primary-contrast: #0b1215;
   --second: #141416;
   --hover-color: #212124;
@@ -313,34 +322,57 @@ div.math {
 
 pre {
   position: relative;
+  padding-top: 2.5rem;
 
-  &:hover .copy-code-button {
-    pointer-events: all;
-    transform: translateX(0px);
-    opacity: 0.5;
+  .code-header {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 0.75rem;
+    background: color-mix(in srgb, var(--black) 4%, transparent);
+    border-bottom: 1px solid color-mix(in srgb, var(--black) 8%, transparent);
+    border-radius: 10px 10px 0 0;
+  }
+
+  .code-language {
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: color-mix(in srgb, var(--black) 60%, transparent);
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    user-select: none;
   }
 
   .copy-code-button {
-    position: absolute;
-    right: 10px;
-    top: 1em;
     cursor: pointer;
-    padding: 0px 5px;
-    background-color: var(--black);
-    color: var(--white);
-    border: var(--border-in-light);
-    border-radius: 10px;
-    transform: translateX(10px);
-    pointer-events: none;
-    opacity: 0;
-    transition: all ease 0.3s;
+    padding: 0.25rem 0.5rem;
+    background-color: transparent;
+    color: color-mix(in srgb, var(--black) 70%, transparent);
+    border: 1px solid color-mix(in srgb, var(--black) 12%, transparent);
+    border-radius: 6px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    transition: all 0.15s ease;
+    pointer-events: all;
+    opacity: 1;
 
     &:after {
-      content: "copy";
+      content: "复制";
     }
 
     &:hover {
-      opacity: 1;
+      background: color-mix(in srgb, var(--black) 6%, transparent);
+      border-color: color-mix(in srgb, var(--black) 20%, transparent);
+      color: var(--black);
+    }
+
+    &:active {
+      transform: scale(0.96);
     }
   }
 }
