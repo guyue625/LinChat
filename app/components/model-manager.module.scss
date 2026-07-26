@@ -9,38 +9,27 @@
   display: inline-flex;
   align-items: center;
   height: 22px;
-  padding: 0 8px;
-  border: 1px solid rgba(29, 147, 171, 0.45);
-  border-radius: 999px;
-  background: rgba(29, 147, 171, 0.08);
+  padding: 0 9px;
+  border: 1px solid color-mix(in srgb, var(--primary) 30%, transparent);
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--primary) 8%, transparent);
   color: var(--primary);
   font-size: 11px;
   font-weight: 600;
 }
 
 .fetchButton {
-  min-height: 36px;
+  min-height: 34px;
   flex-shrink: 0;
+  border-radius: 8px !important;
 }
 
 .input,
 .editInput {
   width: min(360px, 38vw);
   max-width: none !important;
-  min-height: 38px !important;
+  min-height: 36px !important;
   text-align: left !important;
-  transition:
-    border-color 0.2s ease,
-    box-shadow 0.2s ease;
-
-  &:hover {
-    border-color: rgba(29, 147, 171, 0.65);
-  }
-
-  &:focus {
-    border-color: var(--primary);
-    box-shadow: 0 0 0 2px rgba(29, 147, 171, 0.14);
-  }
 }
 
 .addActions,
@@ -52,10 +41,12 @@
   gap: 8px;
 }
 
+// ─── Add-model modal ───────────────────────────────────────────────────────
+
 .modelPicker {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 16px;
 }
 
 .manualModelSection,
@@ -65,27 +56,29 @@
   gap: 10px;
 }
 
+// Manual entry as its own quiet card
 .manualModelSection {
-  padding-bottom: 16px;
-  border-bottom: var(--border-in-light);
+  padding: 14px;
+  border: var(--border-in-light);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--black) 2%, var(--white));
 }
 
 .sectionTitle {
   color: var(--black);
-  font-size: 14px;
-  font-weight: 650;
+  font-size: 13px;
+  font-weight: 600;
 }
 
 .sectionHint {
-  margin-top: 3px;
-  color: var(--black);
+  margin-top: 2px;
+  color: color-mix(in srgb, var(--black) 55%, transparent);
   font-size: 12px;
-  opacity: 0.58;
 }
 
 .modalInput {
   width: 100% !important;
-  min-height: 40px !important;
+  min-height: 38px !important;
   text-align: left !important;
 }
 
@@ -108,52 +101,77 @@
 }
 
 .selectAllButton {
-  border: 0;
+  border: var(--border-in-light);
   border-radius: 8px;
-  padding: 8px 10px;
+  padding: 7px 11px;
   background: transparent;
-  color: var(--primary);
+  color: color-mix(in srgb, var(--black) 70%, transparent);
   cursor: pointer;
   font: inherit;
+  font-size: 12.5px;
   white-space: nowrap;
+  transition: color 0.15s ease, background 0.15s ease;
 
   &:hover {
-    background: rgba(29, 147, 171, 0.1);
+    color: var(--primary);
+    background: color-mix(in srgb, var(--primary) 7%, transparent);
+    border-color: color-mix(in srgb, var(--primary) 30%, transparent);
   }
 }
 
 .modelPickerSummary {
-  color: var(--black);
+  color: color-mix(in srgb, var(--black) 55%, transparent);
   font-size: 12px;
-  opacity: 0.65;
 }
 
+// Upstream model list — LobeHub-style card grid
 .modelPickerList {
-  display: flex;
-  max-height: min(52vh, 460px);
-  flex-direction: column;
-  gap: 6px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  max-height: min(48vh, 420px);
+  gap: 8px;
   overflow: auto;
-  padding-right: 4px;
+  padding: 2px;
 }
 
 .modelOption {
+  position: relative;
   display: flex;
   align-items: flex-start;
   gap: 10px;
-  padding: 10px;
-  border: 1px solid transparent;
-  border-radius: 8px;
+  padding: 11px 12px;
+  border: var(--border-in-light);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--black) 2%, var(--white));
   cursor: pointer;
+  transition:
+    border-color 0.15s ease,
+    background 0.15s ease;
 
   &:hover {
-    border-color: rgba(29, 147, 171, 0.25);
-    background: rgba(29, 147, 171, 0.06);
+    border-color: color-mix(in srgb, var(--primary) 35%, transparent);
+    background: color-mix(in srgb, var(--primary) 5%, var(--white));
+  }
+
+  // Selected card gets the accent treatment
+  &:has(input:checked) {
+    border-color: color-mix(in srgb, var(--primary) 55%, transparent);
+    background: color-mix(in srgb, var(--primary) 9%, var(--white));
+  }
+
+  &:has(input:disabled) {
+    cursor: default;
+    opacity: 0.6;
+
+    &:hover {
+      border-color: var(--border-in-light);
+      background: color-mix(in srgb, var(--black) 2%, var(--white));
+    }
   }
 
   input {
-    width: 16px;
-    height: 16px;
+    width: 15px;
+    height: 15px;
     margin: 2px 0 0;
     accent-color: var(--primary);
     flex-shrink: 0;
@@ -163,32 +181,37 @@
 .modelOptionText {
   display: flex;
   min-width: 0;
+  flex: 1;
   flex-direction: column;
   gap: 2px;
   overflow: hidden;
   color: var(--black);
+  font-size: 13px;
   word-break: break-all;
 
   small {
-    opacity: 0.58;
+    color: color-mix(in srgb, var(--black) 52%, transparent);
+    font-size: 11px;
   }
 }
 
 .alreadyAdded {
   flex-shrink: 0;
   align-self: center;
-  border: 1px solid color-mix(in srgb, var(--primary) 35%, transparent);
-  border-radius: 999px;
-  padding: 3px 8px;
+  border-radius: 5px;
+  padding: 2px 7px;
+  background: color-mix(in srgb, var(--primary) 12%, transparent);
   color: var(--primary);
-  font-size: 11px;
+  font-size: 10.5px;
+  font-weight: 500;
 }
 
 .noResults {
-  padding: 24px 12px;
-  color: var(--black);
+  grid-column: 1 / -1;
+  padding: 28px 12px;
+  color: color-mix(in srgb, var(--black) 50%, transparent);
   text-align: center;
-  opacity: 0.6;
+  font-size: 13px;
 }
 
 .addActions {
@@ -213,15 +236,23 @@
 
 .rowActions {
   flex-shrink: 0;
+  gap: 2px;
+  opacity: 0.75;
+  transition: opacity 0.15s ease;
+}
+
+.modelItem:hover .rowActions {
+  opacity: 1;
 }
 
 .actionButton,
 .saveButton,
 .deleteButton {
-  width: 36px;
-  min-width: 36px;
-  height: 36px;
+  width: 32px;
+  min-width: 32px;
+  height: 32px;
   padding: 0 !important;
+  border-radius: 7px !important;
 }
 
 .actionButton {
@@ -230,14 +261,14 @@
 
 .deleteButton {
   background: transparent !important;
-  color: rgba(239, 68, 68, 0.85) !important;
+  color: var(--danger) !important;
 
   &:hover {
-    background: rgba(239, 68, 68, 0.08) !important;
+    background: color-mix(in srgb, var(--danger) 9%, transparent) !important;
   }
 
   path {
-    fill: rgba(239, 68, 68, 0.85) !important;
+    fill: var(--danger) !important;
   }
 }
 
@@ -292,6 +323,10 @@
     }
   }
 
+  .modelPickerList {
+    grid-template-columns: 1fr;
+  }
+
   .modelPickerToolbar {
     align-items: stretch;
     flex-direction: column;
@@ -304,6 +339,5 @@
 
   .selectAllButton {
     align-self: flex-start;
-    padding-left: 0;
   }
 }

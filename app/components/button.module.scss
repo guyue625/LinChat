@@ -20,10 +20,27 @@
 
   &.primary {
     background-color: var(--primary);
-    color: white;
+    color: var(--primary-contrast, white);
 
-    path {
-      fill: white !important;
+    // Icons must read in the contrast color regardless of theme.
+    // Stroke-styled icons (inline style="stroke:...") keep fill:none;
+    // fill-based icons get the contrast fill. Beat the dark-mode invert.
+    svg {
+      filter: none !important;
+    }
+
+    path[style*="stroke"],
+    [stroke] {
+      fill: none !important;
+      stroke: var(--primary-contrast, white) !important;
+    }
+
+    path:not([style*="stroke"]):not([stroke]) {
+      fill: var(--primary-contrast, white) !important;
+    }
+
+    &:hover:not([disabled]) {
+      filter: brightness(1.08);
     }
   }
 

@@ -211,6 +211,29 @@ export function filterModelsByProvider<
   );
 }
 
+/**
+ * Multi-provider variant of filterModelsByProvider: keep available models
+ * whose provider is in the given list. An empty/undefined list means no
+ * provider restriction (all available models pass).
+ */
+export function filterModelsByProviders<
+  T extends {
+    available: boolean;
+    provider?: { providerName: string };
+  },
+>(models: readonly T[], providerNames?: readonly string[]): T[] {
+  if (!providerNames || providerNames.length === 0) {
+    return models.filter((model) => model.available);
+  }
+  const nameSet = new Set(providerNames.map((name) => name.toLowerCase()));
+  return models.filter(
+    (model) =>
+      model.available &&
+      !!model.provider &&
+      nameSet.has(model.provider.providerName.toLowerCase()),
+  );
+}
+
 export function isModelAvailableInServer(
   customModels: string,
   modelName: string,

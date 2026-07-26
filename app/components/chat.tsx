@@ -122,7 +122,7 @@ import { createTTSPlayer } from "../utils/audio";
 import { MsEdgeTTS, OUTPUT_FORMAT } from "../utils/ms_edge_tts";
 
 import { isEmpty } from "lodash-es";
-import { filterModelsByProvider } from "../utils/model";
+import { filterModelsByProviders } from "../utils/model";
 import { getModelVendor } from "../utils/model-vendor";
 import { focusWithoutScroll } from "../utils/focus-without-scroll";
 import { getComposerPopoverPlacement } from "../utils/popover";
@@ -637,16 +637,29 @@ export function ChatActions(props: ChatActionsProps) {
     enabled: accountEnabled,
     user: accountUser,
   });
-  const selectedProvider = accessStore.useCustomConfig
-    ? accessStore.provider
-    : undefined;
+  // Every provider with usable credentials contributes models, so users can
+  // mix e.g. OpenAI and Anthropic models in one deployment. Falls back to the
+  // single global provider switch when no credentials are configured locally.
+  const configuredProviders = accessStore.useCustomConfig
+    ? accessStore.configuredProviders()
+    : [];
+  const selectedProviders = useMemo(() => {
+    if (!accessStore.useCustomConfig) return undefined;
+    if (configuredProviders.length > 0) return configuredProviders;
+    return [accessStore.provider];
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    accessStore.useCustomConfig,
+    accessStore.provider,
+    configuredProviders.join(","),
+  ]);
   const models = useMemo(() => {
-    const available = filterModelsByProvider(allModels, selectedProvider);
+    const available = filterModelsByProviders(allModels, selectedProviders);
     const defaultModel = available.find((model) => model.isDefault);
     return defaultModel
       ? [defaultModel, ...available.filter((model) => model !== defaultModel)]
       : available;
-  }, [allModels, selectedProvider]);
+  }, [allModels, selectedProviders]);
   const showModelPicker = shouldShowModelPicker(
     {
       enabled: accountEnabled,

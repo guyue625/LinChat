@@ -231,6 +231,32 @@ export const useAccessStore = createPersistStore(
       return ensure(get(), ["siliconflowApiKey"]);
     },
 
+    // Providers with usable client-side credentials. Used by the chat model
+    // picker so users can mix models from several providers at once instead
+    // of being locked to the single global `provider` switch.
+    configuredProviders(): ServiceProvider[] {
+      if (!get().useCustomConfig) return [];
+      const providers: ServiceProvider[] = [];
+      if (this.isValidOpenAI()) providers.push(ServiceProvider.OpenAI);
+      if (this.isValidAzure()) providers.push(ServiceProvider.Azure);
+      if (this.isValidGoogle()) providers.push(ServiceProvider.Google);
+      if (this.isValidAnthropic()) providers.push(ServiceProvider.Anthropic);
+      if (this.isValidBaidu()) providers.push(ServiceProvider.Baidu);
+      if (this.isValidByteDance()) providers.push(ServiceProvider.ByteDance);
+      if (this.isValidAlibaba()) providers.push(ServiceProvider.Alibaba);
+      if (this.isValidTencent()) providers.push(ServiceProvider.Tencent);
+      if (this.isValidMoonshot()) providers.push(ServiceProvider.Moonshot);
+      if (this.isValidIflytek()) providers.push(ServiceProvider.Iflytek);
+      if (this.isValidDeepSeek()) providers.push(ServiceProvider.DeepSeek);
+      if (this.isValidXAI()) providers.push(ServiceProvider.XAI);
+      if (this.isValidChatGLM()) providers.push(ServiceProvider.ChatGLM);
+      if (this.isValidSiliconFlow())
+        providers.push(ServiceProvider.SiliconFlow);
+      if (ensure(get(), ["ai302ApiKey"]))
+        providers.push(ServiceProvider["302.AI"]);
+      return providers;
+    },
+
     isAuthorized() {
       this.fetch();
 

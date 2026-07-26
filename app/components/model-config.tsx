@@ -7,7 +7,7 @@ import { ListItem, Select } from "./ui-lib";
 import { useAllModels } from "../utils/hooks";
 import { groupBy } from "lodash-es";
 import styles from "./model-config.module.scss";
-import { filterModelsByProvider, getModelProvider } from "../utils/model";
+import { filterModelsByProviders, getModelProvider } from "../utils/model";
 import { useEffect, useMemo } from "react";
 import { useAccount } from "./account-context";
 import {
@@ -29,12 +29,24 @@ export function ModelConfigList(props: {
     user,
   });
   const accessStore = useAccessStore();
-  const selectedProvider = accessStore.useCustomConfig
-    ? accessStore.provider
-    : undefined;
+  // Offer models from every provider that has usable credentials; fall back
+  // to the single global provider switch when none are configured locally.
+  const configuredProviders = accessStore.useCustomConfig
+    ? accessStore.configuredProviders()
+    : [];
+  const selectedProviders = useMemo(() => {
+    if (!accessStore.useCustomConfig) return undefined;
+    if (configuredProviders.length > 0) return configuredProviders;
+    return [accessStore.provider];
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    accessStore.useCustomConfig,
+    accessStore.provider,
+    configuredProviders.join(","),
+  ]);
   const selectableModels = useMemo(
-    () => filterModelsByProvider(allModels, selectedProvider),
-    [allModels, selectedProvider],
+    () => filterModelsByProviders(allModels, selectedProviders),
+    [allModels, selectedProviders],
   );
   const groupModels = groupBy(selectableModels, "provider.providerName");
   const value = `${modelConfig.model}@${modelConfig?.providerName}`;
