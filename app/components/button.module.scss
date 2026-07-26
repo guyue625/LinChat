@@ -28,17 +28,17 @@
   }
 
   &.danger {
-    color: rgba($color: red, $alpha: 0.8);
-    border-color: rgba($color: red, $alpha: 0.5);
-    background-color: rgba($color: red, $alpha: 0.05);
+    color: color-mix(in srgb, #ff8896 85%, transparent);
+    border-color: color-mix(in srgb, #ff8896 50%, transparent);
+    background-color: color-mix(in srgb, #ff8896 5%, transparent);
 
     &:hover {
-      border-color: red;
-      background-color: rgba($color: red, $alpha: 0.1);
+      border-color: #ff8896;
+      background-color: color-mix(in srgb, #ff8896 10%, transparent);
     }
 
     path {
-      fill: red !important;
+      fill: #ff8896 !important;
     }
   }
 

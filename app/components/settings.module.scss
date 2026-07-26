@@ -385,10 +385,10 @@
 }
 
 .settings-card-title-danger {
-  color: #e25555;
+  color: var(--danger);
 
   &::after {
-    background: color-mix(in srgb, #e25555 20%, transparent);
+    background: color-mix(in srgb, var(--danger) 20%, transparent);
   }
 }
 

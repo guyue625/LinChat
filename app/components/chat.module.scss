@@ -11,7 +11,7 @@
   cursor: default;
   width: 64px;
   height: 64px;
-  border: rgba($color: #888, $alpha: 0.2) 1px solid;
+  border: var(--border-in-light);
   border-radius: 5px;
   margin-right: 10px;
   background-size: cover;
@@ -158,7 +158,7 @@
 
     &:hover {
       opacity: 1;
-      background-color: rgba(0, 0, 0, 0.05);
+      background-color: color-mix(in srgb, var(--black) 5%, transparent);
     }
   }
 
@@ -355,14 +355,14 @@
 
 .chat-message-status {
   font-size: 12px;
-  color: #aaa;
+  color: color-mix(in srgb, var(--black) 55%, transparent);
   line-height: 1.5;
   margin-top: 5px;
 }
 
 .chat-message-tools {
   font-size: 12px;
-  color: #aaa;
+  color: color-mix(in srgb, var(--black) 55%, transparent);
   line-height: 1.5;
   margin-top: 5px;
   .chat-message-tool {
@@ -380,7 +380,7 @@
   max-width: 100%;
   margin-top: 10px;
   border-radius: 10px;
-  background-color: rgba(0, 0, 0, 0.05);
+  background-color: color-mix(in srgb, var(--black) 5%, transparent);
   padding: 10px;
   font-size: 14px;
   user-select: text;
@@ -395,7 +395,7 @@
   align-items: center;
   justify-content: space-between;
   border-radius: 10px;
-  background-color: rgba(0, 0, 0, 0.05);
+  background-color: color-mix(in srgb, var(--black) 5%, transparent);
   border: var(--border-in-light);
   position: relative;
   transition: all ease 0.3s;
@@ -434,7 +434,7 @@
 .chat-message-item-image-multi {
   box-sizing: border-box;
   border-radius: 10px;
-  border: rgba($color: #888, $alpha: 0.2) 1px solid;
+  border: var(--border-in-light);
 }
 
 @media only screen and (max-width: 600px) {
@@ -1142,10 +1142,12 @@
 .chat-message-item :global(.markdown-body) pre {
   overflow: auto;
   margin: 16px 0;
-  padding: 16px;
+  padding: 0;
   border: 1px solid color-mix(in srgb, var(--black) 10%, transparent);
   border-radius: 12px;
-  background: color-mix(in srgb, var(--black) 5%, var(--white));
+  // Code blocks stay dark in both themes (highlight theme is dark-only);
+  // matches the .hljs background so the block reads as one surface.
+  background: #141416;
   box-shadow: none;
 }
 
@@ -1463,7 +1465,7 @@
   padding: 10px 14px;
   border: 1px solid color-mix(in srgb, var(--black) 9%, transparent);
   border-radius: 16px 16px 4px 16px;
-  background: color-mix(in srgb, var(--black) 7%, var(--white));
+  background: color-mix(in srgb, var(--black) 6%, var(--white));
   line-height: 1.6;
 }
 
@@ -1774,7 +1776,7 @@
 .chat-input-panel-inner:has(.chat-input:focus) {
   border: 0;
   box-shadow: inset 0 0 0 1px
-    color-mix(in srgb, var(--primary) 58%, transparent);
+    color-mix(in srgb, var(--primary) 50%, transparent);
 }
 
 .chat-input-panel-inner-attach {

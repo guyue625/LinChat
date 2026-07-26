@@ -30,16 +30,16 @@
   --color-prettylights-syntax-brackethighlighter-angle: #57606a;
   --color-prettylights-syntax-sublimelinter-gutter-mark: #8c959f;
   --color-prettylights-syntax-constant-other-reference-link: #0a3069;
-  --color-fg-default: #24292f;
+  --color-fg-default: #26262a;
   --color-fg-muted: #57606a;
   --color-fg-subtle: #6e7781;
   --color-canvas-default: transparent;
-  --color-canvas-subtle: #f6f8fa;
-  --color-border-default: #d0d7de;
-  --color-border-muted: hsla(210, 18%, 87%, 1);
-  --color-neutral-muted: rgba(175, 184, 193, 0.2);
-  --color-accent-fg: #0969da;
-  --color-accent-emphasis: #0969da;
+  --color-canvas-subtle: #f6f6f7;
+  --color-border-default: rgba(0, 0, 0, 0.1);
+  --color-border-muted: rgba(0, 0, 0, 0.06);
+  --color-neutral-muted: rgba(0, 0, 0, 0.06);
+  --color-accent-fg: #1d9bbf;
+  --color-accent-emphasis: #1d9bbf;
   --color-attention-subtle: #fff8c5;
   --color-danger-fg: #cf222e;
 }
@@ -76,18 +76,18 @@
   --color-prettylights-syntax-brackethighlighter-angle: #8b949e;
   --color-prettylights-syntax-sublimelinter-gutter-mark: #484f58;
   --color-prettylights-syntax-constant-other-reference-link: #a5d6ff;
-  --color-fg-default: #c9d1d9;
-  --color-fg-muted: #8b949e;
-  --color-fg-subtle: #6e7681;
+  --color-fg-default: #ececee;
+  --color-fg-muted: #9b9ba2;
+  --color-fg-subtle: #7a7a81;
   --color-canvas-default: transparent;
-  --color-canvas-subtle: #161b22;
-  --color-border-default: #30363d;
-  --color-border-muted: #21262d;
-  --color-neutral-muted: rgba(110, 118, 129, 0.4);
-  --color-accent-fg: #58a6ff;
-  --color-accent-emphasis: #1f6feb;
+  --color-canvas-subtle: #212124;
+  --color-border-default: rgba(255, 255, 255, 0.1);
+  --color-border-muted: rgba(255, 255, 255, 0.06);
+  --color-neutral-muted: rgba(255, 255, 255, 0.08);
+  --color-accent-fg: #46b8d8;
+  --color-accent-emphasis: #46b8d8;
   --color-attention-subtle: rgba(187, 128, 9, 0.15);
-  --color-danger-fg: #f85149;
+  --color-danger-fg: #ff8896;
 }
 
 .markdown-body {
@@ -97,7 +97,7 @@
   color: var(--color-fg-default);
   background-color: var(--color-canvas-default);
   font-size: 14px;
-  line-height: 1.5;
+  line-height: 1.7;
   word-wrap: break-word;
 }
 
@@ -177,9 +177,7 @@
 .markdown-body h1 {
   margin: 0.67em 0;
   font-weight: var(--base-text-weight-semibold, 600);
-  padding-bottom: 0.3em;
-  font-size: 2em;
-  border-bottom: 1px solid var(--color-border-muted);
+  font-size: 1.6em;
 }
 
 .markdown-body mark {
@@ -229,9 +227,7 @@
 .markdown-body hr {
   box-sizing: content-box;
   overflow: hidden;
-  background: transparent;
-  border-bottom: 1px solid var(--color-border-muted);
-  height: 0.25em;
+  height: 1px;
   padding: 0;
   margin: 24px 0;
   background-color: var(--color-border-default);
@@ -301,11 +297,13 @@
 
 .markdown-body table {
   border-spacing: 0;
-  border-collapse: collapse;
+  border-collapse: separate;
   display: block;
   width: max-content;
   max-width: 100%;
   overflow: auto;
+  border: 1px solid var(--color-border-default);
+  border-radius: 10px;
 }
 
 .markdown-body td,
@@ -376,17 +374,15 @@
 .markdown-body h4,
 .markdown-body h5,
 .markdown-body h6 {
-  margin-top: 24px;
-  margin-bottom: 16px;
+  margin-top: 26px;
+  margin-bottom: 14px;
   font-weight: var(--base-text-weight-semibold, 600);
-  line-height: 1.25;
+  line-height: 1.35;
 }
 
 .markdown-body h2 {
   font-weight: var(--base-text-weight-semibold, 600);
-  padding-bottom: 0.3em;
-  font-size: 1.5em;
-  border-bottom: 1px solid var(--color-border-muted);
+  font-size: 1.35em;
 }
 
 .markdown-body h3 {
@@ -417,9 +413,11 @@
 
 .markdown-body blockquote {
   margin: 0;
-  padding: 0 1em;
+  padding: 8px 14px;
   color: var(--color-fg-muted);
-  border-left: 0.25em solid var(--color-border-default);
+  border-left: 3px solid var(--color-accent-fg);
+  border-radius: 4px;
+  background: var(--color-neutral-muted);
 }
 
 .markdown-body ul,
@@ -669,21 +667,24 @@
 
 .markdown-body table th {
   font-weight: var(--base-text-weight-semibold, 600);
+  color: var(--color-fg-muted);
+  font-size: 13px;
+  background-color: var(--color-canvas-subtle);
 }
 
 .markdown-body table th,
 .markdown-body table td {
-  padding: 6px 13px;
-  border: 1px solid var(--color-border-default);
+  padding: 9px 14px;
+  border: 0;
+  border-bottom: 1px solid var(--color-border-muted);
+}
+
+.markdown-body table tr:last-child td {
+  border-bottom: 0;
 }
 
 .markdown-body table tr {
   background-color: var(--color-canvas-default);
-  border-top: 1px solid var(--color-border-muted);
-}
-
-.markdown-body table tr:nth-child(2n) {
-  background-color: var(--color-canvas-subtle);
 }
 
 .markdown-body table img {
@@ -842,8 +843,9 @@
   padding: 16px 16px 8px 16px;
   overflow: auto;
   font-size: 85%;
-  line-height: 1.45;
-  border-radius: 6px;
+  line-height: 1.55;
+  border: 1px solid var(--color-border-muted);
+  border-radius: 10px;
   direction: ltr;
 }
 

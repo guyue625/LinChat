@@ -1,6 +1,6 @@
 .window-header {
   padding: 14px 20px;
-  border-bottom: rgba(0, 0, 0, 0.1) 1px solid;
+  border-bottom: var(--border-in-light);
   position: relative;
 
   display: flex;
