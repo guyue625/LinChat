@@ -609,6 +609,7 @@ export function Settings() {
   const activeCategory: SettingsCategory = isSettingsCategory(requestedCategory)
     ? requestedCategory
     : "general";
+  const [searchQuery, setSearchQuery] = useState("");
   const categories = [
     {
       id: "general",
@@ -816,6 +817,15 @@ export function Settings() {
               {Locale.Settings.SubTitle}
             </div>
           </div>
+        </div>
+        <div className={styles["settings-search"]}>
+          <input
+            type="text"
+            placeholder={Locale.Settings.SearchPlaceholder}
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className={styles["settings-search-input"]}
+          />
         </div>
         <div className={styles["settings-close"]}>
           <IconButton

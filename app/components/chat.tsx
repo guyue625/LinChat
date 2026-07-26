@@ -1681,6 +1681,8 @@ function _Chat(props: ChatProps) {
     if (matchCommand.matched) {
       setUserInput("");
       setPromptHints([]);
+      // Clear draft when submitting
+      localStorage.removeItem(UNFINISHED_INPUT(session.id));
       matchCommand.invoke();
       return;
     }
@@ -1693,6 +1695,8 @@ function _Chat(props: ChatProps) {
       chatStore.setLastInput(userInput);
       setUserInput("");
       setPromptHints([]);
+      // Clear draft when submitting
+      localStorage.removeItem(UNFINISHED_INPUT(session.id));
       if (!isMobileScreen) inputRef.current?.focus();
       setAutoScroll(true);
     });
@@ -2075,22 +2079,50 @@ function _Chat(props: ChatProps) {
   // edit / insert message modal
   const [isEditingMessage, setIsEditingMessage] = useState(false);
 
-  // remember unfinished input
+  // remember unfinished input per session
   useEffect(() => {
-    // try to load from local storage
-    const key = UNFINISHED_INPUT(session.id);
-    const mayBeUnfinishedInput = localStorage.getItem(key);
-    if (mayBeUnfinishedInput && userInput.length === 0) {
-      setUserInput(mayBeUnfinishedInput);
-      localStorage.removeItem(key);
+    // Save current input before loading new session's draft
+    const currentKey = UNFINISHED_INPUT(session.id);
+
+    // Load draft for current session
+    const savedDraft = localStorage.getItem(currentKey);
+    if (savedDraft) {
+      setUserInput(savedDraft);
+      // Auto-resize textarea after loading draft
+      setTimeout(() => {
+        if (inputRef.current) {
+          autoGrowTextArea(inputRef.current);
+        }
+      }, 0);
+    } else {
+      setUserInput("");
     }
 
-    const dom = inputRef.current;
+    // Cleanup: save draft when session changes or component unmounts
     return () => {
-      localStorage.setItem(key, dom?.value ?? "");
+      const currentInput = inputRef.current?.value ?? userInput;
+      if (currentInput.trim()) {
+        localStorage.setItem(currentKey, currentInput);
+      } else {
+        // Remove empty drafts to keep storage clean
+        localStorage.removeItem(currentKey);
+      }
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [session.id]);
+
+  // Auto-save draft periodically while typing
+  useEffect(() => {
+    if (!userInput) return;
+
+    const timer = setTimeout(() => {
+      const key = UNFINISHED_INPUT(session.id);
+      if (userInput.trim()) {
+        localStorage.setItem(key, userInput);
+      }
+    }, 500); // Auto-save after 500ms of no typing
+
+    return () => clearTimeout(timer);
+  }, [userInput, session.id]);
 
   // 快捷键 shortcut keys
   const [showShortcutKeyModal, setShowShortcutKeyModal] = useState(false);

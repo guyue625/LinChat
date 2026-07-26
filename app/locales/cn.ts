@@ -161,6 +161,7 @@ const cn = {
   Settings: {
     Title: "设置",
     SubTitle: "所有设置选项",
+    SearchPlaceholder: "搜索设置项...",
     ShowPassword: "显示密码",
     Category: {
       Navigation: "设置分类",
@@ -738,6 +739,17 @@ const cn = {
     Item: {
       View: "查看",
     },
+  },
+  CommandPalette: {
+    Placeholder: "搜索会话或输入关键词...",
+    NoResults: "未找到匹配的会话",
+    Navigate: "导航",
+    Select: "选择",
+    Close: "关闭",
+    JustNow: "刚刚",
+    MinutesAgo: (n: number) => `${n} 分钟前`,
+    HoursAgo: (n: number) => `${n} 小时前`,
+    DaysAgo: (n: number) => `${n} 天前`,
   },
   Plugin: {
     Name: "插件",

@@ -136,6 +136,13 @@ const McpMarketPage = dynamic(
   },
 );
 
+const CommandPalette = dynamic(
+  async () => (await import("./command-palette")).CommandPalette,
+  {
+    loading: () => null,
+  },
+);
+
 export function useSwitchTheme() {
   const config = useAppConfig();
 
@@ -233,6 +240,7 @@ function Screen() {
 
   const isMobileScreen = useMobileScreen();
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+  const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
   const shouldTightBorder =
     getClientConfig()?.isApp || (config.tightBorder && !isMobileScreen);
 
@@ -247,6 +255,19 @@ function Screen() {
 
   useEffect(() => {
     loadAsyncGoogleFont();
+  }, []);
+
+  // Ctrl+K / Cmd+K to open command palette
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === "k") {
+        e.preventDefault();
+        setCommandPaletteOpen(true);
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
   }, []);
 
   if (isArtifact) {
@@ -302,6 +323,10 @@ function Screen() {
       })}
     >
       {renderContent()}
+      <CommandPalette
+        show={commandPaletteOpen}
+        onClose={() => setCommandPaletteOpen(false)}
+      />
     </div>
   );
 }

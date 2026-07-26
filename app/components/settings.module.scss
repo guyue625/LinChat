@@ -47,6 +47,37 @@
   }
 }
 
+.settings-search {
+  display: flex;
+  align-items: center;
+  flex: 0 1 400px;
+  margin: 0 16px;
+  min-width: 0;
+}
+
+.settings-search-input {
+  width: 100%;
+  height: 38px;
+  padding: 0 14px;
+  border: 1px solid color-mix(in srgb, var(--black) 12%, transparent);
+  border-radius: 10px;
+  background: var(--white);
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--black);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+
+  &::placeholder {
+    color: color-mix(in srgb, var(--black) 40%, transparent);
+  }
+
+  &:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 10%, transparent);
+  }
+}
+
 .settings-close {
   button {
     width: 38px;

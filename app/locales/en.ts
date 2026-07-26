@@ -163,6 +163,7 @@ const en: LocaleType = {
   Settings: {
     Title: "Settings",
     SubTitle: "All Settings",
+    SearchPlaceholder: "Search settings...",
     ShowPassword: "ShowPassword",
     Category: {
       Navigation: "Settings categories",
@@ -762,6 +763,17 @@ const en: LocaleType = {
     Item: {
       View: "View",
     },
+  },
+  CommandPalette: {
+    Placeholder: "Search sessions or enter keywords...",
+    NoResults: "No matching sessions found",
+    Navigate: "to navigate",
+    Select: "to select",
+    Close: "to close",
+    JustNow: "Just now",
+    MinutesAgo: (n: number) => `${n} min ago`,
+    HoursAgo: (n: number) => `${n} hrs ago`,
+    DaysAgo: (n: number) => `${n} days ago`,
   },
   Plugin: {
     Name: "Plugin",

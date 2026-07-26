@@ -2312,7 +2312,7 @@
 @media only screen and (max-width: 600px) {
   .chat-input-panel {
     width: calc(100% - 20px);
-    margin-bottom: 10px;
+    margin-bottom: max(10px, env(safe-area-inset-bottom));
     padding: 0;
   }
 
@@ -2323,7 +2323,7 @@
   }
 
   .composer-footer {
-    padding: 6px 8px 8px;
+    padding: 6px 8px calc(8px + env(safe-area-inset-bottom));
   }
 
   .composer-model-button {
@@ -2334,14 +2334,14 @@
   .composer-more-menu {
     position: fixed;
     right: 10px;
-    bottom: 76px;
+    bottom: calc(76px + env(safe-area-inset-bottom));
     left: 10px;
     width: auto;
-    max-height: min(520px, calc(100vh - 100px));
+    max-height: min(520px, calc(100vh - 100px - env(safe-area-inset-bottom)));
   }
 
   .composer-model-list {
-    max-height: min(420px, calc(100vh - 170px));
+    max-height: min(420px, calc(100vh - 170px - env(safe-area-inset-bottom)));
   }
 
   .chat-input-send {
