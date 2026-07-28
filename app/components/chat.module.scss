@@ -327,28 +327,6 @@
   align-items: flex-end;
 }
 
-.chat-message-status {
-  font-size: 12px;
-  color: color-mix(in srgb, var(--black) 55%, transparent);
-  line-height: 1.5;
-  margin-top: 5px;
-}
-
-.chat-message-tools {
-  font-size: 12px;
-  color: color-mix(in srgb, var(--black) 55%, transparent);
-  line-height: 1.5;
-  margin-top: 5px;
-  .chat-message-tool {
-    display: flex;
-    align-items: end;
-    svg {
-      margin-left: 5px;
-      margin-right: 5px;
-    }
-  }
-}
-
 .chat-message-item {
   box-sizing: border-box;
   max-width: 100%;
@@ -1136,52 +1114,6 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-}
-
-/* Rich response content and tool activity share the same restrained visual language. */
-.chat-message-status {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  margin: 8px 0 0 10px;
-  color: var(--black);
-  font-size: 12px;
-  opacity: 0.5;
-}
-
-.chat-message-status::before {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--primary);
-  content: "";
-  animation: status-pulse 1.4s ease-in-out infinite;
-}
-
-.chat-message-tools {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin: 10px 0 2px 10px;
-  color: var(--black);
-  font-size: 12px;
-}
-
-.chat-message-tools .chat-message-tool {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  min-height: 30px;
-  padding: 4px 10px;
-  border: 1px solid color-mix(in srgb, var(--black) 9%, transparent);
-  border-radius: 9px;
-  background: color-mix(in srgb, var(--black) 3%, var(--white));
-}
-
-.chat-message-tools .chat-message-tool svg {
-  width: 14px;
-  height: 14px;
-  margin: 0;
 }
 
 .chat-message-item :global(.markdown-body) {
@@ -2414,32 +2346,6 @@
   color: currentColor;
   stroke: currentColor;
   filter: none !important;
-}
-
-.chat-message-status {
-  max-width: min(560px, calc(100vw - 64px));
-  margin: 10px 0 2px 10px;
-  padding: 8px 10px;
-  box-sizing: border-box;
-  border: 1px solid color-mix(in srgb, var(--black) 8%, transparent);
-  border-radius: 10px;
-  background: color-mix(in srgb, var(--black) 3%, transparent);
-  opacity: 0.72;
-}
-
-.chat-message-status span {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.chat-message-status small {
-  flex: 0 0 auto;
-  padding-left: 2px;
-  color: color-mix(in srgb, var(--black) 52%, transparent);
-  font-size: 11px;
-  font-variant-numeric: tabular-nums;
 }
 
 @media (max-width: 600px) {

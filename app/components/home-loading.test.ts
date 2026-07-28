@@ -63,7 +63,7 @@ describe("home loading screen", () => {
   });
 
   test("supports explicit and system light themes", () => {
-    expect(styleSource).toContain("@mixin loading-light-theme");
+    expect(styleSource).toContain("@mixin loading-minimal-light-theme");
     expect(styleSource).toContain("@media (prefers-color-scheme: light)");
     expect(styleSource).toContain(":global(body:not(.dark))");
     expect(styleSource).toContain(":global(.light)");
@@ -97,5 +97,19 @@ describe("home loading screen", () => {
     const reducedMotionRules = loadingStyles.slice(reducedMotionStart);
     expect(reducedMotionRules).toContain(".loading-logo");
     expect(reducedMotionRules).toContain(".loading-dots span");
+  });
+
+  test("does not retain the removed decorative loading system", () => {
+    [
+      ".loading-grid",
+      ".loading-kicker",
+      ".loading-core",
+      ".loading-logo-shell",
+      ".loading-signal",
+      "@keyframes loading-grid-drift",
+      "@keyframes loading-core-spin",
+    ].forEach((legacyStyle) => {
+      expect(styleSource).not.toContain(legacyStyle);
+    });
   });
 });

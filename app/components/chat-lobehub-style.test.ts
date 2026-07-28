@@ -5,6 +5,10 @@ const chatSource = fs.readFileSync(
   path.join(process.cwd(), "app/components/chat.tsx"),
   "utf8",
 );
+const messageRowSource = fs.readFileSync(
+  path.join(process.cwd(), "app/components/chat/message-row.tsx"),
+  "utf8",
+);
 const styleSource = fs.readFileSync(
   path.join(process.cwd(), "app/components/chat.module.scss"),
   "utf8",
@@ -15,11 +19,12 @@ const lobeStyleSource = styleSource.slice(
 
 describe("LobeHub-inspired chat surface", () => {
   test("routes assistant progress through the compact activity component", () => {
-    expect(chatSource).toContain(
-      'import { ChatActivity } from "./chat-activity"',
+    expect(chatSource).toContain('from "./chat/message-row"');
+    expect(messageRowSource).toContain(
+      'import { ChatActivity } from "../chat-activity"',
     );
-    expect(chatSource).toContain("<ChatActivity");
-    expect(chatSource).not.toContain('styles["chat-message-tools"]');
+    expect(messageRowSource).toContain("<ChatActivity");
+    expect(messageRowSource).not.toContain('styles["chat-message-tools"]');
   });
 
   test("defines a continuous reading canvas with compact user bubbles", () => {
@@ -36,6 +41,8 @@ describe("LobeHub-inspired chat surface", () => {
     expect(styleSource).toContain(".chat-activity-thinking");
     expect(styleSource).toContain(":global(.markdown-body .code-block-pre)");
     expect(styleSource).not.toContain("background: #141416");
+    expect(styleSource).not.toContain(".chat-message-status");
+    expect(styleSource).not.toContain(".chat-message-tools");
   });
 
   test("aligns assistant content to the reading edge without an avatar background", () => {

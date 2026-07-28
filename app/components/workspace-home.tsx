@@ -11,7 +11,7 @@ import {
 } from "../data/featured-assistants";
 import { deepClone } from "../utils/clone";
 import { EmojiAvatar } from "./emoji";
-import { ChatComposer } from "./chat";
+import { ChatComposer } from "./chat/composer";
 import styles from "./workspace-home.module.scss";
 
 export function WorkspaceHome() {
@@ -25,7 +25,6 @@ export function WorkspaceHome() {
   const [attachImages, setAttachImages] = useState<string[]>([]);
   const [uploading, setUploading] = useState(false);
   const [assistantMenuOpen, setAssistantMenuOpen] = useState(false);
-  const [, setUnusedModal] = useState(false);
 
   const updateDraftMask = useCallback((updater: (mask: Mask) => void) => {
     setDraftMask((current) => {
@@ -163,12 +162,6 @@ export function WorkspaceHome() {
             homeMode
             rows={4}
             autoFocus
-            showPromptModal={() => undefined}
-            scrollToBottom={() => undefined}
-            showPromptHints={() => undefined}
-            hitBottom
-            setShowShortcutKeyModal={setUnusedModal}
-            setShowChatSidePanel={setUnusedModal}
             sendDisabled={!input.trim() && attachImages.length === 0}
           />
         </div>
