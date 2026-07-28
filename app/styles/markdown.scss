@@ -35,6 +35,19 @@
   --color-fg-subtle: #6e7781;
   --color-canvas-default: transparent;
   --color-canvas-subtle: #f6f6f7;
+  --color-code-canvas: #f7f7f8;
+  --color-code-header: #f0f0f2;
+  --color-code-success: #16845b;
+  --color-code-syntax-comment: #6a737d;
+  --color-code-syntax-danger: #cf222e;
+  --color-code-syntax-number: #953800;
+  --color-code-syntax-built-in: #9a6700;
+  --color-code-syntax-keyword: #8250df;
+  --color-code-syntax-tag: #0a7a74;
+  --color-code-syntax-string: #116329;
+  --color-code-syntax-section: #0550ae;
+  --color-code-syntax-operator: #8250df;
+  --color-code-syntax-punctuation: #57606a;
   --color-border-default: rgba(0, 0, 0, 0.1);
   --color-border-muted: rgba(0, 0, 0, 0.06);
   --color-neutral-muted: rgba(0, 0, 0, 0.06);
@@ -81,6 +94,19 @@
   --color-fg-subtle: #7a7a81;
   --color-canvas-default: transparent;
   --color-canvas-subtle: #212124;
+  --color-code-canvas: #171719;
+  --color-code-header: #202023;
+  --color-code-success: #51c995;
+  --color-code-syntax-comment: #565f89;
+  --color-code-syntax-danger: #f7768e;
+  --color-code-syntax-number: #ff9e64;
+  --color-code-syntax-built-in: #e0af68;
+  --color-code-syntax-keyword: #7dcfff;
+  --color-code-syntax-tag: #73daca;
+  --color-code-syntax-string: #9ece6a;
+  --color-code-syntax-section: #7aa2f7;
+  --color-code-syntax-operator: #bb9af7;
+  --color-code-syntax-punctuation: #c0caf5;
   --color-border-default: rgba(255, 255, 255, 0.1);
   --color-border-muted: rgba(255, 255, 255, 0.06);
   --color-neutral-muted: rgba(255, 255, 255, 0.08);
@@ -864,6 +890,156 @@
   word-wrap: normal;
   background-color: transparent;
   border: 0;
+}
+
+.markdown-body .code-block {
+  position: relative;
+  margin: 16px 0 20px;
+  overflow: hidden;
+  border: 1px solid var(--color-border-muted);
+  border-radius: 8px;
+  background: var(--color-code-canvas);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+  direction: ltr;
+}
+
+.markdown-body .code-header {
+  display: flex;
+  min-height: 36px;
+  box-sizing: border-box;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 0 6px 0 12px;
+  border-bottom: 1px solid var(--color-border-muted);
+  background: var(--color-code-header);
+}
+
+.markdown-body .code-language-label {
+  display: inline-flex;
+  min-width: 0;
+  align-items: center;
+  gap: 7px;
+  color: var(--color-fg-muted);
+  user-select: none;
+}
+
+.markdown-body .code-language-label svg {
+  width: 14px;
+  height: 14px;
+  flex: 0 0 14px;
+  color: currentColor;
+  stroke: currentColor;
+  filter: none !important;
+}
+
+.markdown-body .code-language {
+  min-width: 0;
+  overflow: hidden;
+  color: inherit;
+  font-family: ui-monospace, SFMono-Regular, SF Mono, Menlo, Consolas,
+    Liberation Mono, monospace;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.markdown-body .code-actions {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 2px;
+}
+
+.markdown-body .code-tool-button {
+  appearance: none;
+  display: inline-flex;
+  width: 28px;
+  height: 28px;
+  box-sizing: border-box;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--color-fg-muted);
+  cursor: pointer;
+  transition:
+    background 0.16s ease,
+    color 0.16s ease,
+    transform 0.16s ease;
+}
+
+.markdown-body .code-tool-button svg {
+  width: 14px;
+  height: 14px;
+  flex: 0 0 14px;
+  color: currentColor;
+  stroke: currentColor;
+  filter: none !important;
+}
+
+.markdown-body .code-tool-button:hover {
+  background: var(--color-neutral-muted);
+  color: var(--color-fg-default);
+}
+
+.markdown-body .code-tool-button:focus-visible {
+  outline: 2px solid var(--color-accent-fg);
+  outline-offset: -2px;
+}
+
+.markdown-body .code-tool-button:active {
+  transform: translateY(1px);
+}
+
+.markdown-body .copy-code-button[data-copied="true"] {
+  color: var(--color-code-success);
+}
+
+.markdown-body .code-fold-button svg {
+  transition: transform 0.18s ease;
+}
+
+.markdown-body .code-fold-button[aria-expanded="true"] svg {
+  transform: rotate(180deg);
+}
+
+.markdown-body .code-block-pre {
+  position: static;
+  margin: 0;
+  padding: 14px 16px 16px;
+  overflow: auto;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  color: var(--color-fg-default);
+  font-size: 85%;
+  line-height: 1.65;
+}
+
+.markdown-body .code-block-pre > code {
+  display: block;
+  max-width: none;
+  overflow: visible;
+  color: inherit;
+  font-size: 100%;
+}
+
+.markdown-body .code-block[data-collapsed="true"] .code-block-pre {
+  max-height: 360px;
+  overflow: hidden;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .markdown-body .code-tool-button,
+  .markdown-body .code-fold-button svg {
+    transition: none;
+  }
 }
 
 .markdown-body .csv-data td,

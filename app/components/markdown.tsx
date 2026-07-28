@@ -8,10 +8,15 @@ import RehypeHighlight from "rehype-highlight";
 import { useRef, useState, RefObject, useEffect, useMemo } from "react";
 import { copyToClipboard, useWindowSize } from "../utils";
 import mermaid from "mermaid";
-import Locale from "../locales";
 import LoadingIcon from "../icons/three-dots.svg";
 import ReloadButtonIcon from "../icons/reload.svg";
 import React from "react";
+import {
+  Check as CheckIcon,
+  ChevronDown as ChevronDownIcon,
+  Copy as CopyIcon,
+  Terminal as TerminalIcon,
+} from "lucide-react";
 import { useDebouncedCallback } from "use-debounce";
 import { showImageModal, FullScreen } from "./ui-lib";
 import {
@@ -24,6 +29,8 @@ import { IconButton } from "./button";
 
 import { useAppConfig } from "../store/config";
 import clsx from "clsx";
+
+const CODE_FOLD_HEIGHT = 360;
 
 export function Mermaid(props: { code: string }) {
   const ref = useRef<HTMLDivElement>(null);
@@ -73,12 +80,25 @@ export function Mermaid(props: { code: string }) {
 
 export function PreCode(props: { children: any }) {
   const ref = useRef<HTMLPreElement>(null);
+  const copyResetTimer = useRef<number>();
   const previewRef = useRef<HTMLPreviewHandler>(null);
   const [mermaidCode, setMermaidCode] = useState("");
   const [htmlCode, setHtmlCode] = useState("");
+  const [collapsed, setCollapsed] = useState(true);
+  const [showToggle, setShowToggle] = useState(false);
+  const [copied, setCopied] = useState(false);
   const { height } = useWindowSize();
   const chatStore = useChatStore();
   const session = chatStore.currentSession();
+  const config = useAppConfig();
+  const enableArtifacts =
+    session.mask?.enableArtifacts !== false && config.enableArtifacts;
+  const enableCodeFold =
+    session.mask?.enableCodeFold !== false && config.enableCodeFold;
+  const language =
+    props.children?.props?.className?.replace("language-", "") || "text";
+  const copyLabel = copied ? "已复制" : "复制代码";
+  const foldLabel = collapsed ? "展开代码" : "收起代码";
 
   const renderArtifacts = useDebouncedCallback(() => {
     if (!ref.current) return;
@@ -99,11 +119,7 @@ export function PreCode(props: { children: any }) {
     }
   }, 600);
 
-  const config = useAppConfig();
-  const enableArtifacts =
-    session.mask?.enableArtifacts !== false && config.enableArtifacts;
-
-  //Wrap the paragraph for plain-text
+  // Wrap plain-text-like languages while keeping structured code horizontally scrollable.
   useEffect(() => {
     if (ref.current) {
       const codeElements = ref.current.querySelectorAll(
@@ -126,31 +142,79 @@ export function PreCode(props: { children: any }) {
           codeElement.style.whiteSpace = "pre-wrap";
         }
       });
+      const codeHeight =
+        ref.current.querySelector("code")?.scrollHeight ??
+        ref.current.scrollHeight;
+      setShowToggle(codeHeight > CODE_FOLD_HEIGHT);
+      setCollapsed(true);
       setTimeout(renderArtifacts, 1);
     }
+  }, [props.children, renderArtifacts]);
+
+  useEffect(() => {
+    return () => {
+      if (copyResetTimer.current) {
+        window.clearTimeout(copyResetTimer.current);
+      }
+    };
   }, []);
+
+  async function onCopyCode() {
+    if (!ref.current) return;
+
+    await copyToClipboard(ref.current.querySelector("code")?.innerText ?? "");
+    setCopied(true);
+
+    if (copyResetTimer.current) {
+      window.clearTimeout(copyResetTimer.current);
+    }
+    copyResetTimer.current = window.setTimeout(() => setCopied(false), 1400);
+  }
 
   return (
     <>
-      <pre ref={ref}>
+      <div
+        className="code-block"
+        data-collapsed={enableCodeFold && showToggle && collapsed}
+      >
         <div className="code-header">
-          <span className="code-language">
-            {props.children?.props?.className?.replace("language-", "") ||
-              "text"}
-          </span>
-          <span
-            className="copy-code-button"
-            onClick={() => {
-              if (ref.current) {
-                copyToClipboard(
-                  ref.current.querySelector("code")?.innerText ?? "",
-                );
-              }
-            }}
-          ></span>
+          <div className="code-language-label">
+            <TerminalIcon aria-hidden="true" />
+            <span className="code-language">{language}</span>
+          </div>
+          <div className="code-actions">
+            <button
+              type="button"
+              className="code-tool-button copy-code-button"
+              aria-label={copyLabel}
+              title={copyLabel}
+              data-copied={copied}
+              onClick={onCopyCode}
+            >
+              {copied ? (
+                <CheckIcon aria-hidden="true" />
+              ) : (
+                <CopyIcon aria-hidden="true" />
+              )}
+            </button>
+            {showToggle && enableCodeFold && (
+              <button
+                type="button"
+                className="code-tool-button code-fold-button"
+                aria-label={foldLabel}
+                title={foldLabel}
+                aria-expanded={!collapsed}
+                onClick={() => setCollapsed((current) => !current)}
+              >
+                <ChevronDownIcon aria-hidden="true" />
+              </button>
+            )}
+          </div>
         </div>
-        {props.children}
-      </pre>
+        <pre ref={ref} className="code-block-pre">
+          {props.children}
+        </pre>
+      </div>
       {mermaidCode.length > 0 && (
         <Mermaid code={mermaidCode} key={mermaidCode} />
       )}
@@ -180,58 +244,7 @@ export function PreCode(props: { children: any }) {
 }
 
 function CustomCode(props: { children: any; className?: string }) {
-  const chatStore = useChatStore();
-  const session = chatStore.currentSession();
-  const config = useAppConfig();
-  const enableCodeFold =
-    session.mask?.enableCodeFold !== false && config.enableCodeFold;
-
-  const ref = useRef<HTMLPreElement>(null);
-  const [collapsed, setCollapsed] = useState(true);
-  const [showToggle, setShowToggle] = useState(false);
-
-  useEffect(() => {
-    if (ref.current) {
-      const codeHeight = ref.current.scrollHeight;
-      setShowToggle(codeHeight > 400);
-      ref.current.scrollTop = ref.current.scrollHeight;
-    }
-  }, [props.children]);
-
-  const toggleCollapsed = () => {
-    setCollapsed((collapsed) => !collapsed);
-  };
-  const renderShowMoreButton = () => {
-    if (showToggle && enableCodeFold && collapsed) {
-      return (
-        <div
-          className={clsx("show-hide-button", {
-            collapsed,
-            expanded: !collapsed,
-          })}
-        >
-          <button onClick={toggleCollapsed}>{Locale.NewChat.More}</button>
-        </div>
-      );
-    }
-    return null;
-  };
-  return (
-    <>
-      <code
-        className={clsx(props?.className)}
-        ref={ref}
-        style={{
-          maxHeight: enableCodeFold && collapsed ? "400px" : "none",
-          overflowY: "hidden",
-        }}
-      >
-        {props.children}
-      </code>
-
-      {renderShowMoreButton()}
-    </>
-  );
+  return <code className={clsx(props?.className)}>{props.children}</code>;
 }
 
 function escapeBrackets(text: string) {

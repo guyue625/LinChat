@@ -37,7 +37,6 @@ import LoadingIcon from "../icons/three-dots.svg";
 import LoadingButtonIcon from "../icons/loading.svg";
 import ReloadIcon from "../icons/refresh.svg";
 import ConfirmIcon from "../icons/confirm.svg";
-import CloseIcon from "../icons/close.svg";
 import CancelIcon from "../icons/cancel.svg";
 
 import BottomIcon from "../icons/bottom.svg";
@@ -143,6 +142,7 @@ import {
   getAssistantMessageMetadata,
   getMessageModelDisplayName,
 } from "../utils/message-metadata";
+import { ChatActivity } from "./chat-activity";
 
 const localStorage = safeLocalStorage();
 
@@ -222,36 +222,6 @@ export function SessionConfigModel(props: { onClose: () => void }) {
           }
         ></MaskConfig>
       </Modal>
-    </div>
-  );
-}
-
-function PromptToast(props: {
-  showToast?: boolean;
-  showModal?: boolean;
-  setShowModal: (_: boolean) => void;
-}) {
-  const chatStore = useChatStore();
-  const session = chatStore.currentSession();
-  const context = session.mask.context;
-
-  return (
-    <div className={styles["prompt-toast"]} key="prompt-toast">
-      {props.showToast && context.length > 0 && (
-        <div
-          className={clsx(styles["prompt-toast-inner"], "clickable")}
-          role="button"
-          onClick={() => props.setShowModal(true)}
-        >
-          <BrainIcon />
-          <span className={styles["prompt-toast-content"]}>
-            {Locale.Context.Toast(context.length)}
-          </span>
-        </div>
-      )}
-      {props.showModal && (
-        <SessionConfigModel onClose={() => props.setShowModal(false)} />
-      )}
     </div>
   );
 }
@@ -566,30 +536,6 @@ function ComposerMenuItem(props: {
     </button>
   );
 }
-function TaskRunningStatus() {
-  const [seconds, setSeconds] = useState(0);
-
-  useEffect(() => {
-    const startedAt = Date.now();
-    const timer = window.setInterval(
-      () => setSeconds(Math.floor((Date.now() - startedAt) / 1000)),
-      1000,
-    );
-    return () => window.clearInterval(timer);
-  }, []);
-
-  return (
-    <div
-      className={styles["chat-message-status"]}
-      role="status"
-      aria-live="polite"
-    >
-      <span>任务正在处理中，你可以放心切换到其他页面</span>
-      <small>{seconds}s</small>
-    </div>
-  );
-}
-
 export type ChatActionsProps = {
   uploadImage: () => void;
   setAttachImages: (images: string[]) => void;
@@ -2307,11 +2253,9 @@ function _Chat(props: ChatProps) {
             </div>
           </div>
 
-          <PromptToast
-            showToast={!hitBottom}
-            showModal={showPromptModal}
-            setShowModal={setShowPromptModal}
-          />
+          {showPromptModal && (
+            <SessionConfigModel onClose={() => setShowPromptModal(false)} />
+          )}
         </div>
         <div className={styles["chat-main"]}>
           <div className={styles["chat-body-container"]}>
@@ -2477,30 +2421,14 @@ function _Chat(props: ChatProps) {
                                 </div>
                               )}
                             </div>
-                            {message?.tools?.length == 0 && showTyping && (
-                              <TaskRunningStatus />
-                            )}
-                            {/*@ts-ignore*/}
-                            {message?.tools?.length > 0 && (
-                              <div className={styles["chat-message-tools"]}>
-                                {message?.tools?.map((tool) => (
-                                  <div
-                                    key={tool.id}
-                                    title={tool?.errorMsg}
-                                    className={styles["chat-message-tool"]}
-                                  >
-                                    {tool.isError === false ? (
-                                      <ConfirmIcon />
-                                    ) : tool.isError === true ? (
-                                      <CloseIcon />
-                                    ) : (
-                                      <LoadingButtonIcon />
-                                    )}
-                                    <span>{tool?.function?.name}</span>
-                                  </div>
-                                ))}
-                              </div>
-                            )}
+                            {!isUser &&
+                              (showTyping ||
+                                (message.tools?.length ?? 0) > 0) && (
+                                <ChatActivity
+                                  running={showTyping}
+                                  tools={message.tools ?? []}
+                                />
+                              )}
                             <div className={styles["chat-message-item"]}>
                               <Markdown
                                 key={message.streaming ? "loading" : "done"}
