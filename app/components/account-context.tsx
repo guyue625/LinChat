@@ -10,7 +10,7 @@ import {
   useState,
 } from "react";
 import { createPortal } from "react-dom";
-import { Loader2 } from "lucide-react";
+import { LogOut } from "lucide-react";
 import {
   normalizeAccountSession,
   type AccountSnapshot,
@@ -70,13 +70,20 @@ function LogoutOverlay() {
       onContextMenu={(event) => event.preventDefault()}
     >
       <div className={styles.logoutCard}>
-        <Loader2 className={styles.logoutSpinner} aria-hidden="true" />
-        <p id="logout-overlay-title" className={styles.logoutTitle}>
-          正在退出…
-        </p>
-        <p id="logout-overlay-hint" className={styles.logoutHint}>
-          拜拜，期待下次再见
-        </p>
+        <div className={styles.logoutMark} aria-hidden="true">
+          <span className={styles.logoutIcon}>
+            <LogOut />
+          </span>
+        </div>
+        <div className={styles.logoutCopy}>
+          <p id="logout-overlay-title" className={styles.logoutTitle}>
+            正在安全退出
+          </p>
+          <p id="logout-overlay-hint" className={styles.logoutHint}>
+            正在清理本地会话，请稍候
+          </p>
+        </div>
+        <div className={styles.logoutProgress} aria-hidden="true" />
       </div>
     </div>,
     document.body,
