@@ -1180,16 +1180,6 @@ function _Chat(props: ChatProps) {
         </div>
         <div className={styles["chat-main"]}>
           <div className={styles["chat-body-container"]}>
-            {!hitBottom && (
-              <button
-                className={styles["scroll-to-latest"]}
-                type="button"
-                aria-label={Locale.Chat.InputActions.ToBottom}
-                onClick={scrollToBottom}
-              >
-                <BottomIcon />
-              </button>
-            )}
             <div
               className={styles["chat-body"]}
               ref={scrollRef}
@@ -1276,6 +1266,18 @@ function _Chat(props: ChatProps) {
                   );
                 })}
             </div>
+            {!hitBottom && (
+              <div className={styles["scroll-to-latest-anchor"]}>
+                <button
+                  className={styles["scroll-to-latest"]}
+                  type="button"
+                  aria-label={Locale.Chat.InputActions.ToBottom}
+                  onClick={scrollToBottom}
+                >
+                  <BottomIcon />
+                </button>
+              </div>
+            )}
             <div className={styles["chat-input-panel"]}>
               <PromptHints
                 prompts={promptHints}
