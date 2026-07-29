@@ -29,6 +29,7 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
+  viewportFit: "cover",
   themeColor: [
     { media: "(prefers-color-scheme: light)", color: "#fafafa" },
     { media: "(prefers-color-scheme: dark)", color: "#151515" },
@@ -48,7 +49,7 @@ export default function RootLayout({
         <meta name="config" content={JSON.stringify(getClientConfig())} />
         <meta
           name="viewport"
-          content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+          content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
         />
         <link
           rel="manifest"

@@ -15,7 +15,10 @@ import { isVisionModel } from "../../utils";
 import { ServiceProvider } from "../../constant";
 import type { Mask } from "../../store/mask";
 import { useAllModels } from "../../utils/hooks";
-import { filterModelsByProviders } from "../../utils/model";
+import {
+  filterModelsByProviders,
+  resolveModelDisplayName,
+} from "../../utils/model";
 import { getModelVendor } from "../../utils/model-vendor";
 import { focusWithoutScroll } from "../../utils/focus-without-scroll";
 import { getComposerPopoverPlacement } from "../../utils/popover";
@@ -91,7 +94,11 @@ export function ModelSelector(props: {
         item.provider?.providerName === currentProviderName,
     );
   }, [currentModel, currentProviderName, models]);
-  const currentModelName = currentModelInfo?.displayName || currentModel;
+  const currentModelName = resolveModelDisplayName({
+    modelName: currentModel,
+    providerName: currentProviderName,
+    models,
+  });
   const modelSelectorOpen = showModelPicker && props.open;
   const [modelSearch, setModelSearch] = useState("");
   const modelAnchorRef = useRef<HTMLDivElement>(null);
@@ -229,6 +236,8 @@ export function ModelSelector(props: {
             model={currentModel}
             provider={currentProviderName}
             displayName={currentModelInfo?.displayName}
+            className={styles["composer-model-icon"]}
+            size={24}
           />
         }
         label={currentModelName}

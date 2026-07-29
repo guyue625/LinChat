@@ -62,6 +62,19 @@ describe("LobeHub-inspired chat surface", () => {
     );
   });
 
+  test("anchors the jump-to-latest button above the composer center", () => {
+    expect(chatSource).toContain('styles["scroll-to-latest-anchor"]');
+    expect(lobeStyleSource).toMatch(
+      /\.scroll-to-latest-anchor\s*\{[\s\S]*?justify-content:\s*center;/,
+    );
+    expect(lobeStyleSource).toMatch(
+      /\.scroll-to-latest\s*\{[\s\S]*?left:\s*50%;[\s\S]*?right:\s*auto;[\s\S]*?transform:\s*translateX\(-50%\);/,
+    );
+    expect(lobeStyleSource).not.toContain(
+      "right: max(18px, calc((100% - var(--chat-reading-width)) / 2 + 18px));",
+    );
+  });
+
   test("hides the preset prompt badge while keeping the settings modal", () => {
     expect(chatSource).not.toContain("function PromptToast");
     expect(chatSource).not.toContain('styles["prompt-toast"]');

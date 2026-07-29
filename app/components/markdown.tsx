@@ -219,13 +219,13 @@ export function PreCode(props: { children: any }) {
         <Mermaid code={mermaidCode} key={mermaidCode} />
       )}
       {htmlCode.length > 0 && enableArtifacts && (
-        <FullScreen className="no-dark html" right={70}>
+        <FullScreen className="no-dark html artifact-preview" right={8}>
           <ArtifactsShareButton
-            style={{ position: "absolute", right: 20, top: 10 }}
+            className="artifact-preview-share"
             getCode={() => htmlCode}
           />
           <IconButton
-            style={{ position: "absolute", right: 120, top: 10 }}
+            className="artifact-preview-reload"
             bordered
             icon={<ReloadButtonIcon />}
             shadow

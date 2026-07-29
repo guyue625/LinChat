@@ -46,28 +46,27 @@
 .modelPicker {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 22px;
 }
 
 .manualModelSection,
 .upstreamModelSection {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 11px;
 }
 
 // Manual entry as its own quiet card
 .manualModelSection {
-  padding: 14px;
-  border: var(--border-in-light);
-  border-radius: 12px;
-  background: color-mix(in srgb, var(--black) 2%, var(--white));
+  padding: 0 0 22px;
+  border-bottom: 1px solid color-mix(in srgb, var(--black) 9%, transparent);
 }
 
 .sectionTitle {
   color: var(--black);
-  font-size: 13px;
-  font-weight: 600;
+  font-size: 14px;
+  font-weight: 650;
+  line-height: 1.4;
 }
 
 .sectionHint {
@@ -78,7 +77,9 @@
 
 .modalInput {
   width: 100% !important;
-  min-height: 38px !important;
+  min-height: 44px !important;
+  border-radius: 9px !important;
+  background: color-mix(in srgb, var(--black) 2%, var(--white)) !important;
   text-align: left !important;
 }
 
@@ -93,6 +94,7 @@
   display: flex;
   align-items: center;
   gap: 10px;
+  margin-top: 2px;
 }
 
 .modelSearch {
@@ -126,12 +128,12 @@
 
 // Upstream model list — LobeHub-style card grid
 .modelPickerList {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  display: flex;
   max-height: min(48vh, 420px);
-  gap: 8px;
+  flex-direction: column;
   overflow: auto;
-  padding: 2px;
+  border-top: 1px solid color-mix(in srgb, var(--black) 9%, transparent);
+  border-bottom: 1px solid color-mix(in srgb, var(--black) 9%, transparent);
 }
 
 .modelOption {
@@ -139,24 +141,28 @@
   display: flex;
   align-items: flex-start;
   gap: 10px;
-  padding: 11px 12px;
-  border: var(--border-in-light);
-  border-radius: 10px;
-  background: color-mix(in srgb, var(--black) 2%, var(--white));
+  padding: 12px 8px;
+  border: 0;
+  border-bottom: 1px solid
+    color-mix(in srgb, var(--black) 7%, transparent);
+  border-radius: 0;
+  background: transparent;
   cursor: pointer;
   transition:
-    border-color 0.15s ease,
     background 0.15s ease;
 
+  &:last-child {
+    border-bottom: 0;
+  }
+
   &:hover {
-    border-color: color-mix(in srgb, var(--primary) 35%, transparent);
-    background: color-mix(in srgb, var(--primary) 5%, var(--white));
+    background: color-mix(in srgb, var(--primary) 5%, transparent);
   }
 
   // Selected card gets the accent treatment
   &:has(input:checked) {
-    border-color: color-mix(in srgb, var(--primary) 55%, transparent);
-    background: color-mix(in srgb, var(--primary) 9%, var(--white));
+    background: color-mix(in srgb, var(--primary) 8%, transparent);
+    box-shadow: inset 3px 0 var(--primary);
   }
 
   &:has(input:disabled) {
@@ -164,8 +170,7 @@
     opacity: 0.6;
 
     &:hover {
-      border-color: var(--border-in-light);
-      background: color-mix(in srgb, var(--black) 2%, var(--white));
+      background: transparent;
     }
   }
 
@@ -290,6 +295,8 @@
   }
 
   .fetchButton {
+    width: 100%;
+    justify-content: center;
     padding: 10px !important;
   }
 
@@ -321,10 +328,6 @@
       width: 100%;
       grid-column: 1 / -1;
     }
-  }
-
-  .modelPickerList {
-    grid-template-columns: 1fr;
   }
 
   .modelPickerToolbar {

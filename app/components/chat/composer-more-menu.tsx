@@ -81,10 +81,13 @@ export function ComposerMoreMenu(props: {
 
   const close = () => props.onOpenChange(false);
   const toggleMemory = () => {
+    const enabled = !props.mask.modelConfig.sendMemory;
     props.updateMask((mask) => {
-      mask.modelConfig.sendMemory = !mask.modelConfig.sendMemory;
+      mask.modelConfig.sendMemory = enabled;
       mask.syncGlobalConfig = false;
     });
+    showToast(enabled ? Locale.Memory.Send : Locale.Memory.Title);
+    close();
   };
   const clearContext = () => {
     chatStore.updateTargetSession(session, (target) => {

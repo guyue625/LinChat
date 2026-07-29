@@ -458,8 +458,34 @@
 
 @media only screen and (max-width: 600px) {
   .settings-header {
-    min-height: 60px;
-    padding: 9px 12px 9px 14px;
+    display: grid;
+    grid-template-areas:
+      "brand close"
+      "search search";
+    grid-template-columns: minmax(0, 1fr) auto;
+    min-height: 0;
+    gap: 10px 12px;
+    padding: max(9px, env(safe-area-inset-top)) 12px 11px 14px;
+  }
+
+  .settings-header-brand {
+    grid-area: brand;
+  }
+
+  .settings-search {
+    grid-area: search;
+    width: 100%;
+    margin: 0;
+    flex: none;
+  }
+
+  .settings-search-input {
+    height: 42px;
+    max-width: none;
+  }
+
+  .settings-close {
+    grid-area: close;
   }
 
   .settings-header-icon {
@@ -469,7 +495,7 @@
   }
 
   .settings-content {
-    padding: 18px 14px 36px;
+    padding: 18px 14px max(36px, calc(24px + env(safe-area-inset-bottom)));
   }
 
   .settings-mobile-category {

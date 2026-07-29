@@ -1,3 +1,5 @@
+import { resolveModelDisplayName } from "./model";
+
 export function getAssistantMessageMetadata(input: {
   featuredAssistantName?: string;
   maskName?: string;
@@ -31,21 +33,17 @@ export function getMessageModelDisplayName(input: {
     provider?: { providerName: string };
   }>;
 }): string {
-  const modelName = input.messageModel || input.sessionModel || "";
-  if (!modelName) return "";
+  if (input.sessionModel) {
+    return resolveModelDisplayName({
+      modelName: input.sessionModel,
+      providerName: input.sessionProvider,
+      models: input.models,
+    });
+  }
 
-  const providerName =
-    input.messageProvider ||
-    (input.messageModel === input.sessionModel
-      ? input.sessionProvider
-      : undefined);
-  const exactMatch = input.models.find(
-    (model) =>
-      model.name === modelName &&
-      (!providerName || model.provider?.providerName === providerName),
-  );
-  const nameMatch = input.models.find((model) => model.name === modelName);
-  const resolvedModel = exactMatch || nameMatch;
-
-  return resolvedModel?.displayName || resolvedModel?.name || modelName;
+  return resolveModelDisplayName({
+    modelName: input.messageModel,
+    providerName: input.messageProvider,
+    models: input.models,
+  });
 }

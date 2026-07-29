@@ -7,6 +7,7 @@ import React, {
   useRef,
   useState,
 } from "react";
+import { createPortal } from "react-dom";
 
 import {
   Copy as CopyIcon,
@@ -64,8 +65,6 @@ import {
 import { useNavigate } from "react-router-dom";
 import {
   CHAT_PAGE_SIZE,
-  DEFAULT_TTS_ENGINE,
-  ModelProvider,
   Path,
   REQUEST_TIMEOUT_MS,
   UNFINISHED_INPUT,
@@ -76,9 +75,7 @@ import { ChatCommandPrefix, useChatCommand, useCommand } from "../command";
 import { prettyObject } from "../utils/format";
 import { ExportMessageModal } from "./exporter";
 import { useAllModels } from "../utils/hooks";
-import { ClientApi, MultimodalContent } from "../client/api";
-import { createTTSPlayer } from "../utils/audio";
-import { MsEdgeTTS, OUTPUT_FORMAT } from "../utils/ms_edge_tts";
+import { MultimodalContent } from "../client/api";
 
 import { isEmpty } from "lodash-es";
 import { RealtimeChat } from "@/app/components/realtime-chat";
@@ -92,6 +89,7 @@ import { ChatComposer } from "./chat/composer";
 import { ChatAction } from "./chat/message-action";
 import { ChatMessageRow, type RenderMessage } from "./chat/message-row";
 import { useChatDraft } from "./chat/use-chat-draft";
+import { useChatSpeech } from "./chat/use-chat-speech";
 import { useChatScroll } from "./chat/use-chat-scroll";
 
 export { ChatComposer };
@@ -99,8 +97,6 @@ export type { ChatComposerProps } from "./chat/composer";
 export { ChatAction };
 
 const localStorage = safeLocalStorage();
-
-const ttsPlayer = createTTSPlayer();
 
 const EMPTY_CHAT_SUGGESTIONS = [
   "帮我梳理一下今天的工作",
@@ -118,7 +114,7 @@ export function SessionConfigModel(props: { onClose: () => void }) {
   const maskStore = useMaskStore();
   const navigate = useNavigate();
 
-  return (
+  return createPortal(
     <div className="modal-mask">
       <Modal
         title={Locale.Context.Edit}
@@ -176,7 +172,8 @@ export function SessionConfigModel(props: { onClose: () => void }) {
           }
         ></MaskConfig>
       </Modal>
-    </div>
+    </div>,
+    document.body,
   );
 }
 
@@ -799,51 +796,7 @@ function _Chat(props: ChatProps) {
   };
 
   const accessStore = useAccessStore();
-  const [speechStatus, setSpeechStatus] = useState(false);
-  const [speechLoading, setSpeechLoading] = useState(false);
-
-  async function openaiSpeech(text: string) {
-    if (speechStatus) {
-      ttsPlayer.stop();
-      setSpeechStatus(false);
-    } else {
-      var api: ClientApi;
-      api = new ClientApi(ModelProvider.GPT);
-      const config = useAppConfig.getState();
-      setSpeechLoading(true);
-      ttsPlayer.init();
-      let audioBuffer: ArrayBuffer;
-      const { markdownToTxt } = require("markdown-to-txt");
-      const textContent = markdownToTxt(text);
-      if (config.ttsConfig.engine !== DEFAULT_TTS_ENGINE) {
-        const edgeVoiceName = accessStore.edgeVoiceName();
-        const tts = new MsEdgeTTS();
-        await tts.setMetadata(
-          edgeVoiceName,
-          OUTPUT_FORMAT.AUDIO_24KHZ_96KBITRATE_MONO_MP3,
-        );
-        audioBuffer = await tts.toArrayBuffer(textContent);
-      } else {
-        audioBuffer = await api.llm.speech({
-          model: config.ttsConfig.model,
-          input: textContent,
-          voice: config.ttsConfig.voice,
-          speed: config.ttsConfig.speed,
-        });
-      }
-      setSpeechStatus(true);
-      ttsPlayer
-        .play(audioBuffer, () => {
-          setSpeechStatus(false);
-        })
-        .catch((e) => {
-          console.error("[OpenAI Speech]", e);
-          showToast(prettyObject(e));
-          setSpeechStatus(false);
-        })
-        .finally(() => setSpeechLoading(false));
-    }
-  }
+  const { speak: openaiSpeech, speechStatus } = useChatSpeech();
 
   const context: RenderMessage[] = useMemo(() => {
     return session.mask.hideContext ? [] : session.mask.context.slice();

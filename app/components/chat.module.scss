@@ -741,7 +741,9 @@
   box-shadow: 0 6px 22px rgba(0, 0, 0, 0.24);
   backdrop-filter: blur(8px);
   animation: scroll-latest-in 0.18s ease-out;
-  transition: border-color 0.15s ease, color 0.15s ease;
+  transition:
+    border-color 0.15s ease,
+    color 0.15s ease;
 
   svg {
     width: 18px;
@@ -879,7 +881,9 @@
 .chat-message > .chat-message-container:hover .chat-message-actions,
 .chat-message > .chat-message-container:focus-within .chat-message-actions,
 .chat-message-user > .chat-message-container:hover .chat-message-actions,
-.chat-message-user > .chat-message-container:focus-within .chat-message-actions {
+.chat-message-user
+  > .chat-message-container:focus-within
+  .chat-message-actions {
   opacity: 1;
   visibility: visible;
   pointer-events: auto;
@@ -1907,6 +1911,22 @@
   padding-right: 7px;
 }
 
+.composer-model-button .composer-tool-icon {
+  width: 24px;
+  height: 24px;
+  flex-basis: 24px;
+}
+
+.composer-model-button .composer-model-icon {
+  display: block;
+  width: 24px !important;
+  height: 24px !important;
+  flex: 0 0 24px;
+  shape-rendering: geometricPrecision;
+  stroke: none !important;
+  filter: none !important;
+}
+
 .composer-model-name {
   overflow: hidden;
   min-width: 0;
@@ -2376,8 +2396,7 @@
   --chat-page-bg: color-mix(in srgb, var(--gray) 72%, var(--white));
   --chat-panel-bg: color-mix(in srgb, var(--white) 96%, transparent);
   --chat-user-bubble: color-mix(in srgb, var(--black) 5%, var(--white));
-  background:
-    linear-gradient(
+  background: linear-gradient(
       180deg,
       color-mix(in srgb, var(--white) 94%, transparent),
       transparent 150px
