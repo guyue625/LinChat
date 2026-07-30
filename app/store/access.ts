@@ -329,10 +329,14 @@ export const useAccessStore = createPersistStore(
         visionModels: "",
       }));
     },
+
+    reset() {
+      set({ ...DEFAULT_ACCESS_STATE });
+    },
   }),
   {
     name: StoreKey.Access,
-    version: 2,
+    version: 3,
     migrate(persistedState, version) {
       if (version < 2) {
         const state = persistedState as {
