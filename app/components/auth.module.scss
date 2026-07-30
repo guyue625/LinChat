@@ -33,10 +33,12 @@
   display: grid;
   place-items: center;
   width: 100%;
-  min-height: 100%;
+  min-height: var(--full-height);
+  height: var(--full-height);
   padding: 48px 20px;
   box-sizing: border-box;
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
   color: var(--ink);
   font-family: var(--font-body);
   background:
@@ -1220,7 +1222,11 @@
 
 @media (max-width: 760px) {
   .auth-page {
-    padding: 72px 14px 28px;
+    place-items: start center;
+    height: auto;
+    min-height: var(--full-height);
+    padding: max(24px, env(safe-area-inset-top)) 14px
+      max(34px, calc(34px + env(safe-area-inset-bottom)));
   }
 
   .coords {

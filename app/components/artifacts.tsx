@@ -21,6 +21,7 @@ import { copyToClipboard, downloadAs } from "../utils";
 import { Path, ApiPath, REPO_URL } from "@/app/constant";
 import { Loading } from "./home";
 import styles from "./artifacts.module.scss";
+import clsx from "clsx";
 
 type HTMLPreviewProps = {
   code: string;
@@ -111,11 +112,13 @@ export function ArtifactsShareButton({
   id,
   style,
   fileName,
+  className,
 }: {
   getCode: () => string;
   id?: string;
   style?: any;
   fileName?: string;
+  className?: string;
 }) {
   const [loading, setLoading] = useState(false);
   const [name, setName] = useState(id);
@@ -143,7 +146,7 @@ export function ArtifactsShareButton({
           });
   return (
     <>
-      <div className="window-action-button" style={style}>
+      <div className={clsx("window-action-button", className)} style={style}>
         <IconButton
           icon={loading ? <LoadingButtonIcon /> : <ExportIcon />}
           bordered

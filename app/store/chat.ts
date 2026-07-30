@@ -7,11 +7,7 @@ import {
 
 import { indexedDBStorage } from "@/app/utils/indexedDB-storage";
 import { nanoid } from "nanoid";
-import type {
-  ClientApi,
-  MultimodalContent,
-  RequestMessage,
-} from "../client/api";
+import type { ClientApi, MultimodalContent } from "../client/api";
 import { getClientApi } from "../client/api";
 import { ChatControllerPool } from "../client/controller";
 import { showToast } from "../components/ui-lib";
@@ -32,10 +28,10 @@ import Locale, { getLang } from "../locales";
 import { prettyObject } from "../utils/format";
 import { createPersistStore } from "../utils/store";
 import { estimateTokenLength } from "../utils/token";
-import { ModelConfig, ModelType, useAppConfig } from "./config";
+import { ModelConfig, useAppConfig } from "./config";
 import { useAccessStore } from "./access";
 import { collectModelsWithDefaultModel } from "../utils/model";
-import { createEmptyMask, Mask } from "./mask";
+import type { Mask } from "./mask";
 import { executeMcpAction, getAllTools, isMcpEnabled } from "../mcp/actions";
 import { extractMcpJson, isMcpJson } from "../mcp/utils";
 import {
@@ -49,92 +45,31 @@ import {
   writeChatWorkspace,
   type WorkspaceOwner,
 } from "../utils/account-workspace";
+import {
+  createEmptySession,
+  createMessage,
+  DEFAULT_TOPIC,
+  type ChatMessage,
+  type ChatMessageTool,
+  type ChatSession,
+} from "./chat/session";
+import {
+  cloneChatSnapshot,
+  createEmptyChatSnapshot,
+  hydrateChatWorkspace,
+  isMeaningfulSession,
+} from "./chat/workspace";
+
+export { BOT_HELLO, createMessage, DEFAULT_TOPIC } from "./chat/session";
+export type {
+  ChatMessage,
+  ChatMessageTool,
+  ChatSession,
+  ChatStat,
+} from "./chat/session";
 
 const localStorage = safeLocalStorage();
 const chatWorkspaceGeneration = createWorkspaceGenerationGuard();
-
-export type ChatMessageTool = {
-  id: string;
-  index?: number;
-  type?: string;
-  function?: {
-    name: string;
-    arguments?: string;
-  };
-  content?: string;
-  isError?: boolean;
-  errorMsg?: string;
-};
-
-export type ChatMessage = RequestMessage & {
-  date: string;
-  streaming?: boolean;
-  isError?: boolean;
-  id: string;
-  model?: ModelType;
-  provider?: ServiceProvider;
-  tools?: ChatMessageTool[];
-  audio_url?: string;
-  isMcpResponse?: boolean;
-};
-
-export function createMessage(override: Partial<ChatMessage>): ChatMessage {
-  return {
-    id: nanoid(),
-    date: new Date().toLocaleString(),
-    role: "user",
-    content: "",
-    ...override,
-  };
-}
-
-export interface ChatStat {
-  tokenCount: number;
-  wordCount: number;
-  charCount: number;
-}
-
-export interface ChatSession {
-  id: string;
-  topic: string;
-  /** Prevent automatic title generation from overwriting a user rename. */
-  topicManuallyEdited?: boolean;
-  /** Allow the model-generated title to refine the immediate local fallback. */
-  topicAutomaticallyDerived?: boolean;
-
-  memoryPrompt: string;
-  messages: ChatMessage[];
-  stat: ChatStat;
-  lastUpdate: number;
-  lastSummarizeIndex: number;
-  clearContextIndex?: number;
-
-  mask: Mask;
-}
-
-export const DEFAULT_TOPIC = Locale.Store.DefaultTopic;
-export const BOT_HELLO: ChatMessage = createMessage({
-  role: "assistant",
-  content: Locale.Store.BotHello,
-});
-
-function createEmptySession(): ChatSession {
-  return {
-    id: nanoid(),
-    topic: DEFAULT_TOPIC,
-    memoryPrompt: "",
-    messages: [],
-    stat: {
-      tokenCount: 0,
-      wordCount: 0,
-      charCount: 0,
-    },
-    lastUpdate: Date.now(),
-    lastSummarizeIndex: 0,
-
-    mask: createEmptyMask(),
-  };
-}
 
 function getSummarizeModel(
   currentModel: string,
@@ -250,37 +185,6 @@ const DEFAULT_CHAT_STATE = {
   workspaceSwitching: false,
 };
 
-function normalizeSessionIndex(sessions: ChatSession[], index: number) {
-  if (sessions.length === 0) return 0;
-  if (index < 0 || index >= sessions.length) return 0;
-  return index;
-}
-
-function isMeaningfulSession(session: ChatSession) {
-  if (session.messages.length > 0) return true;
-  if (session.topicManuallyEdited) return true;
-  if (
-    session.topic &&
-    session.topic !== DEFAULT_TOPIC &&
-    session.topic !== session.mask?.name
-  ) {
-    return true;
-  }
-  return false;
-}
-
-function cloneChatSnapshot(state: {
-  sessions: ChatSession[];
-  currentSessionIndex: number;
-  lastInput: string;
-}) {
-  return {
-    sessions: JSON.parse(JSON.stringify(state.sessions)) as ChatSession[],
-    currentSessionIndex: state.currentSessionIndex,
-    lastInput: state.lastInput ?? "",
-  };
-}
-
 export const useChatStore = createPersistStore(
   DEFAULT_CHAT_STATE,
   (set, _get) => {
@@ -359,8 +263,9 @@ export const useChatStore = createPersistStore(
 
         try {
           const leavingSnapshot = cloneChatSnapshot(current);
-          const leavingHasData =
-            leavingSnapshot.sessions.some(isMeaningfulSession);
+          const leavingHasData = leavingSnapshot.sessions.some((session) =>
+            isMeaningfulSession(session, DEFAULT_TOPIC),
+          );
 
           // Same-owner force refresh: rehydrate from the partitioned snapshot.
           if (currentOwner === nextOwner && force) {
@@ -372,17 +277,12 @@ export const useChatStore = createPersistStore(
               if (!chatWorkspaceGeneration.isCurrent(generation)) return;
               incoming = leavingSnapshot;
             }
-            const sessions =
-              incoming?.sessions && incoming.sessions.length > 0
-                ? (incoming.sessions as ChatSession[])
-                : [createEmptySession()];
+            const hydratedWorkspace = hydrateChatWorkspace<ChatSession>(
+              incoming,
+              createEmptySession,
+            );
             set({
-              sessions,
-              currentSessionIndex: normalizeSessionIndex(
-                sessions,
-                incoming?.currentSessionIndex ?? 0,
-              ),
-              lastInput: incoming?.lastInput ?? "",
+              ...hydratedWorkspace,
               workspaceOwner: nextOwner,
               workspaceSwitching: false,
             } as any);
@@ -423,41 +323,29 @@ export const useChatStore = createPersistStore(
             nextOwner === GUEST_WORKSPACE &&
             currentOwner !== GUEST_WORKSPACE
           ) {
-            incoming = {
-              sessions: [createEmptySession()],
-              currentSessionIndex: 0,
-              lastInput: "",
-            };
+            incoming = createEmptyChatSnapshot(createEmptySession);
             await writeChatWorkspace(GUEST_WORKSPACE, incoming);
             if (!chatWorkspaceGeneration.isCurrent(generation)) return;
           }
 
           if (!chatWorkspaceGeneration.isCurrent(generation)) return;
 
-          const sessions =
-            incoming?.sessions && incoming.sessions.length > 0
-              ? (incoming.sessions as ChatSession[])
-              : [createEmptySession()];
-          const currentSessionIndex = normalizeSessionIndex(
-            sessions,
-            incoming?.currentSessionIndex ?? 0,
+          const hydratedWorkspace = hydrateChatWorkspace<ChatSession>(
+            incoming,
+            createEmptySession,
           );
 
           set({
-            sessions,
-            currentSessionIndex,
-            lastInput: incoming?.lastInput ?? "",
+            ...hydratedWorkspace,
             workspaceOwner: nextOwner,
             workspaceSwitching: false,
           } as any);
         } catch (error) {
           if (!chatWorkspaceGeneration.isCurrent(generation)) return;
           console.error("[Workspace] switch failed", error);
-          const safeSessions = [createEmptySession()];
+          const safeWorkspace = createEmptyChatSnapshot(createEmptySession);
           set({
-            sessions: safeSessions,
-            currentSessionIndex: 0,
-            lastInput: "",
+            ...safeWorkspace,
             workspaceOwner: nextOwner,
             workspaceSwitching: false,
           } as any);

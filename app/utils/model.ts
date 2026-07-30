@@ -1,6 +1,32 @@
 import { DEFAULT_MODELS, ServiceProvider } from "../constant";
 import { LLMModel } from "../client/api";
 
+export type ModelDisplayEntry = {
+  name: string;
+  displayName?: string;
+  provider?: { providerName: string };
+};
+
+export function resolveModelDisplayName(input: {
+  modelName?: string;
+  providerName?: string;
+  models: readonly ModelDisplayEntry[];
+}): string {
+  const modelName = input.modelName || "";
+  if (!modelName) return "";
+
+  const exactMatch = input.models.find(
+    (model) =>
+      model.name === modelName &&
+      (!input.providerName ||
+        model.provider?.providerName === input.providerName),
+  );
+  const nameMatch = input.models.find((model) => model.name === modelName);
+  const resolvedModel = exactMatch || nameMatch;
+
+  return resolvedModel?.displayName || resolvedModel?.name || modelName;
+}
+
 const CustomSeq = {
   val: -1000, //To ensure the custom model located at front, start from -1000, refer to constant.ts
   cache: new Map<string, number>(),

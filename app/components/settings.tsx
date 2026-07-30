@@ -82,6 +82,9 @@ import { useMaskStore } from "../store/mask";
 import { ProviderType } from "../utils/cloud";
 import { TTSConfigList } from "./tts-config";
 import { RealtimeConfigList } from "./realtime-chat/realtime-config";
+import { useAccount } from "./account-context";
+import { AccountAvatar } from "./account-avatar";
+import { accountDisplayName } from "./account-utils";
 
 function EditPromptModal(props: { id: string; onClose: () => void }) {
   const promptStore = usePromptStore();
@@ -604,6 +607,8 @@ function isSettingsCategory(value: string | null): value is SettingsCategory {
 
 export function Settings() {
   const navigate = useNavigate();
+  const { user: accountUser } = useAccount();
+  const accountName = accountUser ? accountDisplayName(accountUser) : "User";
   const [searchParams, setSearchParams] = useSearchParams();
   const requestedCategory = searchParams.get("tab");
   const activeCategory: SettingsCategory = isSettingsCategory(requestedCategory)
@@ -913,36 +918,46 @@ export function Settings() {
               {activeCategory === "general" && (
                 <>
                   <ListItem title={Locale.Settings.Avatar}>
-                    <Popover
-                      onClose={() => setShowEmojiPicker(false)}
-                      content={
-                        <AvatarPicker
-                          onEmojiClick={(avatar: string) => {
-                            updateConfig((config) => (config.avatar = avatar));
-                            setShowEmojiPicker(false);
-                          }}
-                        />
-                      }
-                      open={showEmojiPicker}
-                    >
-                      <div
-                        aria-label={Locale.Settings.Avatar}
-                        role="button"
-                        tabIndex={0}
-                        className={styles.avatar}
-                        onClick={() => {
-                          setShowEmojiPicker(!showEmojiPicker);
-                        }}
-                        onKeyDown={(event) => {
-                          if (event.key === "Enter" || event.key === " ") {
-                            event.preventDefault();
-                            setShowEmojiPicker(!showEmojiPicker);
-                          }
-                        }}
+                    {accountUser ? (
+                      <AccountAvatar
+                        avatar={accountUser.avatar}
+                        name={accountName}
+                        size={38}
+                      />
+                    ) : (
+                      <Popover
+                        onClose={() => setShowEmojiPicker(false)}
+                        content={
+                          <AvatarPicker
+                            onEmojiClick={(avatar: string) => {
+                              updateConfig(
+                                (config) => (config.avatar = avatar),
+                              );
+                              setShowEmojiPicker(false);
+                            }}
+                          />
+                        }
+                        open={showEmojiPicker}
                       >
-                        <Avatar avatar={config.avatar} />
-                      </div>
-                    </Popover>
+                        <div
+                          aria-label={Locale.Settings.Avatar}
+                          role="button"
+                          tabIndex={0}
+                          className={styles.avatar}
+                          onClick={() => {
+                            setShowEmojiPicker(!showEmojiPicker);
+                          }}
+                          onKeyDown={(event) => {
+                            if (event.key === "Enter" || event.key === " ") {
+                              event.preventDefault();
+                              setShowEmojiPicker(!showEmojiPicker);
+                            }
+                          }}
+                        >
+                          <Avatar avatar={config.avatar} />
+                        </div>
+                      </Popover>
+                    )}
                   </ListItem>
 
                   <ListItem

@@ -98,7 +98,8 @@
   --sidebar-width: 280px;
   --window-content-width: calc(100% - var(--sidebar-width));
   --message-max-width: 80%;
-  --full-height: 100%;
+  --full-height: 100vh;
+  --full-height: 100dvh;
 }
 
 @media only screen and (max-width: 600px) {
@@ -299,15 +300,22 @@ div.math {
   left: 0;
   height: var(--full-height);
   width: 100vw;
+  box-sizing: border-box;
+  padding: max(12px, env(safe-area-inset-top))
+    max(12px, env(safe-area-inset-right))
+    max(12px, env(safe-area-inset-bottom))
+    max(12px, env(safe-area-inset-left));
   background-color: rgba($color: #000000, $alpha: 0.45);
   backdrop-filter: blur(8px);
   display: flex;
   align-items: center;
   justify-content: center;
 
-  @media screen and (max-width: 600px) {
-    align-items: flex-end;
-  }
+      @media screen and (max-width: 600px) {
+        align-items: flex-end;
+        padding-top: max(12px, env(safe-area-inset-top));
+        padding-bottom: max(12px, env(safe-area-inset-bottom));
+      }
 }
 
 .link {

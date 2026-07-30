@@ -7,10 +7,10 @@ import styles from "./home.module.scss";
 
 import { BrandLogo } from "./brand-logo";
 
-import { getCSSVar, useMobileScreen } from "../utils";
+import { getCSSVar, safeLocalStorage, useMobileScreen } from "../utils";
 
 import dynamic from "next/dynamic";
-import { Path, SlotID } from "../constant";
+import { Path, SlotID, THEME_STORAGE_KEY } from "../constant";
 import { ErrorBoundary } from "./error";
 
 import { getISOLang, getLang } from "../locales";
@@ -51,16 +51,15 @@ export function Loading(props: { noLogo?: boolean }) {
     >
       {isInitialLoading && (
         <div className={styles["loading-stage"]}>
-          <div className={styles["loading-logo-shell"]} aria-hidden="true">
-            <BrandLogo
-              className={styles["loading-logo"]}
-              width={58}
-              height={58}
-            />
-          </div>
+          <BrandLogo
+            className={styles["loading-logo"]}
+            width={68}
+            height={68}
+            alt=""
+          />
           <div className={styles["loading-brand"]}>LinChat</div>
           <div className={styles["loading-caption"]}>
-            Preparing your workspace
+            Synchronizing workspace
           </div>
           <LoadingDots />
         </div>
@@ -144,17 +143,22 @@ const CommandPalette = dynamic(
 );
 
 export function useSwitchTheme() {
-  const config = useAppConfig();
+  const theme = useAppConfig((state) => state.theme);
+  const hasHydrated = useAppConfig((state) => state._hasHydrated);
 
   useEffect(() => {
+    if (!hasHydrated) return;
+
     document.body.classList.remove("light");
     document.body.classList.remove("dark");
 
-    if (config.theme === "dark") {
+    if (theme === "dark") {
       document.body.classList.add("dark");
-    } else if (config.theme === "light") {
+    } else if (theme === "light") {
       document.body.classList.add("light");
     }
+
+    safeLocalStorage().setItem(THEME_STORAGE_KEY, theme);
 
     const metaDescriptionDark = document.querySelector(
       'meta[name="theme-color"][media*="dark"]',
@@ -163,7 +167,7 @@ export function useSwitchTheme() {
       'meta[name="theme-color"][media*="light"]',
     );
 
-    if (config.theme === "auto") {
+    if (theme === "auto") {
       metaDescriptionDark?.setAttribute("content", "#151515");
       metaDescriptionLight?.setAttribute("content", "#fafafa");
     } else {
@@ -171,7 +175,7 @@ export function useSwitchTheme() {
       metaDescriptionDark?.setAttribute("content", themeColor);
       metaDescriptionLight?.setAttribute("content", themeColor);
     }
-  }, [config.theme]);
+  }, [hasHydrated, theme]);
 }
 
 function useHtmlLang() {
@@ -376,6 +380,13 @@ function AccountModelDataLoader() {
 export function Home() {
   useSwitchTheme();
   useHtmlLang();
+  const hasHydrated = useHasHydrated();
+  const isLoadingPreview =
+    typeof window !== "undefined" &&
+    (() => {
+      const searchParams = new URLSearchParams(window.location.search);
+      return searchParams.get("loading-preview") === "1";
+    })();
 
   useEffect(() => {
     console.log("[Config] got config from build time", getClientConfig());
@@ -395,7 +406,7 @@ export function Home() {
     initMcp();
   }, []);
 
-  if (!useHasHydrated()) {
+  if (isLoadingPreview || !hasHydrated) {
     return <Loading />;
   }
 

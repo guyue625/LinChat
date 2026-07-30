@@ -120,6 +120,7 @@ interface ModalProps {
   children?: any;
   actions?: React.ReactNode[];
   defaultMax?: boolean;
+  showMaximize?: boolean;
   footer?: React.ReactNode;
   onClose?: () => void;
 }
@@ -140,6 +141,7 @@ export function Modal(props: ModalProps) {
   }, []);
 
   const [isMax, setMax] = useState(!!props.defaultMax);
+  const showMaximize = props.showMaximize ?? props.defaultMax;
 
   return (
     <div
@@ -151,18 +153,26 @@ export function Modal(props: ModalProps) {
         <div className={styles["modal-title"]}>{props.title}</div>
 
         <div className={styles["modal-header-actions"]}>
-          <div
+          {showMaximize && (
+            <button
+              type="button"
+              className={styles["modal-header-action"]}
+              aria-label={isMax ? "Restore dialog" : "Maximize dialog"}
+              title={isMax ? "Restore dialog" : "Maximize dialog"}
+              onClick={() => setMax(!isMax)}
+            >
+              {isMax ? <MinIcon /> : <MaxIcon />}
+            </button>
+          )}
+          <button
+            type="button"
             className={styles["modal-header-action"]}
-            onClick={() => setMax(!isMax)}
-          >
-            {isMax ? <MinIcon /> : <MaxIcon />}
-          </div>
-          <div
-            className={styles["modal-header-action"]}
+            aria-label={Locale.UI.Close}
+            title={Locale.UI.Close}
             onClick={props.onClose}
           >
             <CloseIcon />
-          </div>
+          </button>
         </div>
       </div>
 
@@ -577,7 +587,7 @@ export function Selector<T>(props: {
   );
 }
 export function FullScreen(props: any) {
-  const { children, right = 10, top = 10, ...rest } = props;
+  const { children, right = 10, top = 10, className, style, ...rest } = props;
   const ref = useRef<HTMLDivElement>();
   const [fullScreen, setFullScreen] = useState(false);
   const toggleFullscreen = useCallback(() => {
@@ -599,8 +609,16 @@ export function FullScreen(props: any) {
     };
   }, []);
   return (
-    <div ref={ref} style={{ position: "relative" }} {...rest}>
-      <div style={{ position: "absolute", right, top }}>
+    <div
+      ref={ref}
+      className={clsx("full-screen-container", className)}
+      style={{ position: "relative", ...style }}
+      {...rest}
+    >
+      <div
+        className="full-screen-control"
+        style={{ position: "absolute", right, top }}
+      >
         <IconButton
           icon={fullScreen ? <MinIcon /> : <MaxIcon />}
           onClick={toggleFullscreen}

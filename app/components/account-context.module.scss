@@ -1,4 +1,10 @@
 .logoutOverlay {
+  --logout-surface: color-mix(in srgb, var(--white) 92%, transparent);
+  --logout-border: color-mix(in srgb, var(--black) 10%, transparent);
+  --logout-muted: color-mix(in srgb, var(--black) 54%, transparent);
+  --logout-track: color-mix(in srgb, var(--black) 10%, transparent);
+  --logout-shadow: rgba(24, 24, 27, 0.2);
+
   position: fixed;
   inset: 0;
   z-index: 10000;
@@ -6,58 +12,133 @@
   place-items: center;
   padding: 24px;
   box-sizing: border-box;
-  background: rgba(4, 10, 18, 0.55);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+  background: color-mix(in srgb, var(--gray) 74%, transparent);
+  backdrop-filter: blur(14px) saturate(0.88);
+  -webkit-backdrop-filter: blur(14px) saturate(0.88);
   cursor: wait;
-  animation: logout-overlay-in 0.18s ease-out both;
+  animation: logout-overlay-in 0.16s ease-out both;
   // Block all interaction with the page underneath.
   touch-action: none;
   user-select: none;
 }
 
 .logoutCard {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 14px;
-  min-width: min(280px, 100%);
-  padding: 28px 32px;
-  border: 1px solid color-mix(in srgb, #22d3ee 28%, transparent);
-  border-radius: 20px;
-  background:
-    radial-gradient(
-      ellipse 80% 70% at 50% 0%,
-      rgba(34, 211, 238, 0.12),
-      transparent 65%
-    ),
-    color-mix(in srgb, #0b1624 92%, transparent);
+  width: min(360px, 100%);
+  display: grid;
+  grid-template-columns: 54px minmax(0, 1fr);
+  grid-template-rows: auto auto;
+  column-gap: 15px;
+  row-gap: 11px;
+  padding: 18px;
+  box-sizing: border-box;
+  border: 1px solid var(--logout-border);
+  border-radius: 8px;
+  background: var(--logout-surface);
   box-shadow:
-    0 24px 70px rgba(0, 0, 0, 0.45),
-    0 0 0 1px rgba(255, 255, 255, 0.04) inset;
-  color: #e8f4ff;
-  text-align: center;
+    0 20px 60px var(--logout-shadow),
+    inset 0 1px 0 color-mix(in srgb, var(--black) 4%, transparent);
+  color: var(--black);
+  animation: logout-card-in 0.22s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
-.logoutSpinner {
-  width: 34px;
-  height: 34px;
-  color: #67e8f9;
-  animation: logout-spin 0.75s linear infinite;
+.logoutMark {
+  position: relative;
+  grid-row: 1 / span 2;
+  width: 54px;
+  height: 54px;
+  display: grid;
+  place-items: center;
+  align-self: center;
+}
+
+.logoutMark::before,
+.logoutMark::after {
+  position: absolute;
+  inset: 0;
+  border: 1px solid var(--logout-track);
+  border-radius: 50%;
+  box-sizing: border-box;
+  content: "";
+}
+
+.logoutMark::after {
+  border-color: transparent;
+  border-top-color: var(--primary);
+  border-right-color: color-mix(in srgb, var(--primary) 42%, transparent);
+  animation: logout-mark-spin 1.1s linear infinite;
+}
+
+.logoutIcon {
+  position: relative;
+  z-index: 1;
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--cta-bg);
+  color: var(--cta-fg);
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--black) 12%, transparent);
+}
+
+.logoutIcon svg {
+  width: 17px;
+  height: 17px;
+  color: currentColor;
+  stroke: currentColor;
+  filter: none !important;
+}
+
+.logoutCopy {
+  min-width: 0;
+  align-self: end;
 }
 
 .logoutTitle {
   margin: 0;
   font-size: 16px;
   font-weight: 650;
-  letter-spacing: 0.01em;
+  line-height: 1.35;
+  letter-spacing: 0;
 }
 
 .logoutHint {
-  margin: 0;
-  color: color-mix(in srgb, #e8f4ff 55%, transparent);
-  font-size: 12.5px;
+  margin: 4px 0 0;
+  color: var(--logout-muted);
+  font-size: 12px;
   line-height: 1.5;
+}
+
+.logoutProgress {
+  position: relative;
+  grid-column: 2;
+  width: min(148px, 72%);
+  height: 2px;
+  align-self: start;
+  overflow: hidden;
+  border-radius: 2px;
+  background: var(--logout-track);
+}
+
+.logoutProgress::after {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 42%;
+  border-radius: inherit;
+  background: var(--primary);
+  content: "";
+  transform: translateX(-120%);
+  animation: logout-progress 1.35s ease-in-out infinite;
+}
+
+:global(.dark) .logoutOverlay {
+  --logout-shadow: rgba(0, 0, 0, 0.48);
+}
+
+@media (prefers-color-scheme: dark) {
+  :global(body:not(.light)) .logoutOverlay {
+    --logout-shadow: rgba(0, 0, 0, 0.48);
+  }
 }
 
 @keyframes logout-overlay-in {
@@ -70,18 +151,59 @@
   }
 }
 
-@keyframes logout-spin {
+@keyframes logout-card-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.985);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes logout-mark-spin {
   to {
     transform: rotate(360deg);
   }
 }
 
-@media (prefers-reduced-motion: reduce) {
+@keyframes logout-progress {
+  0% {
+    transform: translateX(-120%);
+  }
+
+  55%,
+  100% {
+    transform: translateX(250%);
+  }
+}
+
+@media (max-width: 480px) {
   .logoutOverlay {
+    padding: 16px;
+  }
+
+  .logoutCard {
+    padding: 16px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .logoutOverlay,
+  .logoutCard,
+  .logoutMark,
+  .logoutMark::after,
+  .logoutProgress::after {
     animation: none;
   }
 
-  .logoutSpinner {
-    animation: none;
+  .logoutMark::after {
+    border-top-color: var(--primary);
+  }
+
+  .logoutProgress::after {
+    transform: translateX(90%);
   }
 }

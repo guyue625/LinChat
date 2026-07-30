@@ -5,6 +5,10 @@ const chatSource = fs.readFileSync(
   path.join(process.cwd(), "app/components/chat.tsx"),
   "utf8",
 );
+const messageRowSource = fs.readFileSync(
+  path.join(process.cwd(), "app/components/chat/message-row.tsx"),
+  "utf8",
+);
 const styleSource = fs.readFileSync(
   path.join(process.cwd(), "app/components/chat.module.scss"),
   "utf8",
@@ -21,7 +25,8 @@ function getRuleBody(selector: string) {
 
 describe("chat message action toolbar styles", () => {
   test("uses a dedicated inner toolbar class instead of composer layout styles", () => {
-    expect(chatSource).toContain('styles["chat-message-action-buttons"]');
+    expect(chatSource).toContain('from "./chat/message-row"');
+    expect(messageRowSource).toContain('styles["chat-message-action-buttons"]');
   });
 
   test("keeps the message toolbar content-sized", () => {
