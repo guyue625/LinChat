@@ -109,8 +109,6 @@ export function AccountProvider(props: { children: React.ReactNode }) {
     if (accountIdentityRef.current !== nextIdentity) {
       accountIdentityRef.current = nextIdentity;
       setModelWorkspaceReady(false);
-      const accessStore = useAccessStore.getState();
-      accessStore.reset();
     }
     setEnabled(next.enabled);
     setUser(next.user);
@@ -151,8 +149,6 @@ export function AccountProvider(props: { children: React.ReactNode }) {
     refreshGenerationRef.current += 1;
     setLoggingOut(true);
     setModelWorkspaceReady(false);
-    const accessStore = useAccessStore.getState();
-    accessStore.reset();
     try {
       await fetch("/api/account/logout", {
         method: "POST",

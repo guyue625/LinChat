@@ -144,8 +144,6 @@ export function ModelManager(props: {
   onChange: (customModels: string) => void;
 }) {
   const accessStore = useAccessStore();
-  const hasValidConfig =
-    accessStore.useCustomConfig && accessStore.configuredProviders().length > 0;
   const { enabled, loading, modelWorkspaceReady, user } = useAccount();
   const showModels = shouldExposeModelWorkspace({
     enabled,
@@ -340,7 +338,6 @@ export function ModelManager(props: {
   };
 
   if (!showModels) return null;
-  if (!hasValidConfig) return null;
 
   return (
     <>

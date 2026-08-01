@@ -29,8 +29,6 @@ export function ModelConfigList(props: {
     user,
   });
   const accessStore = useAccessStore();
-  const hasValidConfig =
-    accessStore.useCustomConfig && accessStore.configuredProviders().length > 0;
   // Offer models from every provider that has usable credentials; fall back
   // to the single global provider switch when none are configured locally.
   const configuredProviders = accessStore.useCustomConfig
@@ -56,7 +54,6 @@ export function ModelConfigList(props: {
 
   useEffect(() => {
     if (!showModels) return;
-    if (!hasValidConfig) return null;
     const nextModel = selectableModels[0];
     if (!nextModel) return;
 
