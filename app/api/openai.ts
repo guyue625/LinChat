@@ -1,5 +1,5 @@
 import { type OpenAIListModelResponse } from "@/app/client/platforms/openai";
-import { getServerSideConfig } from "@/app/config/server";
+import { getRuntimeServerSideConfig } from "@/app/lib/provider-config/runtime";
 import { ModelProvider, OpenaiPath } from "@/app/constant";
 import { prettyObject } from "@/app/utils/format";
 import { NextRequest, NextResponse } from "next/server";
@@ -8,9 +8,10 @@ import { requestOpenai } from "./common";
 
 const ALLOWED_PATH = new Set(Object.values(OpenaiPath));
 
-function getModels(remoteModelRes: OpenAIListModelResponse) {
-  const config = getServerSideConfig();
-
+async function getModels(
+  remoteModelRes: OpenAIListModelResponse,
+  config: Awaited<ReturnType<typeof getRuntimeServerSideConfig>>,
+) {
   if (config.disableGPT4) {
     remoteModelRes.data = remoteModelRes.data.filter(
       (m) =>
@@ -51,20 +52,21 @@ export async function handle(
     );
   }
 
-  const authResult = await auth(req, ModelProvider.GPT);
+  const serverConfig = await getRuntimeServerSideConfig();
+  const authResult = await auth(req, ModelProvider.GPT, serverConfig);
   if (authResult.error) {
     return NextResponse.json(authResult, {
-      status: 401,
+      status: authResult.status ?? 401,
     });
   }
 
   try {
-    const response = await requestOpenai(req);
+    const response = await requestOpenai(req, serverConfig);
 
     // list models
     if (subpath === OpenaiPath.ListModelPath && response.status === 200) {
       const resJson = (await response.json()) as OpenAIListModelResponse;
-      const availableModels = getModels(resJson);
+      const availableModels = await getModels(resJson, serverConfig);
       return NextResponse.json(availableModels, {
         status: response.status,
       });

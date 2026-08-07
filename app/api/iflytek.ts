@@ -1,4 +1,7 @@
-import { getServerSideConfig } from "@/app/config/server";
+import {
+  getRuntimeServerSideConfig,
+  type RuntimeServerSideConfig,
+} from "@/app/lib/provider-config/runtime";
 import {
   IFLYTEK_BASE_URL,
   ApiPath,
@@ -11,8 +14,6 @@ import { auth } from "@/app/api/auth";
 import { isModelNotavailableInServer } from "@/app/utils/model";
 // iflytek
 
-const serverConfig = getServerSideConfig();
-
 export async function handle(
   req: NextRequest,
   { params }: { params: { path: string[] } },
@@ -23,15 +24,16 @@ export async function handle(
     return NextResponse.json({ body: "OK" }, { status: 200 });
   }
 
-  const authResult = await auth(req, ModelProvider.Iflytek);
+  const serverConfig = await getRuntimeServerSideConfig();
+  const authResult = await auth(req, ModelProvider.Iflytek, serverConfig);
   if (authResult.error) {
     return NextResponse.json(authResult, {
-      status: 401,
+      status: authResult.status ?? 401,
     });
   }
 
   try {
-    const response = await request(req);
+    const response = await request(req, serverConfig);
     return response;
   } catch (e) {
     console.error("[Iflytek] ", e);
@@ -39,7 +41,10 @@ export async function handle(
   }
 }
 
-async function request(req: NextRequest) {
+async function request(
+  req: NextRequest,
+  serverConfig: RuntimeServerSideConfig,
+) {
   const controller = new AbortController();
 
   // iflytek use base url or just remove the path

@@ -139,7 +139,10 @@ export function mergeAppState(localState: AppState, remoteState: AppState) {
     const key = k as T;
     const localStoreState = localState[key];
     const remoteStoreState = remoteState[key];
-    MergeStates[key](localStoreState, remoteStoreState);
+    if (remoteStoreState === undefined || remoteStoreState === null) return;
+    // Config/Access mergers return a new object; Chat/Prompt/Mask mutate in place.
+    // Always assign so lastUpdateTime-based winners are not discarded.
+    localState[key] = MergeStates[key](localStoreState, remoteStoreState);
   });
 
   return localState;
@@ -153,13 +156,13 @@ export function mergeWithUpdate<T extends { lastUpdateTime?: number }>(
   remoteState: T,
 ) {
   const localUpdateTime = localState.lastUpdateTime ?? 0;
-  const remoteUpdateTime = localState.lastUpdateTime ?? 1;
+  const remoteUpdateTime = remoteState.lastUpdateTime ?? 0;
 
   if (localUpdateTime < remoteUpdateTime) {
-    merge(remoteState, localState);
-    return { ...remoteState };
-  } else {
     merge(localState, remoteState);
     return { ...localState };
+  } else {
+    merge(remoteState, localState);
+    return { ...remoteState };
   }
 }

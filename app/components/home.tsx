@@ -30,6 +30,7 @@ import clsx from "clsx";
 import { initializeMcpSystem, isMcpEnabled } from "../mcp/actions";
 import { AccountProvider, useAccount } from "./account-context";
 import { AccountWorkspaceSync } from "./account-workspace-sync";
+import { AccountCloudSync } from "./account-cloud-sync";
 import {
   resolveWorkspaceOwner,
   shouldExposeModelWorkspace,
@@ -415,6 +416,7 @@ export function Home() {
       <Router>
         <AccountProvider>
           <AccountWorkspaceSync />
+          <AccountCloudSync />
           <AccountModelDataLoader />
           <Screen />
         </AccountProvider>

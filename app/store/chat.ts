@@ -13,6 +13,7 @@ import { ChatControllerPool } from "../client/controller";
 import { showToast } from "../components/ui-lib";
 import {
   DEFAULT_INPUT_TEMPLATE,
+  ACCESS_CODE_PREFIX,
   DEFAULT_MODELS,
   DEFAULT_SYSTEM_TEMPLATE,
   GEMINI_SUMMARIZE_MODEL,
@@ -59,6 +60,7 @@ import {
   hydrateChatWorkspace,
   isMeaningfulSession,
 } from "./chat/workspace";
+import { buildWebSearchContext, requestWebSearch } from "../utils/web-search";
 
 export { BOT_HELLO, createMessage, DEFAULT_TOPIC } from "./chat/session";
 export type {
@@ -505,6 +507,23 @@ export const useChatStore = createPersistStore(
       ) {
         const session = get().currentSession();
         const modelConfig = session.mask.modelConfig;
+        const searchQuery = content.trim();
+        const shouldSearch = Boolean(
+          !isMcpResponse && session.webSearchEnabled && searchQuery,
+        );
+        const accessCode = useAccessStore.getState().accessCode.trim();
+        const webSearch = shouldSearch
+          ? {
+              query: searchQuery,
+              results: await requestWebSearch(searchQuery, {
+                headers: accessCode
+                  ? {
+                      Authorization: `Bearer ${ACCESS_CODE_PREFIX}${accessCode}`,
+                    }
+                  : undefined,
+              }),
+            }
+          : undefined;
 
         // MCP Response no need to fill template
         let mContent: string | MultimodalContent[] = isMcpResponse
@@ -532,11 +551,25 @@ export const useChatStore = createPersistStore(
           streaming: true,
           model: modelConfig.model,
           provider: modelConfig.providerName,
+          webSearch,
         });
 
         // get recent messages
         const recentMessages = await get().getMessagesWithMemory();
-        const sendMessages = recentMessages.concat(userMessage);
+        const searchContextMessage = webSearch
+          ? createMessage({
+              role: "system",
+              content: buildWebSearchContext(
+                webSearch.query,
+                webSearch.results,
+              ),
+            })
+          : null;
+        const sendMessages = recentMessages.concat(
+          searchContextMessage
+            ? [searchContextMessage, userMessage]
+            : [userMessage],
+        );
         const messageIndex = session.messages.length + 1;
 
         // save user's and bot's message

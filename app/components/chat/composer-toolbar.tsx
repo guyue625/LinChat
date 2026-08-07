@@ -9,6 +9,7 @@ import styles from "../chat.module.scss";
 import { ComposerToolButton } from "./composer-controls";
 import { ComposerMoreMenu } from "./composer-more-menu";
 import { ModelSelector } from "./model-selector";
+import { WebSearchToggle } from "./web-search";
 
 export type ComposerToolbarProps = {
   uploadImage: () => void;
@@ -24,6 +25,8 @@ export type ComposerToolbarProps = {
   mask?: Mask;
   onMaskChange?: (updater: (mask: Mask) => void) => void;
   homeMode?: boolean;
+  webSearchEnabled: boolean;
+  onWebSearchChange: (enabled: boolean) => void;
 };
 
 export function ComposerToolbar(props: ComposerToolbarProps) {
@@ -69,6 +72,10 @@ export function ComposerToolbar(props: ComposerToolbarProps) {
           homeMode={props.homeMode}
           open={activePopover === "model"}
           onOpenChange={setModelOpen}
+        />
+        <WebSearchToggle
+          enabled={props.webSearchEnabled}
+          onChange={props.onWebSearchChange}
         />
         <ComposerMoreMenu
           open={activePopover === "more"}

@@ -1,11 +1,12 @@
-import { getServerSideConfig } from "@/app/config/server";
+import {
+  getRuntimeServerSideConfig,
+  type RuntimeServerSideConfig,
+} from "@/app/lib/provider-config/runtime";
 import { TENCENT_BASE_URL, ModelProvider } from "@/app/constant";
 import { prettyObject } from "@/app/utils/format";
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/app/api/auth";
 import { getHeader } from "@/app/utils/tencent";
-
-const serverConfig = getServerSideConfig();
 
 async function handle(
   req: NextRequest,
@@ -17,15 +18,16 @@ async function handle(
     return NextResponse.json({ body: "OK" }, { status: 200 });
   }
 
-  const authResult = await auth(req, ModelProvider.Hunyuan);
+  const serverConfig = await getRuntimeServerSideConfig();
+  const authResult = await auth(req, ModelProvider.Hunyuan, serverConfig);
   if (authResult.error) {
     return NextResponse.json(authResult, {
-      status: 401,
+      status: authResult.status ?? 401,
     });
   }
 
   try {
-    const response = await request(req);
+    const response = await request(req, serverConfig);
     return response;
   } catch (e) {
     console.error("[Tencent] ", e);
@@ -57,7 +59,10 @@ export const preferredRegion = [
   "syd1",
 ];
 
-async function request(req: NextRequest) {
+async function request(
+  req: NextRequest,
+  serverConfig: RuntimeServerSideConfig,
+) {
   const controller = new AbortController();
 
   let baseUrl = serverConfig.tencentUrl || TENCENT_BASE_URL;

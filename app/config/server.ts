@@ -120,9 +120,7 @@ function getApiKey(keys?: string) {
   const apiKey = apiKeys[randomIndex];
   if (apiKey) {
     console.log(
-      `[Server Config] using ${randomIndex + 1} of ${
-        apiKeys.length
-      } api key - ${apiKey}`,
+      `[Server Config] using ${randomIndex + 1} of ${apiKeys.length} api key`,
     );
   }
 
@@ -156,7 +154,9 @@ export const getServerSideConfig = () => {
   const isAzure = !!process.env.AZURE_URL;
   const isGoogle = !!process.env.GOOGLE_API_KEY;
   const isAnthropic = !!process.env.ANTHROPIC_API_KEY;
-  const isTencent = !!process.env.TENCENT_API_KEY;
+  const isTencent = Boolean(
+    process.env.TENCENT_SECRET_ID && process.env.TENCENT_SECRET_KEY,
+  );
 
   const isBaidu = !!process.env.BAIDU_API_KEY;
   const isBytedance = !!process.env.BYTEDANCE_API_KEY;
@@ -276,3 +276,5 @@ export const getServerSideConfig = () => {
     enableMcp: process.env.ENABLE_MCP === "true",
   };
 };
+
+export type ServerSideConfig = ReturnType<typeof getServerSideConfig>;

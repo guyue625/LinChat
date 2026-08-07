@@ -5,6 +5,7 @@ import type { ServiceProvider } from "../../constant";
 import Locale from "../../locales";
 import type { ModelType } from "../config";
 import { createEmptyMask, type Mask } from "../mask";
+import type { WebSearchResult } from "../../typing";
 
 export type ChatMessageTool = {
   id: string;
@@ -29,6 +30,10 @@ export type ChatMessage = RequestMessage & {
   tools?: ChatMessageTool[];
   audio_url?: string;
   isMcpResponse?: boolean;
+  webSearch?: {
+    query: string;
+    results: WebSearchResult[];
+  };
 };
 
 export interface ChatStat {
@@ -50,6 +55,7 @@ export interface ChatSession {
   lastUpdate: number;
   lastSummarizeIndex: number;
   clearContextIndex?: number;
+  webSearchEnabled?: boolean;
   mask: Mask;
 }
 

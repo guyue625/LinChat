@@ -1,5 +1,11 @@
 export type Updater<T> = (updater: (value: T) => void) => void;
 
+export type WebSearchResult = {
+  title: string;
+  url: string;
+  snippet: string;
+};
+
 export const ROLES = ["system", "user", "assistant"] as const;
 export type MessageRole = (typeof ROLES)[number];
 

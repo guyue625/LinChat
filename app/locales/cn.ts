@@ -83,6 +83,12 @@ const cn = {
       Settings: "对话设置",
       UploadImage: "上传图片",
     },
+    WebSearch: {
+      Enabled: "联网搜索：已开启",
+      Disabled: "联网搜索：已关闭",
+      Sources: "参考来源",
+      Failed: "联网搜索失败，请稍后重试",
+    },
     Rename: "重命名对话",
     Typing: "正在输入…",
     Input: (submitKey: string) => {

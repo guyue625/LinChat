@@ -62,3 +62,8 @@ app/mcp/mcp_config.json
 # local account database
 data/accounts.json
 data/accounts.json.*.tmp
+data/*.sqlite
+data/*.sqlite-wal
+data/*.sqlite-shm
+data/sync/
+data/sync/**

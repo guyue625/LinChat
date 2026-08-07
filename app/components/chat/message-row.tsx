@@ -31,6 +31,7 @@ import { MaskAvatar } from "../mask";
 import { ChatActivity } from "../chat-activity";
 import styles from "../chat.module.scss";
 import { ChatAction } from "./message-action";
+import { WebSearchSources } from "./web-search";
 
 const Markdown = dynamic(async () => (await import("../markdown")).Markdown, {
   loading: () => <LoadingIcon />,
@@ -211,6 +212,9 @@ export function ChatMessageRow(props: {
               </div>
             )}
           </div>
+          {!isUser && message.webSearch && (
+            <WebSearchSources results={message.webSearch.results} />
+          )}
           {message.audio_url && (
             <div className={styles["chat-message-audio"]}>
               <audio src={message.audio_url} controls />

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSideConfig } from "@/app/config/server";
+import { getRuntimeServerSideConfig } from "@/app/lib/provider-config/runtime";
 import { ModelProvider } from "@/app/constant";
 import { auth } from "./auth";
 
@@ -12,12 +12,11 @@ export async function handle(
   if (req.method === "OPTIONS") {
     return NextResponse.json({ body: "OK" }, { status: 200 });
   }
-  const authResult = await auth(req, ModelProvider.GPT);
+  const serverConfig = await getRuntimeServerSideConfig();
+  const authResult = await auth(req, ModelProvider.GPT, serverConfig);
   if (authResult.error) {
-    return NextResponse.json(authResult, { status: 401 });
+    return NextResponse.json(authResult, { status: authResult.status ?? 401 });
   }
-  const serverConfig = getServerSideConfig();
-
   // remove path params from searchParams
   req.nextUrl.searchParams.delete("path");
   req.nextUrl.searchParams.delete("provider");

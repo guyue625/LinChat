@@ -1,25 +1,27 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "./auth";
-import { getServerSideConfig } from "@/app/config/server";
+import {
+  getRuntimeServerSideConfig,
+  type RuntimeServerSideConfig,
+} from "@/app/lib/provider-config/runtime";
 import { ApiPath, GEMINI_BASE_URL, ModelProvider } from "@/app/constant";
 import { prettyObject } from "@/app/utils/format";
-
-const serverConfig = getServerSideConfig();
 
 export async function handle(
   req: NextRequest,
   { params }: { params: { provider: string; path: string[] } },
 ) {
+  const serverConfig = await getRuntimeServerSideConfig();
   console.log("[Google Route] params ", params);
 
   if (req.method === "OPTIONS") {
     return NextResponse.json({ body: "OK" }, { status: 200 });
   }
 
-  const authResult = await auth(req, ModelProvider.GeminiPro);
+  const authResult = await auth(req, ModelProvider.GeminiPro, serverConfig);
   if (authResult.error) {
     return NextResponse.json(authResult, {
-      status: 401,
+      status: authResult.status ?? 401,
     });
   }
 
@@ -41,7 +43,7 @@ export async function handle(
     );
   }
   try {
-    const response = await request(req, apiKey);
+    const response = await request(req, apiKey, serverConfig);
     return response;
   } catch (e) {
     console.error("[Google] ", e);
@@ -68,7 +70,11 @@ export const preferredRegion = [
   "syd1",
 ];
 
-async function request(req: NextRequest, apiKey: string) {
+async function request(
+  req: NextRequest,
+  apiKey: string,
+  serverConfig: RuntimeServerSideConfig,
+) {
   const controller = new AbortController();
 
   let baseUrl = serverConfig.googleUrl || GEMINI_BASE_URL;

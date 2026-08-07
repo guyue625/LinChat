@@ -1,16 +1,11 @@
-import { getServerSideConfig } from "@/app/config/server";
 import {
-  AI302_BASE_URL,
-  ApiPath,
-  ModelProvider,
-  ServiceProvider,
-} from "@/app/constant";
+  getRuntimeServerSideConfig,
+  type RuntimeServerSideConfig,
+} from "@/app/lib/provider-config/runtime";
+import { AI302_BASE_URL, ApiPath, ModelProvider } from "@/app/constant";
 import { prettyObject } from "@/app/utils/format";
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/app/api/auth";
-import { isModelNotavailableInServer } from "@/app/utils/model";
-
-const serverConfig = getServerSideConfig();
 
 export async function handle(
   req: NextRequest,
@@ -22,15 +17,16 @@ export async function handle(
     return NextResponse.json({ body: "OK" }, { status: 200 });
   }
 
-  const authResult = await auth(req, ModelProvider["302.AI"]);
+  const serverConfig = await getRuntimeServerSideConfig();
+  const authResult = await auth(req, ModelProvider["302.AI"], serverConfig);
   if (authResult.error) {
     return NextResponse.json(authResult, {
-      status: 401,
+      status: authResult.status ?? 401,
     });
   }
 
   try {
-    const response = await request(req);
+    const response = await request(req, serverConfig);
     return response;
   } catch (e) {
     console.error("[302.AI] ", e);
@@ -38,7 +34,10 @@ export async function handle(
   }
 }
 
-async function request(req: NextRequest) {
+async function request(
+  req: NextRequest,
+  serverConfig: RuntimeServerSideConfig,
+) {
   const controller = new AbortController();
 
   // alibaba use base url or just remove the path
@@ -78,36 +77,6 @@ async function request(req: NextRequest) {
     signal: controller.signal,
   };
 
-  // #1815 try to refuse some request to some models
-  if (serverConfig.customModels && req.body) {
-    try {
-      const clonedBody = await req.text();
-      fetchOptions.body = clonedBody;
-
-      const jsonBody = JSON.parse(clonedBody) as { model?: string };
-
-      // not undefined and is false
-      if (
-        isModelNotavailableInServer(
-          serverConfig.customModels,
-          jsonBody?.model as string,
-          ServiceProvider["302.AI"] as string,
-        )
-      ) {
-        return NextResponse.json(
-          {
-            error: true,
-            message: `you are not allowed to use ${jsonBody?.model} model`,
-          },
-          {
-            status: 403,
-          },
-        );
-      }
-    } catch (e) {
-      console.error(`[302.AI] filter`, e);
-    }
-  }
   try {
     const res = await fetch(fetchUrl, fetchOptions);
 

@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Check, ChevronsUpDown } from "lucide-react";
 import { Path } from "../constant";
@@ -13,6 +13,8 @@ import { deepClone } from "../utils/clone";
 import { EmojiAvatar } from "./emoji";
 import { ChatComposer } from "./chat/composer";
 import styles from "./workspace-home.module.scss";
+import { showToast } from "./ui-lib";
+import Locale from "../locales";
 
 export function WorkspaceHome() {
   const navigate = useNavigate();
@@ -24,7 +26,10 @@ export function WorkspaceHome() {
   );
   const [attachImages, setAttachImages] = useState<string[]>([]);
   const [uploading, setUploading] = useState(false);
+  const [webSearchEnabled, setWebSearchEnabled] = useState(false);
   const [assistantMenuOpen, setAssistantMenuOpen] = useState(false);
+  const [startingChat, setStartingChat] = useState(false);
+  const startingChatRef = useRef(false);
 
   const updateDraftMask = useCallback((updater: (mask: Mask) => void) => {
     setDraftMask((current) => {
@@ -47,19 +52,42 @@ export function WorkspaceHome() {
   };
 
   const startChat = async (assistant: FeaturedAssistant, message?: string) => {
-    const nextMask = assistantToMask(assistant);
-    nextMask.modelConfig = deepClone(draftMask.modelConfig);
-    nextMask.plugin = draftMask.plugin ? [...draftMask.plugin] : [];
-    nextMask.syncGlobalConfig = draftMask.syncGlobalConfig;
-    chatStore.newSession(nextMask);
-    navigate(Path.Chat);
-    if (message?.trim() || attachImages.length > 0) {
-      await useChatStore
-        .getState()
-        .onUserInput(message?.trim() ?? "", attachImages);
+    if (startingChatRef.current) return;
+    startingChatRef.current = true;
+    setStartingChat(true);
+    const previousChat = useChatStore.getState();
+    const previousChatState = {
+      sessions: previousChat.sessions,
+      currentSessionIndex: previousChat.currentSessionIndex,
+      lastInput: previousChat.lastInput,
+    };
+    try {
+      const nextMask = assistantToMask(assistant);
+      nextMask.modelConfig = deepClone(draftMask.modelConfig);
+      nextMask.plugin = draftMask.plugin ? [...draftMask.plugin] : [];
+      nextMask.syncGlobalConfig = draftMask.syncGlobalConfig;
+      chatStore.newSession(nextMask);
+      const session = useChatStore.getState().currentSession();
+      useChatStore.getState().updateTargetSession(session, (target) => {
+        target.webSearchEnabled = webSearchEnabled;
+      });
+      if (message?.trim() || attachImages.length > 0) {
+        await useChatStore
+          .getState()
+          .onUserInput(message?.trim() ?? "", attachImages);
+      }
+      navigate(Path.Chat);
+      setInput("");
+      setAttachImages([]);
+    } catch (error) {
+      useChatStore.setState(previousChatState);
+      showToast(
+        error instanceof Error ? error.message : Locale.Chat.WebSearch.Failed,
+      );
+    } finally {
+      startingChatRef.current = false;
+      setStartingChat(false);
     }
-    setInput("");
-    setAttachImages([]);
   };
 
   const submit = () => {
@@ -158,11 +186,15 @@ export function WorkspaceHome() {
             uploading={uploading}
             setUploading={setUploading}
             mask={draftMask}
+            webSearchEnabled={webSearchEnabled}
+            onWebSearchChange={setWebSearchEnabled}
             onMaskChange={updateDraftMask}
             homeMode
             rows={4}
             autoFocus
-            sendDisabled={!input.trim() && attachImages.length === 0}
+            sendDisabled={
+              startingChat || (!input.trim() && attachImages.length === 0)
+            }
           />
         </div>
 
@@ -170,6 +202,7 @@ export function WorkspaceHome() {
           {active.suggestions.map((suggestion) => (
             <button
               key={suggestion}
+              disabled={startingChat}
               onClick={() => void startChat(active, suggestion)}
             >
               {suggestion}
@@ -189,6 +222,7 @@ export function WorkspaceHome() {
             {FEATURED_ASSISTANTS.map((assistant) => (
               <button
                 key={assistant.key}
+                disabled={startingChat}
                 className={
                   active.key === assistant.key ? styles.activeCard : styles.card
                 }

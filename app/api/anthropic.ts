@@ -1,4 +1,7 @@
-import { getServerSideConfig } from "@/app/config/server";
+import {
+  getRuntimeServerSideConfig,
+  type RuntimeServerSideConfig,
+} from "@/app/lib/provider-config/runtime";
 import {
   ANTHROPIC_BASE_URL,
   Anthropic,
@@ -39,15 +42,16 @@ export async function handle(
     );
   }
 
-  const authResult = await auth(req, ModelProvider.Claude);
+  const serverConfig = await getRuntimeServerSideConfig();
+  const authResult = await auth(req, ModelProvider.Claude, serverConfig);
   if (authResult.error) {
     return NextResponse.json(authResult, {
-      status: 401,
+      status: authResult.status ?? 401,
     });
   }
 
   try {
-    const response = await request(req);
+    const response = await request(req, serverConfig);
     return response;
   } catch (e) {
     console.error("[Anthropic] ", e);
@@ -55,9 +59,10 @@ export async function handle(
   }
 }
 
-const serverConfig = getServerSideConfig();
-
-async function request(req: NextRequest) {
+async function request(
+  req: NextRequest,
+  serverConfig: RuntimeServerSideConfig,
+) {
   const controller = new AbortController();
 
   let authHeaderName = "x-api-key";

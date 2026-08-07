@@ -14,6 +14,7 @@ import {
   LogOut,
   RefreshCw,
   Search,
+  ServerCog,
   ShieldCheck,
   Ticket,
   Trash2,
@@ -30,6 +31,7 @@ import {
 } from "./admin-utils";
 import { useAccount } from "./account-context";
 import { buildAuthPath } from "./account-utils";
+import { AdminProviders } from "./admin-providers";
 
 interface AdminUser {
   id: string;
@@ -81,7 +83,7 @@ interface AdminDashboardData {
   auditLogs: AdminAuditLog[];
 }
 
-type AdminTab = "overview" | "users" | "invitations" | "audit";
+type AdminTab = "overview" | "users" | "invitations" | "providers" | "audit";
 
 const ACTION_LABELS: Record<string, string> = {
   INITIAL_ADMIN_CREATED: "初始化管理员",
@@ -100,6 +102,8 @@ const ACTION_LABELS: Record<string, string> = {
   PASSWORD_RESET_CREATED: "生成重置凭证",
   PASSWORD_RESET_USED: "使用重置凭证",
   USER_DELETED: "删除账号",
+  PROVIDER_CONFIG_UPDATED: "更新模型服务商配置",
+  PROVIDER_CONFIG_DELETED: "恢复模型服务商环境变量配置",
 };
 
 async function requestJson<T>(url: string, init?: RequestInit): Promise<T> {
@@ -350,6 +354,7 @@ export function AdminPage() {
             ["overview", "总览", Activity],
             ["users", "用户", Users],
             ["invitations", "邀请码", Ticket],
+            ["providers", "模型服务商", ServerCog],
             ["audit", "审计", Database],
           ] as const
         ).map(([value, label, Icon]) => (
@@ -697,6 +702,8 @@ export function AdminPage() {
           </div>
         </section>
       )}
+
+      {dashboard && tab === "providers" && <AdminProviders />}
 
       {editingUser && (
         <div className={styles.modalBackdrop} role="presentation">

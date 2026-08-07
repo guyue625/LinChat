@@ -75,9 +75,13 @@ export interface AuthRecord {
   auditLogs: AuditLog[];
 }
 
+export type AccountAuthWriteOptions = {
+  deletedUserIds?: readonly string[];
+};
+
 export interface AccountAuthRepository {
   read(): Promise<AuthRecord>;
-  write(data: AuthRecord): Promise<void>;
+  write(data: AuthRecord, options?: AccountAuthWriteOptions): Promise<void>;
 }
 
 export class AccountAuthError extends Error {
@@ -499,6 +503,34 @@ export class AccountAuthService {
     };
   }
 
+  async recordProviderConfigAudit(
+    actorUserId: string,
+    action: "PROVIDER_CONFIG_UPDATED" | "PROVIDER_CONFIG_DELETED",
+    metadata: {
+      providerId: string;
+      changedFields: string;
+      enabled?: boolean;
+    },
+  ) {
+    return this.mutate(async () => {
+      const data = await this.readRecord();
+      const actor = this.ensureAdmin(data, actorUserId);
+      this.appendAudit(data, {
+        action,
+        actorUserId: actor.id,
+        actorUsername: actor.username,
+        metadata: {
+          providerId: metadata.providerId,
+          changedFields: metadata.changedFields,
+          ...(metadata.enabled === undefined
+            ? {}
+            : { enabled: metadata.enabled }),
+        },
+      });
+      await this.repository.write(data);
+    });
+  }
+
   async createAdminInvitation(
     actorUserId: string,
     input: { label?: string; maxUses: number; expiresAt?: string },
@@ -816,7 +848,7 @@ export class AccountAuthService {
         targetUserId: target.id,
         metadata: { username: target.username },
       });
-      await this.repository.write(data);
+      await this.repository.write(data, { deletedUserIds: [target.id] });
       return { deleted: true, userId: target.id };
     });
   }

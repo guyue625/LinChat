@@ -57,6 +57,8 @@ export type ChatComposerProps = ChatComposerActionProps & {
   sendLabel?: string;
   sendDisabled?: boolean;
   onSend?: () => void;
+  webSearchEnabled: boolean;
+  onWebSearchChange: (enabled: boolean) => void;
 };
 
 export function ChatComposer(props: ChatComposerProps) {
@@ -176,6 +178,8 @@ export function ChatComposer(props: ChatComposerProps) {
           mask={props.mask}
           onMaskChange={props.onMaskChange}
           homeMode={props.homeMode}
+          webSearchEnabled={props.webSearchEnabled}
+          onWebSearchChange={props.onWebSearchChange}
         />
         <IconButton
           icon={props.sendIcon ?? <SendIcon />}

@@ -1,4 +1,7 @@
-import { getServerSideConfig } from "@/app/config/server";
+import {
+  getRuntimeServerSideConfig,
+  type RuntimeServerSideConfig,
+} from "@/app/lib/provider-config/runtime";
 import {
   BAIDU_BASE_URL,
   ApiPath,
@@ -11,22 +14,21 @@ import { auth } from "@/app/api/auth";
 import { isModelNotavailableInServer } from "@/app/utils/model";
 import { getAccessToken } from "@/app/utils/baidu";
 
-const serverConfig = getServerSideConfig();
-
 export async function handle(
   req: NextRequest,
   { params }: { params: { path: string[] } },
 ) {
+  const serverConfig = await getRuntimeServerSideConfig();
   console.log("[Baidu Route] params ", params);
 
   if (req.method === "OPTIONS") {
     return NextResponse.json({ body: "OK" }, { status: 200 });
   }
 
-  const authResult = await auth(req, ModelProvider.Ernie);
+  const authResult = await auth(req, ModelProvider.Ernie, serverConfig);
   if (authResult.error) {
     return NextResponse.json(authResult, {
-      status: 401,
+      status: authResult.status ?? 401,
     });
   }
 
@@ -43,7 +45,7 @@ export async function handle(
   }
 
   try {
-    const response = await request(req);
+    const response = await request(req, serverConfig);
     return response;
   } catch (e) {
     console.error("[Baidu] ", e);
@@ -51,7 +53,10 @@ export async function handle(
   }
 }
 
-async function request(req: NextRequest) {
+async function request(
+  req: NextRequest,
+  serverConfig: RuntimeServerSideConfig,
+) {
   const controller = new AbortController();
 
   let path = `${req.nextUrl.pathname}`.replaceAll(ApiPath.Baidu, "");

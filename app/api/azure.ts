@@ -3,6 +3,7 @@ import { prettyObject } from "@/app/utils/format";
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "./auth";
 import { requestOpenai } from "./common";
+import { getRuntimeServerSideConfig } from "@/app/lib/provider-config/runtime";
 
 export async function handle(
   req: NextRequest,
@@ -16,15 +17,16 @@ export async function handle(
 
   const subpath = params.path.join("/");
 
-  const authResult = await auth(req, ModelProvider.GPT);
+  const serverConfig = await getRuntimeServerSideConfig();
+  const authResult = await auth(req, ModelProvider.GPT, serverConfig);
   if (authResult.error) {
     return NextResponse.json(authResult, {
-      status: 401,
+      status: authResult.status ?? 401,
     });
   }
 
   try {
-    return await requestOpenai(req);
+    return await requestOpenai(req, serverConfig);
   } catch (e) {
     console.error("[Azure] ", e);
     return NextResponse.json(prettyObject(e));

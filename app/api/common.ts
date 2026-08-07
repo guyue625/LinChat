@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSideConfig } from "../config/server";
+import type { RuntimeServerSideConfig } from "../lib/provider-config/runtime";
 import { OPENAI_BASE_URL, ServiceProvider } from "../constant";
 import { cloudflareAIGatewayUrl } from "../utils/cloudflare";
 import { getModelProvider, isModelNotavailableInServer } from "../utils/model";
 
-const serverConfig = getServerSideConfig();
-
-export async function requestOpenai(req: NextRequest) {
+export async function requestOpenai(
+  req: NextRequest,
+  serverConfig: RuntimeServerSideConfig,
+) {
   const controller = new AbortController();
 
   const isAzure = req.nextUrl.pathname.includes("azure/deployments");

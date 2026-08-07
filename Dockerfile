@@ -1,4 +1,4 @@
-FROM node:18-alpine AS base
+FROM node:22-alpine AS base
 
 FROM base AS deps
 
@@ -42,6 +42,11 @@ ENV ACCOUNT_SESSION_SECRET=""
 ENV ACCOUNT_INITIAL_INVITATION=""
 ENV ACCOUNT_INITIAL_INVITATION_USES="1"
 ENV ACCOUNT_DATA_FILE="/app/data/accounts.json"
+ENV ACCOUNT_DB_FILE="/app/data/nextchat.sqlite"
+ENV WEB_SEARCH_PROVIDER=""
+ENV TAVILY_API_KEY=""
+ENV BOCHA_API_KEY=""
+ENV SEARXNG_URL=""
 
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/.next/standalone ./
@@ -49,7 +54,7 @@ COPY --from=builder /app/.next/static ./.next/static
 COPY --from=builder /app/.next/server ./.next/server
 
 RUN mkdir -p /app/app/mcp && chmod 777 /app/app/mcp
-RUN mkdir -p /app/data && chmod 700 /app/data
+RUN mkdir -p /app/data /app/data/sync && chmod 700 /app/data /app/data/sync
 COPY --from=builder /app/app/mcp/mcp_config.default.json /app/app/mcp/mcp_config.json
 
 EXPOSE 3000

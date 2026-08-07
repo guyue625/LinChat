@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import { getServerSideConfig } from "../../config/server";
+import { getRuntimeServerSideConfig } from "../../lib/provider-config/runtime";
 import {
   getAccountAuthService,
   isAccountAuthEnabled,
@@ -8,26 +8,33 @@ import {
 import { ACCOUNT_SESSION_COOKIE } from "../account/_shared";
 import { getVisibleDangerConfig } from "./visibility";
 
-const serverConfig = getServerSideConfig();
-
 // Danger! Do not hard code any secret value here!
 // 警告！不要在这里写入任何敏感信息！
-const DANGER_CONFIG = {
-  needCode: serverConfig.needCode,
-  hideUserApiKey: serverConfig.hideUserApiKey,
-  disableGPT4: serverConfig.disableGPT4,
-  hideBalanceQuery: serverConfig.hideBalanceQuery,
-  disableFastLink: serverConfig.disableFastLink,
-  customModels: serverConfig.customModels,
-  defaultModel: serverConfig.defaultModel,
-  visionModels: serverConfig.visionModels,
-};
-
 declare global {
-  type DangerConfig = typeof DANGER_CONFIG;
+  type DangerConfig = {
+    needCode: boolean;
+    hideUserApiKey: boolean;
+    disableGPT4: boolean;
+    hideBalanceQuery: boolean;
+    disableFastLink: boolean;
+    customModels: string;
+    defaultModel: string;
+    visionModels: string;
+  };
 }
 
 async function handle(request: NextRequest) {
+  const serverConfig = await getRuntimeServerSideConfig();
+  const dangerConfig: DangerConfig = {
+    needCode: serverConfig.needCode,
+    hideUserApiKey: serverConfig.hideUserApiKey,
+    disableGPT4: serverConfig.disableGPT4,
+    hideBalanceQuery: serverConfig.hideBalanceQuery,
+    disableFastLink: serverConfig.disableFastLink,
+    customModels: serverConfig.customModels,
+    defaultModel: serverConfig.defaultModel,
+    visionModels: serverConfig.visionModels,
+  };
   let exposeServerModels = !isAccountAuthEnabled();
   if (!exposeServerModels) {
     try {
@@ -40,7 +47,7 @@ async function handle(request: NextRequest) {
     }
   }
   return NextResponse.json(
-    getVisibleDangerConfig(DANGER_CONFIG, exposeServerModels),
+    getVisibleDangerConfig(dangerConfig, exposeServerModels),
   );
 }
 

@@ -84,6 +84,12 @@ const en: LocaleType = {
       Settings: "Settings",
       UploadImage: "Upload Images",
     },
+    WebSearch: {
+      Enabled: "Web search: on",
+      Disabled: "Web search: off",
+      Sources: "Sources",
+      Failed: "Web search failed. Please try again later.",
+    },
     Rename: "Rename Chat",
     Typing: "Typing…",
     Input: (submitKey: string) => {

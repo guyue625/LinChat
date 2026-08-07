@@ -578,6 +578,7 @@ function _Chat(props: ChatProps) {
   };
 
   const doSubmit = (userInput: string) => {
+    if (isLoading) return;
     if (userInput.trim() === "" && isEmpty(attachImages)) return;
     const matchCommand = chatCommands.match(userInput);
     if (matchCommand.matched) {
@@ -588,19 +589,25 @@ function _Chat(props: ChatProps) {
       matchCommand.invoke();
       return;
     }
-    void runAccountAction(() => {
+    void runAccountAction(async () => {
       setIsLoading(true);
-      chatStore
-        .onUserInput(userInput, attachImages)
-        .then(() => setIsLoading(false));
-      setAttachImages([]);
-      chatStore.setLastInput(userInput);
-      setUserInput("");
-      setPromptHints([]);
-      // Clear draft when submitting
-      localStorage.removeItem(UNFINISHED_INPUT(session.id));
-      if (!isMobileScreen) inputRef.current?.focus();
-      setAutoScroll(true);
+      try {
+        await chatStore.onUserInput(userInput, attachImages);
+        setAttachImages([]);
+        chatStore.setLastInput(userInput);
+        setUserInput("");
+        setPromptHints([]);
+        // Clear draft when submitting
+        localStorage.removeItem(UNFINISHED_INPUT(session.id));
+        if (!isMobileScreen) inputRef.current?.focus();
+        setAutoScroll(true);
+      } catch (error) {
+        showToast(
+          error instanceof Error ? error.message : Locale.Chat.WebSearch.Failed,
+        );
+      } finally {
+        setIsLoading(false);
+      }
     });
   };
 
@@ -739,8 +746,9 @@ function _Chat(props: ChatProps) {
       return;
     }
     const resendUserMessage = userMessage;
+    const messagesBeforeResend = session.messages.slice();
 
-    void runAccountAction(() => {
+    void runAccountAction(async () => {
       // delete the original messages only after the account check passes
       deleteMessage(resendUserMessage.id);
       deleteMessage(botMessage?.id);
@@ -749,10 +757,19 @@ function _Chat(props: ChatProps) {
       setIsLoading(true);
       const textContent = getMessageTextContent(resendUserMessage);
       const images = getMessageImages(resendUserMessage);
-      chatStore
-        .onUserInput(textContent, images)
-        .then(() => setIsLoading(false));
-      inputRef.current?.focus();
+      try {
+        await chatStore.onUserInput(textContent, images);
+        inputRef.current?.focus();
+      } catch (error) {
+        chatStore.updateTargetSession(session, (target) => {
+          target.messages = messagesBeforeResend;
+        });
+        showToast(
+          error instanceof Error ? error.message : Locale.Chat.WebSearch.Failed,
+        );
+      } finally {
+        setIsLoading(false);
+      }
     });
   };
 
@@ -1247,6 +1264,12 @@ function _Chat(props: ChatProps) {
                 uploading={uploading}
                 setUploading={setUploading}
                 mask={session.mask}
+                webSearchEnabled={Boolean(session.webSearchEnabled)}
+                onWebSearchChange={(enabled) =>
+                  chatStore.updateTargetSession(session, (target) => {
+                    target.webSearchEnabled = enabled;
+                  })
+                }
                 inputRef={inputRef}
                 inputId="chat-input"
                 onKeyDown={onInputKeyDown}
@@ -1271,6 +1294,7 @@ function _Chat(props: ChatProps) {
                 }}
                 setShowShortcutKeyModal={setShowShortcutKeyModal}
                 setShowChatSidePanel={setShowChatSidePanel}
+                sendDisabled={isLoading}
                 sendIcon={
                   ChatControllerPool.hasPending() ? <StopIcon /> : <SendIcon />
                 }

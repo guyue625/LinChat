@@ -1,51 +1,10 @@
-import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import path from "node:path";
+import { AccountAuthService } from "./account-auth";
+import { getDb } from "./db/connection";
 import {
-  AccountAuthService,
-  type AccountAuthRepository,
-  type AuthRecord,
-} from "./account-auth";
-
-const EMPTY_RECORD: AuthRecord = {
-  users: [],
-  invitations: [],
-  sessions: [],
-  resetTokens: [],
-  auditLogs: [],
-};
-
-class JsonAccountAuthRepository implements AccountAuthRepository {
-  constructor(private readonly filePath: string) {}
-
-  async read(): Promise<AuthRecord> {
-    try {
-      const content = await readFile(this.filePath, "utf8");
-      const parsed = JSON.parse(content) as Partial<AuthRecord>;
-      return {
-        users: parsed.users ?? [],
-        invitations: parsed.invitations ?? [],
-        sessions: parsed.sessions ?? [],
-        resetTokens: parsed.resetTokens ?? [],
-        auditLogs: parsed.auditLogs ?? [],
-      };
-    } catch (error) {
-      if ((error as NodeJS.ErrnoException).code === "ENOENT") {
-        return JSON.parse(JSON.stringify(EMPTY_RECORD)) as AuthRecord;
-      }
-      throw error;
-    }
-  }
-
-  async write(data: AuthRecord): Promise<void> {
-    await mkdir(path.dirname(this.filePath), { recursive: true });
-    const temporaryPath = `${this.filePath}.${process.pid}.tmp`;
-    await writeFile(temporaryPath, `${JSON.stringify(data, null, 2)}\n`, {
-      encoding: "utf8",
-      mode: 0o600,
-    });
-    await rename(temporaryPath, this.filePath);
-  }
-}
+  migrateLegacyAccountAuth,
+  SqliteAccountAuthRepository,
+} from "./account-auth-sqlite";
 
 let servicePromise: Promise<AccountAuthService> | undefined;
 
@@ -71,11 +30,13 @@ export async function getAccountAuthService() {
           "ACCOUNT_SESSION_SECRET must contain at least 16 characters",
         );
       }
-      const filePath =
+      const database = await getDb();
+      const legacyFilePath =
         process.env.ACCOUNT_DATA_FILE ||
         path.join(process.cwd(), "data", "accounts.json");
+      await migrateLegacyAccountAuth(database, legacyFilePath);
       const service = new AccountAuthService(
-        new JsonAccountAuthRepository(filePath),
+        new SqliteAccountAuthRepository(database),
         sessionSecret,
       );
       const adminUsername = process.env.ACCOUNT_ADMIN_USERNAME;

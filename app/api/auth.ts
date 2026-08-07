@@ -1,5 +1,4 @@
 import { NextRequest } from "next/server";
-import { getServerSideConfig } from "../config/server";
 import md5 from "spark-md5";
 import { ACCESS_CODE_PREFIX, ModelProvider } from "../constant";
 import {
@@ -7,6 +6,17 @@ import {
   isAccountAuthEnabled,
 } from "../lib/account-auth-server";
 import { shouldRejectAccountRequest } from "./account-access";
+import {
+  getRuntimeServerSideConfig,
+  type RuntimeServerSideConfig,
+} from "../lib/provider-config/runtime";
+import type { ProviderId } from "../lib/provider-config/types";
+import { getProviderDefinition } from "../lib/provider-config/registry";
+import { isModelNotavailableInServer } from "../utils/model";
+
+type AuthResult =
+  | { error: true; msg: string; status?: number }
+  | { error: false };
 
 function getIP(req: NextRequest) {
   let ip = req.ip ?? req.headers.get("x-real-ip");
@@ -29,7 +39,11 @@ function parseApiKey(bearToken: string) {
   };
 }
 
-export async function auth(req: NextRequest, modelProvider: ModelProvider) {
+export async function auth(
+  req: NextRequest,
+  modelProvider: ModelProvider,
+  runtimeConfig?: RuntimeServerSideConfig,
+): Promise<AuthResult> {
   const authToken = req.headers.get("Authorization") ?? "";
 
   // check if it is openai api key or user token
@@ -37,7 +51,31 @@ export async function auth(req: NextRequest, modelProvider: ModelProvider) {
 
   const hashedCode = md5.hash(accessCode ?? "").trim();
 
-  const serverConfig = getServerSideConfig();
+  const serverConfig = runtimeConfig ?? (await getRuntimeServerSideConfig());
+  const providerId = getProviderId(req, modelProvider);
+  if (!serverConfig.providerEnabled[providerId]) {
+    return { error: true, msg: "provider disabled" };
+  }
+  const requestedModel = await getRequestedModel(req, providerId);
+  const definition = getProviderDefinition(providerId);
+  if (
+    requestedModel &&
+    serverConfig.customModels &&
+    definition &&
+    isModelNotavailableInServer(
+      serverConfig.customModels,
+      requestedModel,
+      providerId === "bytedance"
+        ? definition.providerName
+        : definition.modelProviderId,
+    )
+  ) {
+    return {
+      error: true,
+      msg: `model ${requestedModel} is not available`,
+      status: 403,
+    };
+  }
   const hasValidLegacyCode = serverConfig.codes.has(hashedCode);
   const accountAuthEnabled = isAccountAuthEnabled();
   const accountUser = accountAuthEnabled
@@ -79,8 +117,6 @@ export async function auth(req: NextRequest, modelProvider: ModelProvider) {
 
   // if user does not provide an api key, inject system api key
   if (!apiKey) {
-    const serverConfig = getServerSideConfig();
-
     // const systemApiKey =
     //   modelProvider === ModelProvider.GeminiPro
     //     ? serverConfig.googleApiKey
@@ -128,6 +164,9 @@ export async function auth(req: NextRequest, modelProvider: ModelProvider) {
       case ModelProvider.SiliconFlow:
         systemApiKey = serverConfig.siliconFlowApiKey;
         break;
+      case ModelProvider["302.AI"]:
+        systemApiKey = serverConfig.ai302ApiKey;
+        break;
       case ModelProvider.GPT:
       default:
         if (req.nextUrl.pathname.includes("azure/deployments")) {
@@ -150,4 +189,68 @@ export async function auth(req: NextRequest, modelProvider: ModelProvider) {
   return {
     error: false,
   };
+}
+
+async function getRequestedModel(req: NextRequest, providerId: ProviderId) {
+  const pathname = decodeURIComponent(req.nextUrl.pathname);
+  if (providerId === "google") {
+    return pathname.match(/\/models\/([^/:]+)/)?.[1];
+  }
+  if (providerId === "stability") {
+    return pathname.match(/\/generate\/([^/?]+)/)?.[1];
+  }
+  if (!req.body || req.method === "GET" || req.method === "HEAD") {
+    return undefined;
+  }
+  try {
+    const payload = (await req.clone().json()) as {
+      model?: unknown;
+      Model?: unknown;
+    };
+    const model = payload.model ?? payload.Model;
+    return typeof model === "string" && model ? model : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+function getProviderId(
+  req: NextRequest,
+  modelProvider: ModelProvider,
+): ProviderId {
+  switch (modelProvider) {
+    case ModelProvider.Stability:
+      return "stability";
+    case ModelProvider.GeminiPro:
+      return "google";
+    case ModelProvider.Claude:
+      return "anthropic";
+    case ModelProvider.Ernie:
+      return "baidu";
+    case ModelProvider.Doubao:
+      return "bytedance";
+    case ModelProvider.Qwen:
+      return "alibaba";
+    case ModelProvider.Hunyuan:
+      return "tencent";
+    case ModelProvider.Moonshot:
+      return "moonshot";
+    case ModelProvider.Iflytek:
+      return "iflytek";
+    case ModelProvider.DeepSeek:
+      return "deepseek";
+    case ModelProvider.XAI:
+      return "xai";
+    case ModelProvider.ChatGLM:
+      return "chatglm";
+    case ModelProvider.SiliconFlow:
+      return "siliconflow";
+    case ModelProvider["302.AI"]:
+      return "302ai";
+    case ModelProvider.GPT:
+    default:
+      return req.nextUrl.pathname.includes("azure/deployments")
+        ? "azure"
+        : "openai";
+  }
 }

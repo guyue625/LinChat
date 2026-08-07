@@ -15,7 +15,7 @@ const config: Config = {
   moduleNameMapper: {
     "^@/(.*)$": "<rootDir>/$1",
   },
-  extensionsToTreatAsEsm: [".ts", ".tsx"],
+  modulePathIgnorePatterns: ["<rootDir>/.next/"],
   injectGlobals: true,
 };
 

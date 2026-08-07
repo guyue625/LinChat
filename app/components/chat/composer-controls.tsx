@@ -7,6 +7,7 @@ export function ComposerToolButton(props: {
   icon: JSX.Element;
   label: string;
   active?: boolean;
+  pressed?: boolean;
   className?: string;
   onClick: () => void;
   children?: React.ReactNode;
@@ -20,6 +21,7 @@ export function ComposerToolButton(props: {
         props.className,
       )}
       aria-label={props.label}
+      aria-pressed={props.pressed}
       title={props.label}
       onClick={props.onClick}
     >

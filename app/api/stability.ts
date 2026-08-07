@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSideConfig } from "@/app/config/server";
+import { getRuntimeServerSideConfig } from "@/app/lib/provider-config/runtime";
 import { ModelProvider, STABILITY_BASE_URL } from "@/app/constant";
 import { auth } from "@/app/api/auth";
 
@@ -13,9 +13,7 @@ export async function handle(
     return NextResponse.json({ body: "OK" }, { status: 200 });
   }
 
-  const controller = new AbortController();
-
-  const serverConfig = getServerSideConfig();
+  const serverConfig = await getRuntimeServerSideConfig();
 
   let baseUrl = serverConfig.stabilityUrl || STABILITY_BASE_URL;
 
@@ -32,18 +30,11 @@ export async function handle(
   console.log("[Stability Proxy] ", path);
   console.log("[Stability Base Url]", baseUrl);
 
-  const timeoutId = setTimeout(
-    () => {
-      controller.abort();
-    },
-    10 * 60 * 1000,
-  );
-
-  const authResult = await auth(req, ModelProvider.Stability);
+  const authResult = await auth(req, ModelProvider.Stability, serverConfig);
 
   if (authResult.error) {
     return NextResponse.json(authResult, {
-      status: 401,
+      status: authResult.status ?? 401,
     });
   }
 
@@ -63,6 +54,14 @@ export async function handle(
       },
     );
   }
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(
+    () => {
+      controller.abort();
+    },
+    10 * 60 * 1000,
+  );
 
   const fetchUrl = `${baseUrl}/${path}`;
   console.log("[Stability Url] ", fetchUrl);
