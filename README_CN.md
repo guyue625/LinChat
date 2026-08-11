@@ -365,6 +365,27 @@ docker run -d -p 3000:3000 \
 
 如果你需要指定其他环境变量，请自行在上述命令中增加 `-e 环境变量=环境变量值` 来指定。
 
+#### 联网搜索配置（可选）
+
+联网搜索由服务端调用搜索服务，目前支持 Tavily、博查和 SearXNG。选择其中一种配置即可，例如 Tavily：
+
+```shell
+docker run -d --name nextchat -p 3000:3000 \
+  -e WEB_SEARCH_PROVIDER=tavily \
+  -e TAVILY_API_KEY=你的_Tavily_API_Key \
+  ghcr.io/guyue625/nextchat:dev
+```
+
+使用 `docker-compose.yml` 时，在该文件同目录创建 `.env`（不是 `.env.local`）：
+
+```dotenv
+NEXTCHAT_TAG=dev
+WEB_SEARCH_PROVIDER=tavily
+TAVILY_API_KEY=你的_Tavily_API_Key
+```
+
+博查使用 `WEB_SEARCH_PROVIDER=bocha` 和 `BOCHA_API_KEY`；SearXNG 使用 `WEB_SEARCH_PROVIDER=searxng` 和 `SEARXNG_URL`。修改配置后需要重新创建容器，单纯刷新网页不会更新容器环境变量。
+
 #### 方式二：GitHub Actions 自动构建镜像（推荐，本机无 Docker）
 
 适用场景：本机没有 Docker，也不想在服务器上慢慢 `docker build`。  

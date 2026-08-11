@@ -18,7 +18,11 @@ export function WebSearchToggle(props: {
       active={props.enabled}
       pressed={props.enabled}
       onClick={() => props.onChange(!props.enabled)}
-    />
+    >
+      {props.enabled
+        ? Locale.Chat.WebSearch.ActiveLabel
+        : Locale.Chat.WebSearch.Label}
+    </ComposerToolButton>
   );
 }
 

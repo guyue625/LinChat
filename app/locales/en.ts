@@ -85,6 +85,8 @@ const en: LocaleType = {
       UploadImage: "Upload Images",
     },
     WebSearch: {
+      Label: "Web search",
+      ActiveLabel: "Web search on",
       Enabled: "Web search: on",
       Disabled: "Web search: off",
       Sources: "Sources",

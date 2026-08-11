@@ -84,6 +84,8 @@ const cn = {
       UploadImage: "上传图片",
     },
     WebSearch: {
+      Label: "联网搜索",
+      ActiveLabel: "联网搜索 已开启",
       Enabled: "联网搜索：已开启",
       Disabled: "联网搜索：已关闭",
       Sources: "参考来源",

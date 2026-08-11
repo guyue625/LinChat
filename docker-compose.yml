@@ -1,9 +1,9 @@
 version: "3.9"
 services:
   chatgpt-next-web:
-    profiles: [ "no-proxy" ]
+    profiles: ["no-proxy"]
     container_name: chatgpt-next-web
-    image: yidadaa/chatgpt-next-web
+    image: ghcr.io/guyue625/nextchat:${NEXTCHAT_TAG:-dev}
     ports:
       - 3000:3000
     environment:
@@ -17,11 +17,15 @@ services:
       - ENABLE_BALANCE_QUERY=$ENABLE_BALANCE_QUERY
       - DISABLE_FAST_LINK=$DISABLE_FAST_LINK
       - OPENAI_SB=$OPENAI_SB
+      - WEB_SEARCH_PROVIDER=$WEB_SEARCH_PROVIDER
+      - TAVILY_API_KEY=$TAVILY_API_KEY
+      - BOCHA_API_KEY=$BOCHA_API_KEY
+      - SEARXNG_URL=$SEARXNG_URL
 
   chatgpt-next-web-proxy:
-    profiles: [ "proxy" ]
+    profiles: ["proxy"]
     container_name: chatgpt-next-web-proxy
-    image: yidadaa/chatgpt-next-web
+    image: ghcr.io/guyue625/nextchat:${NEXTCHAT_TAG:-dev}
     ports:
       - 3000:3000
     environment:
@@ -36,3 +40,7 @@ services:
       - ENABLE_BALANCE_QUERY=$ENABLE_BALANCE_QUERY
       - DISABLE_FAST_LINK=$DISABLE_FAST_LINK
       - OPENAI_SB=$OPENAI_SB
+      - WEB_SEARCH_PROVIDER=$WEB_SEARCH_PROVIDER
+      - TAVILY_API_KEY=$TAVILY_API_KEY
+      - BOCHA_API_KEY=$BOCHA_API_KEY
+      - SEARXNG_URL=$SEARXNG_URL

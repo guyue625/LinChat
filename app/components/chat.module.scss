@@ -1924,11 +1924,17 @@
 }
 
 .composer-tool-button:hover,
-.composer-tool-button:focus-visible,
-.composer-tool-button-active {
+.composer-tool-button:focus-visible {
   color: var(--black);
   border-color: color-mix(in srgb, var(--black) 10%, transparent);
   background: var(--hover-color);
+}
+
+.composer-tool-button-active {
+  color: var(--primary);
+  border-color: color-mix(in srgb, var(--primary) 32%, transparent);
+  background: color-mix(in srgb, var(--primary) 10%, transparent);
+  font-weight: 500;
 }
 
 .composer-tool-button:focus-visible {

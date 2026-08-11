@@ -5,6 +5,8 @@ jest.mock("../../locales", () => ({
   default: {
     Chat: {
       WebSearch: {
+        Label: "Web search",
+        ActiveLabel: "Web search on",
         Enabled: "联网搜索：已开启",
         Disabled: "联网搜索：已关闭",
         Sources: "来源",
@@ -20,6 +22,7 @@ describe("chat web search UI", () => {
     const onChange = jest.fn();
     render(<WebSearchToggle enabled={true} onChange={onChange} />);
     const button = screen.getByRole("button", { name: "联网搜索：已开启" });
+    expect(button).toHaveTextContent("Web search on");
     expect(button).toHaveAttribute("aria-pressed", "true");
     fireEvent.click(button);
     expect(onChange).toHaveBeenCalledWith(false);
