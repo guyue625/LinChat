@@ -1,5 +1,5 @@
 import { DEFAULT_MODELS, ServiceProvider } from "../constant";
-import { LLMModel } from "../client/api";
+import type { LLMModel } from "../client/api";
 
 export type ModelDisplayEntry = {
   name: string;
@@ -217,6 +217,30 @@ export function collectModelsWithDefaultModel(
   allModels = sortModelTable(allModels);
 
   return allModels;
+}
+
+export function configuredModelTokens(input: {
+  configCustomModels: string;
+  accessCustomModels: string;
+  useCustomConfig: boolean;
+}) {
+  return input.useCustomConfig
+    ? ["-all", input.configCustomModels].join(",")
+    : [input.configCustomModels, input.accessCustomModels].join(",");
+}
+
+export function isConfiguredModel(input: {
+  models: readonly LLMModel[];
+  customModels: string;
+  modelName: string;
+  providerName: string;
+}) {
+  return collectModels(input.models, input.customModels).some(
+    (model) =>
+      model.available &&
+      model.name === input.modelName &&
+      model.provider?.providerName === input.providerName,
+  );
 }
 
 /**

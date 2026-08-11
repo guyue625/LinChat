@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { useAccessStore, useAppConfig } from "../store";
 import { useAccount } from "../components/account-context";
-import { collectModelsWithDefaultModel } from "./model";
+import { collectModelsWithDefaultModel, configuredModelTokens } from "./model";
 import { shouldExposeModelWorkspace } from "./account-workspace";
 
 export function useAllModels() {
@@ -21,9 +21,11 @@ export function useAllModels() {
     // enables via CUSTOM_MODELS (its tokens are dropped here on purpose —
     // e.g. a server-side "all" would otherwise re-enable the whole catalog).
     // Only the user's "+" tokens from the model manager survive.
-    const customTokens = accessStore.useCustomConfig
-      ? ["-all", configStore.customModels].join(",")
-      : [configStore.customModels, accessStore.customModels].join(",");
+    const customTokens = configuredModelTokens({
+      configCustomModels: configStore.customModels,
+      accessCustomModels: accessStore.customModels,
+      useCustomConfig: accessStore.useCustomConfig,
+    });
     return collectModelsWithDefaultModel(
       configStore.models,
       customTokens,

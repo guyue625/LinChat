@@ -4,11 +4,11 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import {
   DEFAULT_CONFIG,
   resetAccessFetch,
+  sanitizeModelCatalogue,
   useAccessStore,
   useAppConfig,
   useChatStore,
 } from "../store";
-import { DEFAULT_MODELS } from "../constant";
 import {
   cacheModelWorkspace,
   cacheModelWorkspacePatch,
@@ -214,12 +214,18 @@ export function AccountWorkspaceSync() {
     setModelWorkspaceReady(false);
 
     const applyPlan = (plan: ReturnType<typeof planModelWorkspaceSwitch>) => {
-      const visibleModelConfig =
-        plan.visibleModelConfig ?? DEFAULT_MODEL_WORKSPACE_CONFIG;
+      const visibleState = sanitizeModelCatalogue({
+        models: [],
+        customModels: plan.visibleCustomModels,
+        modelConfig: {
+          ...(plan.visibleModelConfig ?? DEFAULT_MODEL_WORKSPACE_CONFIG),
+        },
+      });
+      const visibleModelConfig = visibleState.modelConfig;
       const currentConfig = useAppConfig.getState().modelConfig;
       internalModelUpdateRef.current = true;
       useAppConfig.setState({
-        models: (allowServerModels ? DEFAULT_MODELS : []) as any,
+        models: [],
         customModels: plan.visibleCustomModels,
         modelConfig: {
           ...currentConfig,

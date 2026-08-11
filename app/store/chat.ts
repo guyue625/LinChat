@@ -31,7 +31,11 @@ import { createPersistStore } from "../utils/store";
 import { estimateTokenLength } from "../utils/token";
 import { ModelConfig, useAppConfig } from "./config";
 import { useAccessStore } from "./access";
-import { collectModelsWithDefaultModel } from "../utils/model";
+import {
+  collectModelsWithDefaultModel,
+  configuredModelTokens,
+  isConfiguredModel,
+} from "../utils/model";
 import type { Mask } from "./mask";
 import { executeMcpAction, getAllTools, isMcpEnabled } from "../mcp/actions";
 import { extractMcpJson, isMcpJson } from "../mcp/utils";
@@ -507,6 +511,23 @@ export const useChatStore = createPersistStore(
       ) {
         const session = get().currentSession();
         const modelConfig = session.mask.modelConfig;
+        const configState = useAppConfig.getState();
+        const accessState = useAccessStore.getState();
+        const customModels = configuredModelTokens({
+          configCustomModels: configState.customModels,
+          accessCustomModels: accessState.customModels,
+          useCustomConfig: accessState.useCustomConfig,
+        });
+        if (
+          !isConfiguredModel({
+            models: configState.models,
+            customModels,
+            modelName: modelConfig.model,
+            providerName: modelConfig.providerName,
+          })
+        ) {
+          throw new Error(Locale.Chat.NoModel);
+        }
         const searchQuery = content.trim();
         const shouldSearch = Boolean(
           !isMcpResponse && session.webSearchEnabled && searchQuery,

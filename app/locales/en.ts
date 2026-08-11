@@ -100,6 +100,7 @@ const en: LocaleType = {
       return inputHints + ", / to search prompts, : to use commands";
     },
     Send: "Send",
+    NoModel: "Configure a model first",
     StartSpeak: "Start Speak",
     StopSpeak: "Stop Speak",
     Config: {

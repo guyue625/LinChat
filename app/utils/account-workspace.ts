@@ -539,9 +539,9 @@ export function shouldExposeServerModels(account: {
 }
 
 /**
- * Return the model catalogue that may be exposed for the current account.
- * Guests receive an empty catalogue; built-ins are restored once the account
- * is authenticated (or when account auth is disabled).
+ * Return the explicitly configured model catalogue for the current account.
+ * Guests receive an empty catalogue; authentication only unlocks the current
+ * account workspace and never injects a built-in catalogue.
  */
 export function getVisibleModels<T>(
   account: { enabled: boolean; user: unknown },

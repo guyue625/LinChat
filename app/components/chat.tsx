@@ -444,6 +444,7 @@ function _Chat(props: ChatProps) {
       : session.topic || DEFAULT_TOPIC;
   const config = useAppConfig();
   const allModels = useAllModels();
+  const hasConfiguredModel = allModels.some((model) => model.available);
   const fontSize = config.fontSize;
   const fontFamily = config.fontFamily;
 
@@ -587,6 +588,10 @@ function _Chat(props: ChatProps) {
       // Clear draft when submitting
       localStorage.removeItem(UNFINISHED_INPUT(session.id));
       matchCommand.invoke();
+      return;
+    }
+    if (!hasConfiguredModel) {
+      showToast(Locale.Chat.NoModel);
       return;
     }
     void runAccountAction(async () => {
@@ -1258,7 +1263,11 @@ function _Chat(props: ChatProps) {
                 value={userInput}
                 onInput={onInput}
                 onSubmit={() => doSubmit(userInput)}
-                placeholder={Locale.Chat.Input(submitKey)}
+                placeholder={
+                  hasConfiguredModel
+                    ? Locale.Chat.Input(submitKey)
+                    : Locale.Chat.NoModel
+                }
                 attachImages={attachImages}
                 setAttachImages={setAttachImages}
                 uploading={uploading}
@@ -1294,7 +1303,7 @@ function _Chat(props: ChatProps) {
                 }}
                 setShowShortcutKeyModal={setShowShortcutKeyModal}
                 setShowChatSidePanel={setShowChatSidePanel}
-                sendDisabled={isLoading}
+                sendDisabled={isLoading || !hasConfiguredModel}
                 sendIcon={
                   ChatControllerPool.hasPending() ? <StopIcon /> : <SendIcon />
                 }

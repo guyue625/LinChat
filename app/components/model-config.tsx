@@ -10,10 +10,7 @@ import styles from "./model-config.module.scss";
 import { filterModelsByProviders, getModelProvider } from "../utils/model";
 import { useEffect, useMemo } from "react";
 import { useAccount } from "./account-context";
-import {
-  shouldExposeModelWorkspace,
-  shouldPreserveRestoredModelSelection,
-} from "../utils/account-workspace";
+import { shouldExposeModelWorkspace } from "../utils/account-workspace";
 
 export function ModelConfigList(props: {
   modelConfig: ModelConfig;
@@ -55,8 +52,6 @@ export function ModelConfigList(props: {
   useEffect(() => {
     if (!showModels) return;
     const nextModel = selectableModels[0];
-    if (!nextModel) return;
-
     const hasCurrentModel = selectableModels.some(
       (model) =>
         model.name === modelConfig.model &&
@@ -70,16 +65,14 @@ export function ModelConfigList(props: {
           model.provider?.providerName === modelConfig.compressProviderName,
       );
 
-    if (
-      shouldPreserveRestoredModelSelection(
-        modelConfig.model,
-        hasCurrentModel,
-      ) ||
-      shouldPreserveRestoredModelSelection(
-        modelConfig.compressModel,
-        hasCurrentCompressModel,
-      )
-    ) {
+    if (!nextModel) {
+      if (!modelConfig.model && !modelConfig.compressModel) return;
+      updateConfig((config) => {
+        config.model = "";
+        config.providerName = "" as ServiceProvider;
+        config.compressModel = "";
+        config.compressProviderName = "";
+      });
       return;
     }
 

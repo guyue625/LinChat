@@ -45,8 +45,7 @@ export function ModelSelector(props: {
   const { mask, onOpenChange, setAttachImages, setUploading, updateMask } =
     props;
   const currentModel = mask.modelConfig.model;
-  const currentProviderName =
-    mask.modelConfig.providerName || ServiceProvider.OpenAI;
+  const currentProviderName = mask.modelConfig.providerName || "";
   const allModels = useAllModels();
   const accessStore = useAccessStore();
   const {
@@ -176,18 +175,20 @@ export function ModelSelector(props: {
         model.name === currentModel &&
         model.provider?.providerName === currentProviderName,
     );
-    if (unavailable && models.length > 0) {
+    if (unavailable) {
       const nextModel = models.find((model) => model.isDefault) || models[0];
+      if (!nextModel && !currentModel && !mask.modelConfig.providerName) return;
       updateMask((mask) => {
-        mask.modelConfig.model = nextModel.name;
-        mask.modelConfig.providerName = nextModel.provider
-          ?.providerName as ServiceProvider;
+        mask.modelConfig.model = nextModel?.name ?? "";
+        mask.modelConfig.providerName = (nextModel?.provider?.providerName ??
+          "") as ServiceProvider;
       });
-      showToast(nextModel.displayName || nextModel.name);
+      if (nextModel) showToast(nextModel.displayName || nextModel.name);
     }
   }, [
     currentModel,
     currentProviderName,
+    mask.modelConfig.providerName,
     models,
     setAttachImages,
     setUploading,

@@ -15,9 +15,10 @@ import {
   ServiceProvider,
 } from "../constant";
 import { createPersistStore } from "../utils/store";
+import { collectModels } from "../utils/model";
 import type { Voice } from "rt-client";
 
-export type ModelType = (typeof DEFAULT_MODELS)[number]["name"];
+export type ModelType = string;
 export type TTSModelType = (typeof DEFAULT_TTS_MODELS)[number];
 export type TTSVoiceType = (typeof DEFAULT_TTS_VOICES)[number];
 export type TTSEngineType = (typeof DEFAULT_TTS_ENGINES)[number];
@@ -61,11 +62,11 @@ export const DEFAULT_CONFIG = {
   hideBuiltinMasks: false, // dont add builtin masks
 
   customModels: "",
-  models: DEFAULT_MODELS as any as LLMModel[],
+  models: [] as LLMModel[],
 
   modelConfig: {
-    model: "gpt-4o-mini" as ModelType,
-    providerName: "OpenAI" as ServiceProvider,
+    model: "" as ModelType,
+    providerName: "" as ServiceProvider,
     temperature: 0.5,
     top_p: 1,
     max_tokens: 4000,
@@ -111,6 +112,73 @@ export type ChatConfig = typeof DEFAULT_CONFIG;
 export type ModelConfig = ChatConfig["modelConfig"];
 export type TTSConfig = ChatConfig["ttsConfig"];
 export type RealtimeConfig = ChatConfig["realtimeConfig"];
+
+const BUILTIN_MODEL_KEYS = new Set(
+  DEFAULT_MODELS.map((model) =>
+    `${model.name}@${model.provider?.id ?? ""}`.toLowerCase(),
+  ),
+);
+
+export function removeBuiltinModelEntries(models?: readonly LLMModel[]) {
+  return (models ?? []).filter(
+    (model) =>
+      !BUILTIN_MODEL_KEYS.has(
+        `${model.name}@${model.provider?.id ?? ""}`.toLowerCase(),
+      ),
+  );
+}
+
+export function sanitizeModelCatalogue<
+  T extends {
+    models?: LLMModel[];
+    customModels?: string;
+    modelConfig?: {
+      model: string;
+      providerName: string;
+      compressModel?: string;
+      compressProviderName?: string;
+    };
+  },
+>(state: T, additionalCustomModels = "") {
+  // Older migrations injected these entries even when the user had not
+  // configured a model. Only explicit +/- tokens should survive that cleanup.
+  state.customModels = (state.customModels ?? "")
+    .split(",")
+    .filter(
+      (token) =>
+        !["claude", "claude-100k"].includes(token.trim().toLowerCase()),
+    )
+    .join(",");
+  state.models = removeBuiltinModelEntries(state.models);
+  if (!state.modelConfig) return state;
+
+  const configuredModels = collectModels(
+    state.models,
+    [state.customModels ?? "", additionalCustomModels].join(","),
+  ).filter((model) => model.available);
+  const hasModel = (model: string, providerName: string) =>
+    configuredModels.some(
+      (candidate) =>
+        candidate.name === model &&
+        candidate.provider?.providerName === providerName,
+    );
+
+  if (!hasModel(state.modelConfig.model, state.modelConfig.providerName)) {
+    state.modelConfig.model = "";
+    state.modelConfig.providerName = "";
+  }
+  if (
+    state.modelConfig.compressModel &&
+    !hasModel(
+      state.modelConfig.compressModel,
+      state.modelConfig.compressProviderName ?? "",
+    )
+  ) {
+    state.modelConfig.compressModel = "";
+    state.modelConfig.compressProviderName = "";
+  }
+  return state;
+}
 
 export function limitNumber(
   x: number,
@@ -195,20 +263,13 @@ export const useAppConfig = createPersistStore(
   }),
   {
     name: StoreKey.Config,
-    version: 4.1,
+    version: 4.2,
 
     merge(persistedState, currentState) {
       const state = persistedState as ChatConfig | undefined;
       if (!state) return { ...currentState };
-      const models = currentState.models.slice();
-      state.models.forEach((pModel) => {
-        const idx = models.findIndex(
-          (v) => v.name === pModel.name && v.provider === pModel.provider,
-        );
-        if (idx !== -1) models[idx] = pModel;
-        else models.push(pModel);
-      });
-      return { ...currentState, ...state, models: models };
+      sanitizeModelCatalogue(state);
+      return { ...currentState, ...state, models: state.models ?? [] };
     },
 
     migrate(persistedState, version) {
@@ -226,7 +287,7 @@ export const useAppConfig = createPersistStore(
       }
 
       if (version < 3.5) {
-        state.customModels = "claude,claude-100k";
+        state.customModels = state.customModels ?? "";
       }
 
       if (version < 3.6) {
@@ -253,6 +314,10 @@ export const useAppConfig = createPersistStore(
           DEFAULT_CONFIG.modelConfig.compressModel;
         state.modelConfig.compressProviderName =
           DEFAULT_CONFIG.modelConfig.compressProviderName;
+      }
+
+      if (version < 4.2) {
+        sanitizeModelCatalogue(state);
       }
 
       return state as any;

@@ -523,4 +523,63 @@ describe("initial account cloud sync", () => {
 
     expect(chatSetState).not.toHaveBeenCalled();
   });
+
+  it("pulls a newer revision on focus and skips an unchanged revision", async () => {
+    const fetchMock = global.fetch as jest.Mock;
+    const chatSetState = useChatStore.setState as jest.Mock;
+    fetchMock.mockReset();
+    chatSetState.mockClear();
+    fetchMock
+      .mockResolvedValueOnce(
+        fetchResponse({
+          status: 200,
+          json: { state: null, revision: 0, updatedAt: null },
+        }),
+      )
+      .mockResolvedValueOnce(
+        fetchResponse({
+          status: 200,
+          json: {
+            ok: true,
+            revision: 1,
+            updatedAt: "2026-08-07T00:00:00.000Z",
+          },
+        }),
+      )
+      .mockResolvedValueOnce(
+        fetchResponse({
+          status: 200,
+          json: {
+            state: cloudState("from-other-browser"),
+            revision: 2,
+            updatedAt: "2026-08-07T00:00:01.000Z",
+          },
+        }),
+      )
+      .mockResolvedValueOnce(
+        fetchResponse({
+          status: 200,
+          json: {
+            state: cloudState("same-revision"),
+            revision: 2,
+            updatedAt: "2026-08-07T00:00:01.000Z",
+          },
+        }),
+      );
+
+    startAccountCloudSync({ userId: "test-user" });
+    await waitForFetchCalls(fetchMock, 2);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    window.dispatchEvent(new Event("focus"));
+    await waitForFetchCalls(fetchMock, 3);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    const appliedCalls = chatSetState.mock.calls.length;
+    expect(appliedCalls).toBeGreaterThan(0);
+
+    window.dispatchEvent(new Event("focus"));
+    await waitForFetchCalls(fetchMock, 4);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(chatSetState).toHaveBeenCalledTimes(appliedCalls);
+  });
 });

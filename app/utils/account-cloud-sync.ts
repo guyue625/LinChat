@@ -1,5 +1,6 @@
 import { StoreKey } from "../constant";
 import { useAccessStore, useAppConfig, useChatStore } from "../store";
+import { sanitizeModelCatalogue } from "../store/config";
 import { useMaskStore } from "../store/mask";
 import { usePromptStore } from "../store/prompt";
 import {
@@ -15,7 +16,8 @@ import {
 } from "./sync";
 
 export const ACCOUNT_CLOUD_SYNC_PATH = "/api/sync";
-export const ACCOUNT_CLOUD_SYNC_DEBOUNCE_MS = 30_000;
+export const ACCOUNT_CLOUD_SYNC_DEBOUNCE_MS = 1_500;
+export const ACCOUNT_CLOUD_SYNC_POLL_MS = 5_000;
 
 /** 1x1 transparent GIF — keeps multimodal message shape without shipping base64 payloads. */
 export const SYNC_IMAGE_PLACEHOLDER =
@@ -54,10 +56,16 @@ type CapturedPush = {
 };
 
 let applyingRemote = false;
-let pushQueue: Promise<void> = Promise.resolve();
+let operationQueue: Promise<void> = Promise.resolve();
+let queuedPull: {
+  userId: string;
+  promise: Promise<"empty" | "merged" | "stale" | "unchanged">;
+} | null = null;
 let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+let pollTimer: ReturnType<typeof setInterval> | null = null;
 let activeUserId: string | null = null;
 let activeRevision = 0;
+let activeRevisionKnown = false;
 let stopFns: Array<() => void> = [];
 
 function isDataUrl(value: unknown): value is string {
@@ -224,6 +232,14 @@ async function applyRemoteState(state: AppState, userId: string) {
     const localOwner = currentChatOwner();
     const localState = getLocalAppState();
     mergeAppState(localState, state);
+    const accessState = localState[StoreKey.Access] as {
+      customModels?: string;
+      useCustomConfig?: boolean;
+    };
+    sanitizeModelCatalogue(
+      localState[StoreKey.Config],
+      accessState.useCustomConfig ? "" : accessState.customModels ?? "",
+    );
     setLocalAppState(localState);
     useChatStore.setState({
       workspaceOwner: localOwner,
@@ -243,10 +259,14 @@ async function applyRemoteState(state: AppState, userId: string) {
 export async function pullAndMergeAccountCloud(
   userId = activeUserId,
   isCurrent: () => boolean = () => activeUserId === userId,
-): Promise<"empty" | "merged" | "stale"> {
+): Promise<"empty" | "merged" | "stale" | "unchanged"> {
   const envelope = await fetchRemoteEnvelope();
   if (!userId || !isCurrent() || activeUserId !== userId) return "stale";
+  if (activeRevisionKnown && envelope.revision <= activeRevision) {
+    return "unchanged";
+  }
   activeRevision = envelope.revision;
+  activeRevisionKnown = true;
   if (!envelope.state) {
     return "empty";
   }
@@ -271,6 +291,7 @@ export async function pushAccountCloud(options?: { keepalive?: boolean }) {
       );
       if (activeUserId === userId && currentChatOwner() === `user:${userId}`) {
         activeRevision = result.revision;
+        activeRevisionKnown = true;
       }
       return;
     } catch (error) {
@@ -281,6 +302,7 @@ export async function pushAccountCloud(options?: { keepalive?: boolean }) {
         return;
       }
       activeRevision = error.envelope.revision;
+      activeRevisionKnown = true;
       if (error.envelope.state) {
         const applied = await applyRemoteState(error.envelope.state, userId);
         if (!applied) return;
@@ -289,17 +311,43 @@ export async function pushAccountCloud(options?: { keepalive?: boolean }) {
   }
 }
 
+function enqueueOperation<T>(operation: () => Promise<T>): Promise<T> {
+  const current = operationQueue.then(operation, operation);
+  operationQueue = current.then(
+    () => undefined,
+    () => undefined,
+  );
+  return current;
+}
+
 function enqueuePush(options?: { keepalive?: boolean }) {
-  pushQueue = pushQueue
-    .catch(() => undefined)
-    .then(() => pushAccountCloud(options))
-    .catch((error) => {
-      console.error(
-        "[AccountCloudSync] push failed",
-        error instanceof Error ? error.message : "UNKNOWN_SYNC_ERROR",
-      );
-    });
-  return pushQueue;
+  return enqueueOperation(() => pushAccountCloud(options)).catch((error) => {
+    console.error(
+      "[AccountCloudSync] push failed",
+      error instanceof Error ? error.message : "UNKNOWN_SYNC_ERROR",
+    );
+  });
+}
+
+function enqueuePull(
+  userId: string,
+  isCurrent: () => boolean,
+): Promise<"empty" | "merged" | "stale" | "unchanged"> {
+  if (queuedPull?.userId === userId) return queuedPull.promise;
+
+  const queued = {
+    userId,
+    promise: Promise.resolve(
+      "stale" as "empty" | "merged" | "stale" | "unchanged",
+    ),
+  };
+  queued.promise = enqueueOperation(() =>
+    pullAndMergeAccountCloud(userId, isCurrent),
+  ).finally(() => {
+    if (queuedPull === queued) queuedPull = null;
+  });
+  queuedPull = queued;
+  return queued.promise;
 }
 
 function captureActivePush(): CapturedPush | null {
@@ -328,6 +376,7 @@ async function pushCapturedAccountCloud(capture: CapturedPush) {
         currentChatOwner() === capture.owner
       ) {
         activeRevision = result.revision;
+        activeRevisionKnown = true;
       }
       return;
     } catch (error) {
@@ -342,6 +391,7 @@ async function pushCapturedAccountCloud(capture: CapturedPush) {
           currentChatOwner() === capture.owner
         ) {
           activeRevision = revision;
+          activeRevisionKnown = true;
           await applyRemoteState(error.envelope.state, capture.userId);
         }
       }
@@ -350,16 +400,14 @@ async function pushCapturedAccountCloud(capture: CapturedPush) {
 }
 
 function enqueueCapturedPush(capture: CapturedPush) {
-  pushQueue = pushQueue
-    .catch(() => undefined)
-    .then(() => pushCapturedAccountCloud(capture))
-    .catch((error) => {
+  return enqueueOperation(() => pushCapturedAccountCloud(capture)).catch(
+    (error) => {
       console.error(
         "[AccountCloudSync] push failed",
         error instanceof Error ? error.message : "UNKNOWN_SYNC_ERROR",
       );
-    });
-  return pushQueue;
+    },
+  );
 }
 
 function scheduleDebouncedPush() {
@@ -399,13 +447,14 @@ export function startAccountCloudSync(options: StartOptions): () => void {
   stopAccountCloudSync({ flush: false });
   activeUserId = options.userId;
   activeRevision = 0;
+  activeRevisionKnown = false;
 
   let cancelled = false;
   const generation = activeUserId;
 
   const runInitial = async () => {
     try {
-      const result = await pullAndMergeAccountCloud(
+      const result = await enqueuePull(
         generation,
         () => !cancelled && activeUserId === generation,
       );
@@ -437,27 +486,50 @@ export function startAccountCloudSync(options: StartOptions): () => void {
   const onPageHide = () => {
     void flushDebouncedPush(true);
   };
+  const pullLatest = () => {
+    if (cancelled || activeUserId !== generation) return;
+    void enqueuePull(
+      generation,
+      () => !cancelled && activeUserId === generation,
+    ).catch((error) => {
+      if (cancelled || activeUserId !== generation) return;
+      console.error("[AccountCloudSync] pull failed", error);
+    });
+  };
+  const onFocus = () => pullLatest();
   const onVisibility = () => {
     if (document.visibilityState === "hidden") {
       void flushDebouncedPush(true);
+    } else {
+      pullLatest();
     }
   };
   if (typeof window !== "undefined") {
     window.addEventListener("pagehide", onPageHide);
+    window.addEventListener("focus", onFocus);
     document.addEventListener("visibilitychange", onVisibility);
+    pollTimer = setInterval(pullLatest, ACCOUNT_CLOUD_SYNC_POLL_MS);
   }
 
   const stop = () => {
     cancelled = true;
     if (activeUserId === generation) activeUserId = null;
-    if (activeUserId === null) activeRevision = 0;
+    if (activeUserId === null) {
+      activeRevision = 0;
+      activeRevisionKnown = false;
+    }
     if (debounceTimer) {
       clearTimeout(debounceTimer);
       debounceTimer = null;
     }
+    if (pollTimer) {
+      clearInterval(pollTimer);
+      pollTimer = null;
+    }
     unsubscribe();
     if (typeof window !== "undefined") {
       window.removeEventListener("pagehide", onPageHide);
+      window.removeEventListener("focus", onFocus);
       document.removeEventListener("visibilitychange", onVisibility);
     }
   };
@@ -476,9 +548,15 @@ export function stopAccountCloudSync(options?: { flush?: boolean }) {
   for (const stop of fns) stop();
   activeUserId = null;
   activeRevision = 0;
+  activeRevisionKnown = false;
+  queuedPull = null;
   if (debounceTimer) {
     clearTimeout(debounceTimer);
     debounceTimer = null;
+  }
+  if (pollTimer) {
+    clearInterval(pollTimer);
+    pollTimer = null;
   }
 }
 

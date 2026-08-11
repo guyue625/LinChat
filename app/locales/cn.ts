@@ -99,6 +99,7 @@ const cn = {
       return inputHints + "，/ 触发补全，: 触发命令";
     },
     Send: "发送",
+    NoModel: "请先配置模型",
     StartSpeak: "说话",
     StopSpeak: "停止",
     Config: {

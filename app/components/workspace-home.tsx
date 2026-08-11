@@ -10,6 +10,7 @@ import {
   FeaturedAssistant,
 } from "../data/featured-assistants";
 import { deepClone } from "../utils/clone";
+import { useAllModels } from "../utils/hooks";
 import { EmojiAvatar } from "./emoji";
 import { ChatComposer } from "./chat/composer";
 import styles from "./workspace-home.module.scss";
@@ -19,6 +20,8 @@ import Locale from "../locales";
 export function WorkspaceHome() {
   const navigate = useNavigate();
   const chatStore = useChatStore();
+  const allModels = useAllModels();
+  const hasConfiguredModel = allModels.some((model) => model.available);
   const [input, setInput] = useState("");
   const [active, setActive] = useState(FEATURED_ASSISTANTS[0]);
   const [draftMask, setDraftMask] = useState<Mask>(() =>
@@ -52,6 +55,10 @@ export function WorkspaceHome() {
   };
 
   const startChat = async (assistant: FeaturedAssistant, message?: string) => {
+    if (!hasConfiguredModel) {
+      showToast(Locale.Chat.NoModel);
+      return;
+    }
     if (startingChatRef.current) return;
     startingChatRef.current = true;
     setStartingChat(true);
@@ -180,7 +187,11 @@ export function WorkspaceHome() {
             value={input}
             onInput={setInput}
             onSubmit={submit}
-            placeholder={`给 ${active.name} 发消息…`}
+            placeholder={
+              hasConfiguredModel
+                ? `给 ${active.name} 发消息…`
+                : Locale.Chat.NoModel
+            }
             attachImages={attachImages}
             setAttachImages={setAttachImages}
             uploading={uploading}
@@ -193,7 +204,9 @@ export function WorkspaceHome() {
             rows={4}
             autoFocus
             sendDisabled={
-              startingChat || (!input.trim() && attachImages.length === 0)
+              !hasConfiguredModel ||
+              startingChat ||
+              (!input.trim() && attachImages.length === 0)
             }
           />
         </div>
@@ -202,7 +215,7 @@ export function WorkspaceHome() {
           {active.suggestions.map((suggestion) => (
             <button
               key={suggestion}
-              disabled={startingChat}
+              disabled={startingChat || !hasConfiguredModel}
               onClick={() => void startChat(active, suggestion)}
             >
               {suggestion}

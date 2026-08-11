@@ -26,7 +26,7 @@ describe("web search chat flow", () => {
     expect(source).toContain("if (startingChatRef.current) return;");
     expect(source).toContain("sendDisabled={");
     expect(source).toContain("startingChat ||");
-    expect(source).toContain("disabled={startingChat}");
+    expect(source).toContain("disabled={startingChat || !hasConfiguredModel}");
     expect(source).toContain("useChatStore.setState(previousChatState)");
     expect(source).toContain("setStartingChat(false)");
   });
@@ -34,7 +34,7 @@ describe("web search chat flow", () => {
   test("disables chat sending while the search preflight is loading", () => {
     const source = read("app/components/chat.tsx");
 
-    expect(source).toContain("sendDisabled={isLoading}");
+    expect(source).toContain("sendDisabled={isLoading || !hasConfiguredModel}");
     expect(source).toContain("if (isLoading) return;");
   });
 
