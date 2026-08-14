@@ -162,6 +162,13 @@ export function AuthPage() {
           <span className={styles["panel-ghost"]} aria-hidden="true">
             時
           </span>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            className={styles["panel-character"]}
+            src="/brand/operative.webp"
+            alt=""
+            aria-hidden="true"
+          />
           <div className={styles["brand-row"]}>
             <div className={styles["brand-mark"]} aria-hidden="true">
               AI
@@ -263,7 +270,7 @@ export function AuthPage() {
               </label>
               {error && <div className={styles["form-error"]}>{error}</div>}
               <button className={styles["submit-button"]} type="submit">
-                <span>进入 NextChat</span>
+                <span>进入 LinChat</span>
                 <span className={styles["btn-arrow"]} aria-hidden="true">
                   →
                 </span>
