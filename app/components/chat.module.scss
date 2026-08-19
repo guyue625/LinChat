@@ -1960,6 +1960,10 @@
   filter: none !important;
 }
 
+.web-search-toggle-label {
+  display: inline;
+}
+
 .composer-tool-button > svg {
   width: 11px;
   height: 11px;
@@ -2346,6 +2350,10 @@
 
   .composer-model-button {
     max-width: 42vw;
+  }
+
+  .web-search-toggle-label {
+    display: none;
   }
 
   .composer-model-popover,

@@ -1,9 +1,10 @@
-import { RealtimeConfig } from "@/app/store";
+import { DEFAULT_CONFIG, RealtimeConfig } from "@/app/store";
 
 import Locale from "@/app/locales";
-import { ListItem, Select, PasswordInput } from "@/app/components/ui-lib";
+import { Select, PasswordInput } from "@/app/components/ui-lib";
 
 import { InputRange } from "@/app/components/input-range";
+import { SettingRow, SettingSwitch } from "@/app/components/settings-controls";
 import { Voice } from "rt-client";
 import { ServiceProvider } from "@/app/constant";
 
@@ -20,11 +21,13 @@ export function RealtimeConfigList(props: {
   const azureConfigComponent = props.realtimeConfig.provider ===
     ServiceProvider.Azure && (
     <>
-      <ListItem
+      <SettingRow
+        id="voice-realtime-azure-endpoint"
         title={Locale.Settings.Realtime.Azure.Endpoint.Title}
-        subTitle={Locale.Settings.Realtime.Azure.Endpoint.SubTitle}
+        description={Locale.Settings.Realtime.Azure.Endpoint.SubTitle}
       >
         <input
+          aria-label={Locale.Settings.Realtime.Azure.Endpoint.Title}
           value={props.realtimeConfig?.azure?.endpoint}
           type="text"
           placeholder={Locale.Settings.Realtime.Azure.Endpoint.Title}
@@ -34,12 +37,14 @@ export function RealtimeConfigList(props: {
             );
           }}
         />
-      </ListItem>
-      <ListItem
+      </SettingRow>
+      <SettingRow
+        id="voice-realtime-azure-deployment"
         title={Locale.Settings.Realtime.Azure.Deployment.Title}
-        subTitle={Locale.Settings.Realtime.Azure.Deployment.SubTitle}
+        description={Locale.Settings.Realtime.Azure.Deployment.SubTitle}
       >
         <input
+          aria-label={Locale.Settings.Realtime.Azure.Deployment.Title}
           value={props.realtimeConfig?.azure?.deployment}
           type="text"
           placeholder={Locale.Settings.Realtime.Azure.Deployment.Title}
@@ -49,32 +54,32 @@ export function RealtimeConfigList(props: {
             );
           }}
         />
-      </ListItem>
+      </SettingRow>
     </>
   );
 
   return (
     <>
-      <ListItem
+      <SettingRow
+        id="voice-realtime-enable"
         title={Locale.Settings.Realtime.Enable.Title}
-        subTitle={Locale.Settings.Realtime.Enable.SubTitle}
+        description={Locale.Settings.Realtime.Enable.SubTitle}
       >
-        <input
-          type="checkbox"
+        <SettingSwitch
+          label={Locale.Settings.Realtime.Enable.Title}
           checked={props.realtimeConfig.enable}
-          onChange={(e) =>
-            props.updateConfig(
-              (config) => (config.enable = e.currentTarget.checked),
-            )
+          onChange={(checked) =>
+            props.updateConfig((config) => (config.enable = checked))
           }
-        ></input>
-      </ListItem>
+        />
+      </SettingRow>
 
       {props.realtimeConfig.enable && (
         <>
-          <ListItem
+          <SettingRow
+            id="voice-realtime-provider"
             title={Locale.Settings.Realtime.Provider.Title}
-            subTitle={Locale.Settings.Realtime.Provider.SubTitle}
+            description={Locale.Settings.Realtime.Provider.SubTitle}
           >
             <Select
               aria-label={Locale.Settings.Realtime.Provider.Title}
@@ -92,10 +97,11 @@ export function RealtimeConfigList(props: {
                 </option>
               ))}
             </Select>
-          </ListItem>
-          <ListItem
+          </SettingRow>
+          <SettingRow
+            id="voice-realtime-model"
             title={Locale.Settings.Realtime.Model.Title}
-            subTitle={Locale.Settings.Realtime.Model.SubTitle}
+            description={Locale.Settings.Realtime.Model.SubTitle}
           >
             <Select
               aria-label={Locale.Settings.Realtime.Model.Title}
@@ -110,10 +116,11 @@ export function RealtimeConfigList(props: {
                 </option>
               ))}
             </Select>
-          </ListItem>
-          <ListItem
+          </SettingRow>
+          <SettingRow
+            id="voice-realtime-api-key"
             title={Locale.Settings.Realtime.ApiKey.Title}
-            subTitle={Locale.Settings.Realtime.ApiKey.SubTitle}
+            description={Locale.Settings.Realtime.ApiKey.SubTitle}
           >
             <PasswordInput
               aria={Locale.Settings.ShowPassword}
@@ -127,13 +134,15 @@ export function RealtimeConfigList(props: {
                 );
               }}
             />
-          </ListItem>
+          </SettingRow>
           {azureConfigComponent}
-          <ListItem
+          <SettingRow
+            id="voice-realtime-voice"
             title={Locale.Settings.TTS.Voice.Title}
-            subTitle={Locale.Settings.TTS.Voice.SubTitle}
+            description={Locale.Settings.TTS.Voice.SubTitle}
           >
             <Select
+              aria-label={Locale.Settings.TTS.Voice.Title}
               value={props.realtimeConfig.voice}
               onChange={(e) => {
                 props.updateConfig(
@@ -147,17 +156,26 @@ export function RealtimeConfigList(props: {
                 </option>
               ))}
             </Select>
-          </ListItem>
-          <ListItem
+          </SettingRow>
+          <SettingRow
+            id="voice-realtime-temperature"
             title={Locale.Settings.Realtime.Temperature.Title}
-            subTitle={Locale.Settings.Realtime.Temperature.SubTitle}
+            description={Locale.Settings.Realtime.Temperature.SubTitle}
           >
             <InputRange
-              aria={Locale.Settings.Temperature.Title}
+              aria={Locale.Settings.Realtime.Temperature.Title}
               value={props.realtimeConfig?.temperature?.toFixed(1)}
+              defaultValue={DEFAULT_CONFIG.realtimeConfig.temperature}
               min="0.6"
               max="1"
               step="0.1"
+              onReset={() => {
+                props.updateConfig(
+                  (config) =>
+                    (config.temperature =
+                      DEFAULT_CONFIG.realtimeConfig.temperature),
+                );
+              }}
               onChange={(e) => {
                 props.updateConfig(
                   (config) =>
@@ -165,7 +183,7 @@ export function RealtimeConfigList(props: {
                 );
               }}
             ></InputRange>
-          </ListItem>
+          </SettingRow>
         </>
       )}
     </>

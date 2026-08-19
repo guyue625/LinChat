@@ -23,6 +23,9 @@ describe("chat web search UI", () => {
     render(<WebSearchToggle enabled={true} onChange={onChange} />);
     const button = screen.getByRole("button", { name: "联网搜索：已开启" });
     expect(button).toHaveTextContent("Web search on");
+    expect(button.querySelector("span:last-child")).toHaveClass(
+      "web-search-toggle-label",
+    );
     expect(button).toHaveAttribute("aria-pressed", "true");
     fireEvent.click(button);
     expect(onChange).toHaveBeenCalledWith(false);

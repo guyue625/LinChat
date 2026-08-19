@@ -1,7 +1,7 @@
-import { TTSConfig, TTSConfigValidator } from "../store";
+import { DEFAULT_CONFIG, TTSConfig, TTSConfigValidator } from "../store";
 
 import Locale from "../locales";
-import { ListItem, Select } from "./ui-lib";
+import { Select } from "./ui-lib";
 import {
   DEFAULT_TTS_ENGINE,
   DEFAULT_TTS_ENGINES,
@@ -9,6 +9,7 @@ import {
   DEFAULT_TTS_VOICES,
 } from "../constant";
 import { InputRange } from "./input-range";
+import { SettingRow, SettingSwitch } from "./settings-controls";
 
 export function TTSConfigList(props: {
   ttsConfig: TTSConfig;
@@ -16,36 +17,22 @@ export function TTSConfigList(props: {
 }) {
   return (
     <>
-      <ListItem
+      <SettingRow
+        id="voice-tts-enable"
         title={Locale.Settings.TTS.Enable.Title}
-        subTitle={Locale.Settings.TTS.Enable.SubTitle}
+        description={Locale.Settings.TTS.Enable.SubTitle}
       >
-        <input
-          type="checkbox"
+        <SettingSwitch
+          label={Locale.Settings.TTS.Enable.Title}
           checked={props.ttsConfig.enable}
-          onChange={(e) =>
-            props.updateConfig(
-              (config) => (config.enable = e.currentTarget.checked),
-            )
+          onChange={(checked) =>
+            props.updateConfig((config) => (config.enable = checked))
           }
-        ></input>
-      </ListItem>
-      {/* <ListItem
-        title={Locale.Settings.TTS.Autoplay.Title}
-        subTitle={Locale.Settings.TTS.Autoplay.SubTitle}
-      >
-        <input
-          type="checkbox"
-          checked={props.ttsConfig.autoplay}
-          onChange={(e) =>
-            props.updateConfig(
-              (config) => (config.autoplay = e.currentTarget.checked),
-            )
-          }
-        ></input>
-      </ListItem> */}
-      <ListItem title={Locale.Settings.TTS.Engine}>
+        />
+      </SettingRow>
+      <SettingRow id="voice-tts-engine" title={Locale.Settings.TTS.Engine}>
         <Select
+          aria-label={Locale.Settings.TTS.Engine}
           value={props.ttsConfig.engine}
           onChange={(e) => {
             props.updateConfig(
@@ -62,11 +49,12 @@ export function TTSConfigList(props: {
             </option>
           ))}
         </Select>
-      </ListItem>
+      </SettingRow>
       {props.ttsConfig.engine === DEFAULT_TTS_ENGINE && (
         <>
-          <ListItem title={Locale.Settings.TTS.Model}>
+          <SettingRow id="voice-tts-model" title={Locale.Settings.TTS.Model}>
             <Select
+              aria-label={Locale.Settings.TTS.Model}
               value={props.ttsConfig.model}
               onChange={(e) => {
                 props.updateConfig(
@@ -83,12 +71,14 @@ export function TTSConfigList(props: {
                 </option>
               ))}
             </Select>
-          </ListItem>
-          <ListItem
+          </SettingRow>
+          <SettingRow
+            id="voice-tts-voice"
             title={Locale.Settings.TTS.Voice.Title}
-            subTitle={Locale.Settings.TTS.Voice.SubTitle}
+            description={Locale.Settings.TTS.Voice.SubTitle}
           >
             <Select
+              aria-label={Locale.Settings.TTS.Voice.Title}
               value={props.ttsConfig.voice}
               onChange={(e) => {
                 props.updateConfig(
@@ -105,17 +95,24 @@ export function TTSConfigList(props: {
                 </option>
               ))}
             </Select>
-          </ListItem>
-          <ListItem
+          </SettingRow>
+          <SettingRow
+            id="voice-tts-speed"
             title={Locale.Settings.TTS.Speed.Title}
-            subTitle={Locale.Settings.TTS.Speed.SubTitle}
+            description={Locale.Settings.TTS.Speed.SubTitle}
           >
             <InputRange
               aria={Locale.Settings.TTS.Speed.Title}
               value={props.ttsConfig.speed?.toFixed(1)}
+              defaultValue={DEFAULT_CONFIG.ttsConfig.speed}
               min="0.3"
               max="4.0"
               step="0.1"
+              onReset={() => {
+                props.updateConfig(
+                  (config) => (config.speed = DEFAULT_CONFIG.ttsConfig.speed),
+                );
+              }}
               onChange={(e) => {
                 props.updateConfig(
                   (config) =>
@@ -125,7 +122,7 @@ export function TTSConfigList(props: {
                 );
               }}
             ></InputRange>
-          </ListItem>
+          </SettingRow>
         </>
       )}
     </>

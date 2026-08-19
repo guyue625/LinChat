@@ -173,6 +173,45 @@ const en: LocaleType = {
     Title: "Settings",
     SubTitle: "All Settings",
     SearchPlaceholder: "Search settings...",
+    Search: {
+      AriaLabel: "Search settings",
+      Placeholder: "Search settings...",
+      Close: "Close settings search",
+      NoResults: "No matching settings found",
+      Suggestions: "Suggestions",
+      GroupSections: (category: string, section: string) =>
+        `${category} / ${section}`,
+    },
+    Subpage: {
+      Navigation: (category: string) => `${category} sections`,
+      ModelProviders: "Provider Access",
+      ModelCatalog: "Model Catalog",
+      ModelDefaults: "Default Parameters",
+      VoiceRealtime: "Realtime Voice",
+      VoiceTTS: "TTS",
+      DataSync: "Sync & Backup",
+      DataTransfer: "Import & Export",
+      DataDanger: "Danger Zone",
+    },
+    Status: {
+      Instant: "Applies immediately",
+      Unsaved: "Unsaved changes",
+      TestConnection: "Test connection",
+      Testing: "Testing connection…",
+      ConnectionSuccess: (latencyMs: number, modelCount: number) =>
+        `Connected in ${latencyMs} ms · ${modelCount} model${
+          modelCount === 1 ? "" : "s"
+        }`,
+      ConnectionFailed: (reason: string) => `Connection failed: ${reason}`,
+      SaveChanges: "Save changes",
+      Saving: "Saving…",
+      SaveSuccess: "Provider settings saved.",
+      SaveFailed: (reason: string) => `Save failed: ${reason}`,
+      ValidationFailed: "Validation failed. Check the highlighted fields.",
+    },
+    LeaveConfirm: {
+      DiscardProviderChanges: "Discard unsaved provider changes?",
+    },
     ShowPassword: "ShowPassword",
     Category: {
       Navigation: "Settings categories",
@@ -209,6 +248,16 @@ const en: LocaleType = {
       Danger: "Danger Zone",
     },
     Danger: {
+      Confirm: {
+        Title: "Confirm clearing all data",
+        Description:
+          "This permanently clears every chat and setting and cannot be undone.",
+        InputLabel: (word: string) =>
+          `Type ${word} to confirm clearing all data`,
+        Cancel: "Cancel",
+        Action: "Clear permanently",
+        ConfirmWord: "DELETE",
+      },
       Reset: {
         Title: "Reset All Settings",
         SubTitle: "Reset all setting items to default",
@@ -360,10 +409,10 @@ const en: LocaleType = {
     },
     Access: {
       SaasStart: {
-        Title: "Use NextChat AI",
+        Title: "Use LinChat AI",
         Label: " (Most Cost-Effective Option)",
         SubTitle:
-          "Maintained by NextChat, zero setup needed, unlock OpenAI o1, GPT-4o," +
+          "Maintained by LinChat AI, zero setup needed, unlock OpenAI o1, GPT-4o," +
           " Claude-3.5 and more",
         ChatNow: "Start Now",
       },

@@ -1,14 +1,20 @@
 import { ServiceProvider } from "@/app/constant";
-import { ModalConfigValidator, ModelConfig, useAccessStore } from "../store";
+import {
+  DEFAULT_CONFIG,
+  ModalConfigValidator,
+  ModelConfig,
+  useAccessStore,
+} from "../store";
 
 import Locale from "../locales";
 import { InputRange } from "./input-range";
-import { ListItem, Select } from "./ui-lib";
+import { Select } from "./ui-lib";
+import { SettingRow, SettingSwitch } from "./settings-controls";
 import { useAllModels } from "../utils/hooks";
 import { groupBy } from "lodash-es";
 import styles from "./model-config.module.scss";
 import { filterModelsByProviders, getModelProvider } from "../utils/model";
-import { useEffect, useMemo } from "react";
+import { useEffect } from "react";
 import { useAccount } from "./account-context";
 import { shouldExposeModelWorkspace } from "../utils/account-workspace";
 
@@ -31,19 +37,14 @@ export function ModelConfigList(props: {
   const configuredProviders = accessStore.useCustomConfig
     ? accessStore.configuredProviders()
     : [];
-  const selectedProviders = useMemo(() => {
-    if (!accessStore.useCustomConfig) return undefined;
-    if (configuredProviders.length > 0) return configuredProviders;
-    return [accessStore.provider];
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [
-    accessStore.useCustomConfig,
-    accessStore.provider,
-    configuredProviders.join(","),
-  ]);
-  const selectableModels = useMemo(
-    () => filterModelsByProviders(allModels, selectedProviders),
-    [allModels, selectedProviders],
+  const selectedProviders = !accessStore.useCustomConfig
+    ? undefined
+    : configuredProviders.length > 0
+    ? configuredProviders
+    : [accessStore.provider];
+  const selectableModels = filterModelsByProviders(
+    allModels,
+    selectedProviders,
   );
   const groupModels = groupBy(selectableModels, "provider.providerName");
   const value = `${modelConfig.model}@${modelConfig?.providerName}`;
@@ -104,7 +105,7 @@ export function ModelConfigList(props: {
 
   return (
     <>
-      <ListItem title={Locale.Settings.Model}>
+      <SettingRow id="model-default" title={Locale.Settings.Model}>
         <Select
           aria-label={Locale.Settings.Model}
           value={value}
@@ -129,17 +130,25 @@ export function ModelConfigList(props: {
             </optgroup>
           ))}
         </Select>
-      </ListItem>
-      <ListItem
+      </SettingRow>
+      <SettingRow
+        id="model-temperature"
         title={Locale.Settings.Temperature.Title}
-        subTitle={Locale.Settings.Temperature.SubTitle}
+        description={Locale.Settings.Temperature.SubTitle}
       >
         <InputRange
           aria={Locale.Settings.Temperature.Title}
           value={props.modelConfig.temperature?.toFixed(1)}
+          defaultValue={DEFAULT_CONFIG.modelConfig.temperature}
           min="0"
           max="1" // lets limit it to 0-1
           step="0.1"
+          onReset={() => {
+            props.updateConfig(
+              (config) =>
+                (config.temperature = DEFAULT_CONFIG.modelConfig.temperature),
+            );
+          }}
           onChange={(e) => {
             props.updateConfig(
               (config) =>
@@ -149,17 +158,26 @@ export function ModelConfigList(props: {
             );
           }}
         ></InputRange>
-      </ListItem>
-      <ListItem
+      </SettingRow>
+      <SettingRow
+        id="model-top-p"
         title={Locale.Settings.TopP.Title}
-        subTitle={Locale.Settings.TopP.SubTitle}
+        description={Locale.Settings.TopP.SubTitle}
       >
         <InputRange
           aria={Locale.Settings.TopP.Title}
-          value={(props.modelConfig.top_p ?? 1).toFixed(1)}
+          value={(
+            props.modelConfig.top_p ?? DEFAULT_CONFIG.modelConfig.top_p
+          ).toFixed(1)}
+          defaultValue={DEFAULT_CONFIG.modelConfig.top_p}
           min="0"
           max="1"
           step="0.1"
+          onReset={() => {
+            props.updateConfig(
+              (config) => (config.top_p = DEFAULT_CONFIG.modelConfig.top_p),
+            );
+          }}
           onChange={(e) => {
             props.updateConfig(
               (config) =>
@@ -169,10 +187,11 @@ export function ModelConfigList(props: {
             );
           }}
         ></InputRange>
-      </ListItem>
-      <ListItem
+      </SettingRow>
+      <SettingRow
+        id="model-max-tokens"
         title={Locale.Settings.MaxTokens.Title}
-        subTitle={Locale.Settings.MaxTokens.SubTitle}
+        description={Locale.Settings.MaxTokens.SubTitle}
       >
         <input
           aria-label={Locale.Settings.MaxTokens.Title}
@@ -189,20 +208,29 @@ export function ModelConfigList(props: {
             )
           }
         ></input>
-      </ListItem>
+      </SettingRow>
 
       {props.modelConfig?.providerName == ServiceProvider.Google ? null : (
         <>
-          <ListItem
+          <SettingRow
+            id="model-presence-penalty"
             title={Locale.Settings.PresencePenalty.Title}
-            subTitle={Locale.Settings.PresencePenalty.SubTitle}
+            description={Locale.Settings.PresencePenalty.SubTitle}
           >
             <InputRange
               aria={Locale.Settings.PresencePenalty.Title}
               value={props.modelConfig.presence_penalty?.toFixed(1)}
+              defaultValue={DEFAULT_CONFIG.modelConfig.presence_penalty}
               min="-2"
               max="2"
               step="0.1"
+              onReset={() => {
+                props.updateConfig(
+                  (config) =>
+                    (config.presence_penalty =
+                      DEFAULT_CONFIG.modelConfig.presence_penalty),
+                );
+              }}
               onChange={(e) => {
                 props.updateConfig(
                   (config) =>
@@ -213,18 +241,27 @@ export function ModelConfigList(props: {
                 );
               }}
             ></InputRange>
-          </ListItem>
+          </SettingRow>
 
-          <ListItem
+          <SettingRow
+            id="model-frequency-penalty"
             title={Locale.Settings.FrequencyPenalty.Title}
-            subTitle={Locale.Settings.FrequencyPenalty.SubTitle}
+            description={Locale.Settings.FrequencyPenalty.SubTitle}
           >
             <InputRange
               aria={Locale.Settings.FrequencyPenalty.Title}
               value={props.modelConfig.frequency_penalty?.toFixed(1)}
+              defaultValue={DEFAULT_CONFIG.modelConfig.frequency_penalty}
               min="-2"
               max="2"
               step="0.1"
+              onReset={() => {
+                props.updateConfig(
+                  (config) =>
+                    (config.frequency_penalty =
+                      DEFAULT_CONFIG.modelConfig.frequency_penalty),
+                );
+              }}
               onChange={(e) => {
                 props.updateConfig(
                   (config) =>
@@ -235,29 +272,28 @@ export function ModelConfigList(props: {
                 );
               }}
             ></InputRange>
-          </ListItem>
+          </SettingRow>
 
-          <ListItem
+          <SettingRow
+            id="model-system-prompt"
             title={Locale.Settings.InjectSystemPrompts.Title}
-            subTitle={Locale.Settings.InjectSystemPrompts.SubTitle}
+            description={Locale.Settings.InjectSystemPrompts.SubTitle}
           >
-            <input
-              aria-label={Locale.Settings.InjectSystemPrompts.Title}
-              type="checkbox"
+            <SettingSwitch
+              label={Locale.Settings.InjectSystemPrompts.Title}
               checked={props.modelConfig.enableInjectSystemPrompts}
-              onChange={(e) =>
+              onChange={(checked) =>
                 props.updateConfig(
-                  (config) =>
-                    (config.enableInjectSystemPrompts =
-                      e.currentTarget.checked),
+                  (config) => (config.enableInjectSystemPrompts = checked),
                 )
               }
-            ></input>
-          </ListItem>
+            />
+          </SettingRow>
 
-          <ListItem
+          <SettingRow
+            id="model-input-template"
             title={Locale.Settings.InputTemplate.Title}
-            subTitle={Locale.Settings.InputTemplate.SubTitle}
+            description={Locale.Settings.InputTemplate.SubTitle}
           >
             <input
               aria-label={Locale.Settings.InputTemplate.Title}
@@ -269,31 +305,41 @@ export function ModelConfigList(props: {
                 )
               }
             ></input>
-          </ListItem>
+          </SettingRow>
         </>
       )}
-      <ListItem
+      <SettingRow
+        id="model-history-count"
         title={Locale.Settings.HistoryCount.Title}
-        subTitle={Locale.Settings.HistoryCount.SubTitle}
+        description={Locale.Settings.HistoryCount.SubTitle}
       >
         <InputRange
           aria={Locale.Settings.HistoryCount.Title}
           title={props.modelConfig.historyMessageCount.toString()}
           value={props.modelConfig.historyMessageCount}
+          defaultValue={DEFAULT_CONFIG.modelConfig.historyMessageCount}
           min="0"
           max="64"
           step="1"
+          onReset={() => {
+            props.updateConfig(
+              (config) =>
+                (config.historyMessageCount =
+                  DEFAULT_CONFIG.modelConfig.historyMessageCount),
+            );
+          }}
           onChange={(e) =>
             props.updateConfig(
               (config) => (config.historyMessageCount = e.target.valueAsNumber),
             )
           }
         ></InputRange>
-      </ListItem>
+      </SettingRow>
 
-      <ListItem
+      <SettingRow
+        id="model-compress-threshold"
         title={Locale.Settings.CompressThreshold.Title}
-        subTitle={Locale.Settings.CompressThreshold.SubTitle}
+        description={Locale.Settings.CompressThreshold.SubTitle}
       >
         <input
           aria-label={Locale.Settings.CompressThreshold.Title}
@@ -309,22 +355,24 @@ export function ModelConfigList(props: {
             )
           }
         ></input>
-      </ListItem>
-      <ListItem title={Locale.Memory.Title} subTitle={Locale.Memory.Send}>
-        <input
-          aria-label={Locale.Memory.Title}
-          type="checkbox"
+      </SettingRow>
+      <SettingRow
+        id="model-memory"
+        title={Locale.Memory.Title}
+        description={Locale.Memory.Send}
+      >
+        <SettingSwitch
+          label={Locale.Memory.Title}
           checked={props.modelConfig.sendMemory}
-          onChange={(e) =>
-            props.updateConfig(
-              (config) => (config.sendMemory = e.currentTarget.checked),
-            )
+          onChange={(checked) =>
+            props.updateConfig((config) => (config.sendMemory = checked))
           }
-        ></input>
-      </ListItem>
-      <ListItem
+        />
+      </SettingRow>
+      <SettingRow
+        id="model-compress-model"
         title={Locale.Settings.CompressModel.Title}
-        subTitle={Locale.Settings.CompressModel.SubTitle}
+        description={Locale.Settings.CompressModel.SubTitle}
       >
         <Select
           className={styles["select-compress-model"]}
@@ -346,7 +394,7 @@ export function ModelConfigList(props: {
             </option>
           ))}
         </Select>
-      </ListItem>
+      </SettingRow>
     </>
   );
 }

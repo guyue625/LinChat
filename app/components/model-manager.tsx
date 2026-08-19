@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 
-import { ServiceProvider } from "../constant";
 import { useAccessStore } from "../store";
 import {
   getCustomModelsForProvider,
@@ -9,11 +8,7 @@ import {
   selectUpstreamModels,
   updateCustomModelAt,
 } from "../utils/custom-models";
-import {
-  fetchUpstreamModels,
-  UpstreamModel,
-  UpstreamModelSource,
-} from "../utils/upstream-models";
+import { fetchUpstreamModels, UpstreamModel } from "../utils/upstream-models";
 import Locale from "../locales";
 import AddIcon from "../icons/add.svg";
 import CloseIcon from "../icons/close.svg";
@@ -23,121 +18,18 @@ import EditIcon from "../icons/edit.svg";
 import LoadingIcon from "../icons/three-dots.svg";
 import ResetIcon from "../icons/reload.svg";
 import { IconButton } from "./button";
-import { Input, ListItem, Modal, showToast } from "./ui-lib";
+import { Input, Modal, showToast } from "./ui-lib";
 import styles from "./model-manager.module.scss";
+import { SettingRow } from "./settings-controls";
 import { useAccount } from "./account-context";
 import {
   resolveWorkspaceOwner,
   shouldExposeModelWorkspace,
 } from "../utils/account-workspace";
-
-type AccessState = ReturnType<typeof useAccessStore.getState>;
-
-function getUpstreamSource(access: AccessState): UpstreamModelSource {
-  const common = { provider: access.provider };
-
-  switch (access.provider) {
-    case ServiceProvider.Azure:
-      return {
-        ...common,
-        baseUrl: access.azureUrl,
-        apiKey: access.azureApiKey,
-        apiVersion: access.azureApiVersion,
-      };
-    case ServiceProvider.Google:
-      return {
-        ...common,
-        baseUrl: access.googleUrl,
-        apiKey: access.googleApiKey,
-        apiVersion: access.googleApiVersion,
-      };
-    case ServiceProvider.Anthropic:
-      return {
-        ...common,
-        baseUrl: access.anthropicUrl,
-        apiKey: access.anthropicApiKey,
-        apiVersion: access.anthropicApiVersion,
-      };
-    case ServiceProvider.Baidu:
-      return {
-        ...common,
-        baseUrl: access.baiduUrl,
-        apiKey: access.baiduApiKey,
-      };
-    case ServiceProvider.ByteDance:
-      return {
-        ...common,
-        baseUrl: access.bytedanceUrl,
-        apiKey: access.bytedanceApiKey,
-      };
-    case ServiceProvider.Alibaba:
-      return {
-        ...common,
-        baseUrl: access.alibabaUrl,
-        apiKey: access.alibabaApiKey,
-      };
-    case ServiceProvider.Tencent:
-      return {
-        ...common,
-        baseUrl: access.tencentUrl,
-        apiKey: access.tencentSecretId,
-      };
-    case ServiceProvider.Moonshot:
-      return {
-        ...common,
-        baseUrl: access.moonshotUrl,
-        apiKey: access.moonshotApiKey,
-      };
-    case ServiceProvider.Stability:
-      return {
-        ...common,
-        baseUrl: access.stabilityUrl,
-        apiKey: access.stabilityApiKey,
-      };
-    case ServiceProvider.Iflytek:
-      return {
-        ...common,
-        baseUrl: access.iflytekUrl,
-        apiKey: access.iflytekApiKey,
-      };
-    case ServiceProvider.DeepSeek:
-      return {
-        ...common,
-        baseUrl: access.deepseekUrl,
-        apiKey: access.deepseekApiKey,
-      };
-    case ServiceProvider.XAI:
-      return {
-        ...common,
-        baseUrl: access.xaiUrl,
-        apiKey: access.xaiApiKey,
-      };
-    case ServiceProvider.ChatGLM:
-      return {
-        ...common,
-        baseUrl: access.chatglmUrl,
-        apiKey: access.chatglmApiKey,
-      };
-    case ServiceProvider.SiliconFlow:
-      return {
-        ...common,
-        baseUrl: access.siliconflowUrl,
-        apiKey: access.siliconflowApiKey,
-      };
-    case ServiceProvider["302.AI"]:
-      return {
-        ...common,
-        baseUrl: access.ai302Url,
-        apiKey: access.ai302ApiKey,
-      };
-    default:
-      return {
-        ...common,
-        baseUrl: access.openaiUrl,
-        apiKey: access.openaiApiKey,
-      };
-  }
-}
+import {
+  createProviderCredentialSnapshot,
+  getProviderUpstreamSource,
+} from "./provider-config-draft";
 
 export function ModelManager(props: {
   customModels: string;
@@ -277,7 +169,10 @@ export function ModelManager(props: {
     setFetching(true);
     try {
       const upstreamModels = await fetchUpstreamModels(
-        getUpstreamSource(accessStore),
+        getProviderUpstreamSource(
+          accessStore.provider,
+          createProviderCredentialSnapshot(accessStore),
+        ),
       );
       if (upstreamModels.length === 0) {
         throw new Error(Locale.Settings.Access.CustomModel.EmptyResponse);
@@ -341,9 +236,10 @@ export function ModelManager(props: {
 
   return (
     <>
-      <ListItem
+      <SettingRow
+        id="model-custom-models"
         title={Locale.Settings.Access.CustomModel.Title}
-        subTitle={
+        description={
           <div className={styles.meta}>
             <span className={styles.providerBadge}>{provider}</span>
             <span>
@@ -360,102 +256,104 @@ export function ModelManager(props: {
           bordered
           onClick={openAddModal}
         />
-      </ListItem>
+      </SettingRow>
 
       {models.map((model, index) =>
         editing?.tokenIndex === model.tokenIndex ? (
-          <ListItem
-            className={styles.modelItem}
-            key={model.tokenIndex}
-            title={`${provider} · ${index + 1}`}
-            subTitle={Locale.Settings.Access.CustomModel.Edit}
-          >
-            <div className={styles.editActions}>
-              <Input
-                as="input"
-                className={styles.editInput}
-                aria-label={Locale.Settings.Access.CustomModel.Name}
-                value={editing.name}
-                placeholder={Locale.Settings.Access.CustomModel.Name}
-                onChange={(event) =>
-                  setEditing({
-                    ...editing,
-                    name: event.currentTarget.value,
-                  })
-                }
-                onKeyDown={(event) => {
-                  if (event.key === "Enter") saveModel();
-                }}
-              />
-              <Input
-                as="input"
-                className={styles.editInput}
-                aria-label={Locale.Settings.Access.CustomModel.Alias}
-                value={editing.alias}
-                placeholder={Locale.Settings.Access.CustomModel.AliasOptional}
-                onChange={(event) =>
-                  setEditing({
-                    ...editing,
-                    alias: event.currentTarget.value,
-                  })
-                }
-                onKeyDown={(event) => {
-                  if (event.key === "Enter") saveModel();
-                }}
-              />
-              <IconButton
-                className={styles.saveButton}
-                icon={<ConfirmIcon />}
-                aria={Locale.Settings.Access.CustomModel.Save}
-                title={Locale.Settings.Access.CustomModel.Save}
-                type="primary"
-                disabled={!canSave}
-                onClick={saveModel}
-              />
-              <IconButton
-                className={styles.actionButton}
-                icon={<CloseIcon />}
-                aria={Locale.Settings.Access.CustomModel.Cancel}
-                title={Locale.Settings.Access.CustomModel.Cancel}
-                bordered
-                onClick={() => setEditing(undefined)}
-              />
-            </div>
-          </ListItem>
+          <div className={styles.modelItem} key={model.tokenIndex}>
+            <SettingRow
+              id={`model-custom-model-${model.tokenIndex}`}
+              title={`${provider} · ${index + 1}`}
+              description={Locale.Settings.Access.CustomModel.Edit}
+            >
+              <div className={styles.editActions}>
+                <Input
+                  as="input"
+                  className={styles.editInput}
+                  aria-label={Locale.Settings.Access.CustomModel.Name}
+                  value={editing.name}
+                  placeholder={Locale.Settings.Access.CustomModel.Name}
+                  onChange={(event) =>
+                    setEditing({
+                      ...editing,
+                      name: event.currentTarget.value,
+                    })
+                  }
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter") saveModel();
+                  }}
+                />
+                <Input
+                  as="input"
+                  className={styles.editInput}
+                  aria-label={Locale.Settings.Access.CustomModel.Alias}
+                  value={editing.alias}
+                  placeholder={Locale.Settings.Access.CustomModel.AliasOptional}
+                  onChange={(event) =>
+                    setEditing({
+                      ...editing,
+                      alias: event.currentTarget.value,
+                    })
+                  }
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter") saveModel();
+                  }}
+                />
+                <IconButton
+                  className={styles.saveButton}
+                  icon={<ConfirmIcon />}
+                  aria={Locale.Settings.Access.CustomModel.Save}
+                  title={Locale.Settings.Access.CustomModel.Save}
+                  type="primary"
+                  disabled={!canSave}
+                  onClick={saveModel}
+                />
+                <IconButton
+                  className={styles.actionButton}
+                  icon={<CloseIcon />}
+                  aria={Locale.Settings.Access.CustomModel.Cancel}
+                  title={Locale.Settings.Access.CustomModel.Cancel}
+                  bordered
+                  onClick={() => setEditing(undefined)}
+                />
+              </div>
+            </SettingRow>
+          </div>
         ) : (
-          <ListItem
-            className={styles.modelItem}
-            key={model.tokenIndex}
-            title={model.alias || model.name}
-            subTitle={model.alias ? model.name : provider}
-          >
-            <div className={styles.rowActions}>
-              <IconButton
-                className={styles.actionButton}
-                icon={<EditIcon />}
-                aria={Locale.Settings.Access.CustomModel.Edit}
-                title={Locale.Settings.Access.CustomModel.Edit}
-                onClick={() =>
-                  setEditing({
-                    tokenIndex: model.tokenIndex,
-                    name: model.name,
-                    alias: model.alias,
-                  })
-                }
-              />
-              <IconButton
-                className={styles.deleteButton}
-                icon={<DeleteIcon />}
-                aria={Locale.Settings.Access.CustomModel.Remove}
-                title={Locale.Settings.Access.CustomModel.Remove}
-                onClick={() =>
-                  props.onChange(
-                    removeCustomModelAt(props.customModels, model.tokenIndex),
-                  )
-                }
-              />
-            </div>
-          </ListItem>
+          <div className={styles.modelItem} key={model.tokenIndex}>
+            <SettingRow
+              id={`model-custom-model-${model.tokenIndex}`}
+              title={model.alias || model.name}
+              description={model.alias ? model.name : provider}
+            >
+              <div className={styles.rowActions}>
+                <IconButton
+                  className={styles.actionButton}
+                  icon={<EditIcon />}
+                  aria={Locale.Settings.Access.CustomModel.Edit}
+                  title={Locale.Settings.Access.CustomModel.Edit}
+                  onClick={() =>
+                    setEditing({
+                      tokenIndex: model.tokenIndex,
+                      name: model.name,
+                      alias: model.alias,
+                    })
+                  }
+                />
+                <IconButton
+                  className={styles.deleteButton}
+                  icon={<DeleteIcon />}
+                  aria={Locale.Settings.Access.CustomModel.Remove}
+                  title={Locale.Settings.Access.CustomModel.Remove}
+                  onClick={() =>
+                    props.onChange(
+                      removeCustomModelAt(props.customModels, model.tokenIndex),
+                    )
+                  }
+                />
+              </div>
+            </SettingRow>
+          </div>
         ),
       )}
 

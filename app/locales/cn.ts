@@ -171,6 +171,43 @@ const cn = {
     Title: "设置",
     SubTitle: "所有设置选项",
     SearchPlaceholder: "搜索设置项...",
+    Search: {
+      AriaLabel: "搜索设置",
+      Placeholder: "搜索设置项...",
+      Close: "关闭设置搜索",
+      NoResults: "未找到匹配的设置",
+      Suggestions: "相关建议",
+      GroupSections: (category: string, section: string) =>
+        `${category} / ${section}`,
+    },
+    Subpage: {
+      Navigation: (category: string) => `${category}二级导航`,
+      ModelProviders: "模型服务接入",
+      ModelCatalog: "模型目录",
+      ModelDefaults: "默认参数",
+      VoiceRealtime: "实时语音",
+      VoiceTTS: "TTS",
+      DataSync: "同步备份",
+      DataTransfer: "导入导出",
+      DataDanger: "危险操作",
+    },
+    Status: {
+      Instant: "即时生效",
+      Unsaved: "未保存",
+      TestConnection: "测试连接",
+      Testing: "测试中…",
+      ConnectionSuccess: (latencyMs: number, modelCount: number) =>
+        `连接成功 · ${latencyMs} 毫秒 · ${modelCount} 个模型`,
+      ConnectionFailed: (reason: string) => `连接失败：${reason}`,
+      SaveChanges: "保存更改",
+      Saving: "保存中…",
+      SaveSuccess: "保存成功",
+      SaveFailed: (reason: string) => `保存失败：${reason}`,
+      ValidationFailed: "验证失败，请检查标记的字段。",
+    },
+    LeaveConfirm: {
+      DiscardProviderChanges: "要丢弃未保存的服务商更改吗？",
+    },
     ShowPassword: "显示密码",
     Category: {
       Navigation: "设置分类",
@@ -196,6 +233,14 @@ const cn = {
     },
 
     Danger: {
+      Confirm: {
+        Title: "确认清除全部数据",
+        Description: "此操作会永久清除所有聊天与设置数据，且无法撤销。",
+        InputLabel: (word: string) => `输入 ${word} 以确认清除全部数据`,
+        Cancel: "取消",
+        Action: "永久清除",
+        ConfirmWord: "DELETE",
+      },
       Reset: {
         Title: "重置所有设置",
         SubTitle: "重置所有设置项回默认值",
@@ -345,10 +390,10 @@ const cn = {
 
     Access: {
       SaasStart: {
-        Title: "使用 NextChat AI",
+        Title: "使用 LinChat AI",
         Label: "（性价比最高的方案）",
         SubTitle:
-          "由 NextChat 官方维护, 零配置开箱即用，支持 OpenAI o1, GPT-4o, Claude-3.5 等最新大模型",
+          "由 LinChat AI 维护，零配置开箱即用，支持 OpenAI o1、GPT-4o、Claude-3.5 等最新大模型",
         ChatNow: "立刻对话",
       },
       AccessCode: {

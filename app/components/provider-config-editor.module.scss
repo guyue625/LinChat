@@ -1,0 +1,145 @@
+.editor {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+}
+
+.connection-bar,
+.action-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px;
+  border-top: 1px solid
+    color-mix(in srgb, var(--settings-text) 11%, transparent);
+}
+
+.status {
+  min-width: 0;
+  flex: 1;
+  color: var(--settings-text-muted);
+  font-size: 12px;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.status[data-state="testing"],
+.status[data-state="success"] {
+  color: var(--settings-status);
+}
+
+.status[data-state="error"] {
+  color: var(--settings-accent);
+}
+
+.status[data-state="testing"] {
+  animation: provider-status-pulse 1.2s ease-in-out infinite;
+}
+
+.test-button,
+.save-button {
+  min-height: var(--settings-field-height);
+  border: 1px solid color-mix(in srgb, var(--settings-text) 16%, transparent);
+  border-radius: var(--settings-control-radius);
+  padding: 0 14px;
+  background: var(--settings-surface-raised);
+  color: var(--settings-text);
+  cursor: pointer;
+  transition:
+    border-color 0.16s ease,
+    background-color 0.16s ease,
+    color 0.16s ease,
+    opacity 0.16s ease;
+}
+
+.test-button {
+  border-color: color-mix(in srgb, var(--settings-status) 46%, transparent);
+  color: var(--settings-status);
+}
+
+.test-button:hover:not(:disabled) {
+  border-color: var(--settings-status);
+  background: color-mix(in srgb, var(--settings-status) 9%, transparent);
+}
+
+.test-button:disabled,
+.save-button:disabled {
+  cursor: not-allowed;
+  filter: grayscale(0.55);
+  opacity: 0.42;
+}
+
+.test-button[aria-busy="true"],
+.save-button[aria-busy="true"] {
+  cursor: progress;
+}
+
+.test-button:focus-visible,
+.save-button:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--settings-status) 78%, transparent);
+  outline-offset: 2px;
+}
+
+.action-bar {
+  background: color-mix(
+    in srgb,
+    var(--settings-surface) 96%,
+    var(--settings-background-deep)
+  );
+}
+
+.dirty-label {
+  color: var(--settings-accent);
+  font-size: 13px;
+}
+
+.save-button {
+  border-color: var(--settings-accent);
+  background: var(--settings-accent);
+  color: var(--settings-cream);
+}
+
+.save-button:hover:not(:disabled) {
+  border-color: color-mix(in srgb, var(--settings-accent) 78%, #fff);
+  background: color-mix(in srgb, var(--settings-accent) 88%, #000);
+}
+
+@keyframes provider-status-pulse {
+  0%,
+  100% {
+    opacity: 0.62;
+  }
+
+  50% {
+    opacity: 1;
+  }
+}
+
+@media screen and (max-width: 600px) {
+  .editor[data-dirty="true"] {
+    padding-bottom: calc(72px + env(safe-area-inset-bottom));
+  }
+
+  .connection-bar {
+    align-items: flex-start;
+  }
+
+  .action-bar {
+    position: fixed;
+    z-index: 20;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    box-sizing: border-box;
+    max-width: 100%;
+    flex-wrap: wrap;
+    padding: max(12px, min(env(safe-area-inset-top), 16px))
+      max(16px, env(safe-area-inset-right))
+      max(12px, env(safe-area-inset-bottom))
+      max(16px, env(safe-area-inset-left));
+    box-shadow:
+      0 -12px 30px color-mix(in srgb, #000 18%, transparent),
+      inset 0 1px color-mix(in srgb, var(--settings-status) 10%, transparent);
+  }
+}
