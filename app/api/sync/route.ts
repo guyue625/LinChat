@@ -10,6 +10,7 @@ import {
   SyncConflictError,
 } from "@/app/lib/account-sync/repository";
 import { getAccountSyncRepository } from "@/app/lib/account-sync/server";
+import { getChatStorageProvider } from "@/app/lib/db/mysql";
 import {
   MAX_ACCOUNT_SYNC_BYTES,
   validateSyncState,
@@ -39,6 +40,14 @@ async function requireCurrentUser(request: NextRequest) {
   const user = await service.getUserBySession(token);
   if (!user) {
     throw new AccountAuthError("UNAUTHORIZED", "请先登录", 401);
+  }
+  const expectedUser = request.headers.get("x-sync-user");
+  if (expectedUser !== null && expectedUser !== user.id) {
+    throw new AccountAuthError(
+      "ACCOUNT_CHANGED",
+      "账号已切换，请重新同步",
+      409,
+    );
   }
   return user;
 }
@@ -102,9 +111,10 @@ export async function GET(request: NextRequest) {
     const repository = await getAccountSyncRepository();
     const snapshot = await repository.readWithLegacyMigration(user.id);
     return noStore(
-      NextResponse.json(
-        snapshot ?? { state: null, revision: 0, updatedAt: null },
-      ),
+      NextResponse.json({
+        ...(snapshot ?? { state: null, revision: 0, updatedAt: null }),
+        storage: getChatStorageProvider(),
+      }),
     );
   } catch (error) {
     return syncErrorResponse(error);
@@ -156,7 +166,7 @@ export async function POST(request: NextRequest) {
     }
 
     const repository = await getAccountSyncRepository();
-    const snapshot = repository.write(
+    const snapshot = await repository.write(
       user.id,
       validation.state,
       expectedRevision,

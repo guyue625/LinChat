@@ -1,5 +1,33 @@
 import { StoreKey } from "../constant";
 
+jest.mock("../store/plugin", () => ({
+  FunctionToolService: { tools: {} },
+  usePluginStore: {
+    getState: jest.fn(() => ({ plugins: {}, lastUpdateTime: 0 })),
+    setState: jest.fn(),
+    subscribe: jest.fn(() => () => undefined),
+  },
+}));
+jest.mock("../store/sd", () => ({
+  useSdStore: {
+    getState: jest.fn(() => ({ draw: [], lastUpdateTime: 0 })),
+    setState: jest.fn(),
+    subscribe: jest.fn(() => () => undefined),
+  },
+}));
+jest.mock("../store/draft", () => ({
+  DRAFT_STORE_KEY: "account-drafts",
+  useDraftStore: {
+    getState: jest.fn(() => ({
+      drafts: {},
+      owner: "user:test-user",
+      lastUpdateTime: 0,
+    })),
+    setState: jest.fn(),
+    subscribe: jest.fn(() => () => undefined),
+  },
+}));
+
 jest.mock("../store", () => {
   const createStore = () => ({
     getState: jest.fn(() => ({})),
@@ -186,6 +214,106 @@ describe("stripMediaFromAppState", () => {
       (state[StoreKey.Chat] as any).sessions[0].messages[0].content[1].image_url
         .url,
     ).toBe("data:image/png;base64,AAAA");
+  });
+});
+
+describe("MySQL primary storage", () => {
+  let chat: Record<string, unknown>;
+
+  beforeEach(() => {
+    chat = {
+      sessions: [],
+      currentSessionIndex: 0,
+      lastInput: "",
+      workspaceOwner: "user:test-user",
+      workspaceSwitching: false,
+    };
+    (useChatStore.getState as jest.Mock).mockImplementation(() => chat);
+    (useChatStore.setState as jest.Mock).mockImplementation((patch) => {
+      chat = { ...chat, ...patch };
+    });
+    (global.fetch as jest.Mock).mockReset();
+    jest.spyOn(console, "log").mockImplementation(() => undefined);
+  });
+
+  afterEach(async () => {
+    stopAccountCloudSync({ flush: false });
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    (useChatStore.setState as jest.Mock).mockReset();
+    jest.restoreAllMocks();
+  });
+
+  it("does not restore deleted server conversations from an old browser cache", async () => {
+    chat.sessions = [
+      {
+        id: "deleted",
+        messages: [{ id: "m1", content: "old", date: "2026-01-01" }],
+      },
+    ];
+    const fetchMock = global.fetch as jest.Mock;
+    fetchMock
+      .mockResolvedValueOnce(
+        fetchResponse({
+          status: 200,
+          json: {
+            state: cloudState("server"),
+            revision: 5,
+            updatedAt: "2026-10-05T00:00:00.000Z",
+            storage: "mysql",
+          },
+        }),
+      )
+      .mockResolvedValueOnce(
+        fetchResponse({ status: 200, json: { ok: true, revision: 6 } }),
+      );
+    startAccountCloudSync({ userId: "test-user" });
+    await waitForFetchCalls(fetchMock, 2);
+    expect(chat.sessions).toEqual([]);
+    expect(
+      JSON.parse(fetchMock.mock.calls[1][1].body)[StoreKey.Chat].sessions,
+    ).toEqual([]);
+  });
+
+  it("saves embedded image and audio content to MySQL", async () => {
+    chat.sessions = [
+      {
+        id: "s1",
+        messages: [
+          {
+            id: "m1",
+            content: [
+              {
+                type: "image_url",
+                image_url: { url: "data:image/png;base64,AAAA" },
+              },
+            ],
+            audio_url: "data:audio/wav;base64,BBBB",
+          },
+        ],
+      },
+    ];
+    const fetchMock = global.fetch as jest.Mock;
+    fetchMock
+      .mockResolvedValueOnce(
+        fetchResponse({
+          status: 200,
+          json: {
+            state: null,
+            revision: 0,
+            updatedAt: null,
+            storage: "mysql",
+          },
+        }),
+      )
+      .mockResolvedValueOnce(
+        fetchResponse({ status: 200, json: { ok: true, revision: 1 } }),
+      );
+    startAccountCloudSync({ userId: "test-user" });
+    await waitForFetchCalls(fetchMock, 2);
+    const saved = JSON.parse(fetchMock.mock.calls[1][1].body)[StoreKey.Chat]
+      .sessions[0].messages[0];
+    expect(saved.content[0].image_url.url).toBe("data:image/png;base64,AAAA");
+    expect(saved.audio_url).toBe("data:audio/wav;base64,BBBB");
   });
 });
 

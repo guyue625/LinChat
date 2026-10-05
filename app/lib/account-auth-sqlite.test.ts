@@ -159,6 +159,9 @@ describe("SqliteAccountAuthRepository", () => {
         .prepare("SELECT user_id FROM user_sync_snapshots ORDER BY user_id")
         .all(),
     ).toEqual([{ user_id: "admin-1" }]);
+    expect(
+      database.prepare("SELECT user_id FROM pending_sync_deletions").all(),
+    ).toEqual([{ user_id: "user-a" }]);
   });
 
   it("rolls back snapshot cleanup when a later account insert fails", async () => {
@@ -203,5 +206,8 @@ describe("SqliteAccountAuthRepository", () => {
         )
         .get(),
     ).toEqual({ user_id: "user-a" });
+    expect(
+      database.prepare("SELECT user_id FROM pending_sync_deletions").all(),
+    ).toEqual([]);
   });
 });

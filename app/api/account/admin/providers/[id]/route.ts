@@ -25,8 +25,8 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
     const patch = validateProviderPatch(id, await request.json());
     const provider = await withProviderConfigMutationLock(async () => {
       const repository = await getProviderConfigRepository();
-      const snapshot = repository.snapshot(id);
-      const nextProvider = repository.upsert(id, patch);
+      const snapshot = await repository.snapshot(id);
+      const nextProvider = await repository.upsert(id, patch);
       try {
         await service.recordProviderConfigAudit(
           user.id,
@@ -38,7 +38,7 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
           },
         );
       } catch (error) {
-        repository.restore(snapshot);
+        await repository.restore(snapshot);
         throw error;
       }
       return nextProvider;
@@ -55,8 +55,8 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
     const id = providerId(context.params.id);
     await withProviderConfigMutationLock(async () => {
       const repository = await getProviderConfigRepository();
-      const snapshot = repository.snapshot(id);
-      repository.delete(id);
+      const snapshot = await repository.snapshot(id);
+      await repository.delete(id);
       try {
         await service.recordProviderConfigAudit(
           user.id,
@@ -64,7 +64,7 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
           { providerId: id, changedFields: "override" },
         );
       } catch (error) {
-        repository.restore(snapshot);
+        await repository.restore(snapshot);
         throw error;
       }
     });

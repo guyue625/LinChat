@@ -110,6 +110,10 @@ export function applyDatabaseSchema(database: DatabaseSync) {
       updated_at TEXT NOT NULL
     );
 
+    CREATE TABLE IF NOT EXISTS pending_sync_deletions (
+      user_id TEXT PRIMARY KEY
+    );
+
     CREATE INDEX IF NOT EXISTS idx_sessions_token ON sessions(token_hash);
     CREATE INDEX IF NOT EXISTS idx_sessions_user ON sessions(user_id);
     CREATE INDEX IF NOT EXISTS idx_media_user ON media_objects(user_id);

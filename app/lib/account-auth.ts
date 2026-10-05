@@ -80,6 +80,7 @@ export type AccountAuthWriteOptions = {
 };
 
 export interface AccountAuthRepository {
+  withMutationLock?<T>(operation: () => Promise<T>): Promise<T>;
   read(): Promise<AuthRecord>;
   write(data: AuthRecord, options?: AccountAuthWriteOptions): Promise<void>;
 }
@@ -144,7 +145,11 @@ export class AccountAuthService {
   }
 
   private mutate<T>(operation: () => Promise<T>): Promise<T> {
-    const result = this.mutationQueue.then(operation, operation);
+    const run = () =>
+      this.repository.withMutationLock
+        ? this.repository.withMutationLock(operation)
+        : operation();
+    const result = this.mutationQueue.then(run, run);
     this.mutationQueue = result.then(
       () => undefined,
       () => undefined,

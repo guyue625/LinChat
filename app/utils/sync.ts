@@ -6,6 +6,9 @@ import {
 } from "../store";
 import { useMaskStore } from "../store/mask";
 import { usePromptStore } from "../store/prompt";
+import { usePluginStore, FunctionToolService } from "../store/plugin";
+import { useSdStore } from "../store/sd";
+import { useDraftStore, DRAFT_STORE_KEY } from "../store/draft";
 import { StoreKey } from "../constant";
 import { merge } from "./merge";
 
@@ -36,6 +39,16 @@ const LocalStateSetters = {
   [StoreKey.Config]: useAppConfig.setState,
   [StoreKey.Mask]: useMaskStore.setState,
   [StoreKey.Prompt]: usePromptStore.setState,
+  [StoreKey.Plugin]: (state: any) => {
+    FunctionToolService.tools = {};
+    usePluginStore.setState(state);
+  },
+  [StoreKey.SdList]: useSdStore.setState,
+  [DRAFT_STORE_KEY]: (state: any) =>
+    useDraftStore.setState({
+      drafts: state.drafts,
+      lastUpdateTime: state.lastUpdateTime,
+    }),
 } as const;
 
 const LocalStateGetters = {
@@ -44,6 +57,12 @@ const LocalStateGetters = {
   [StoreKey.Config]: () => getNonFunctionFileds(useAppConfig.getState()),
   [StoreKey.Mask]: () => getNonFunctionFileds(useMaskStore.getState()),
   [StoreKey.Prompt]: () => getNonFunctionFileds(usePromptStore.getState()),
+  [StoreKey.Plugin]: () => getNonFunctionFileds(usePluginStore.getState()),
+  [StoreKey.SdList]: () => getNonFunctionFileds(useSdStore.getState()),
+  [DRAFT_STORE_KEY]: () => ({
+    drafts: useDraftStore.getState().drafts,
+    lastUpdateTime: useDraftStore.getState().lastUpdateTime,
+  }),
 } as const;
 
 export type AppState = {
@@ -116,6 +135,9 @@ const MergeStates: StateMerger = {
   },
   [StoreKey.Config]: mergeWithUpdate<AppState[StoreKey.Config]>,
   [StoreKey.Access]: mergeWithUpdate<AppState[StoreKey.Access]>,
+  [StoreKey.Plugin]: mergeWithUpdate<AppState[StoreKey.Plugin]>,
+  [StoreKey.SdList]: mergeWithUpdate<AppState[StoreKey.SdList]>,
+  [DRAFT_STORE_KEY]: mergeWithUpdate<AppState[typeof DRAFT_STORE_KEY]>,
 };
 
 export function getLocalAppState() {
@@ -130,6 +152,7 @@ export function getLocalAppState() {
 
 export function setLocalAppState(appState: AppState) {
   Object.entries(LocalStateSetters).forEach(([key, setter]) => {
+    if (!appState[key as keyof AppState]) return;
     setter(appState[key as keyof AppState]);
   });
 }

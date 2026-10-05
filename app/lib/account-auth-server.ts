@@ -1,10 +1,14 @@
 import path from "node:path";
-import { AccountAuthService } from "./account-auth";
+import { AccountAuthService, type AccountAuthRepository } from "./account-auth";
 import { getDb } from "./db/connection";
+import { flushSyncDeletions } from "./account-sync/deletions";
 import {
   migrateLegacyAccountAuth,
   SqliteAccountAuthRepository,
 } from "./account-auth-sqlite";
+
+import { getDatabaseProvider } from "./db/mysql";
+import { MysqlAccountAuthRepository } from "./account-auth-mysql";
 
 let servicePromise: Promise<AccountAuthService> | undefined;
 
@@ -30,15 +34,29 @@ export async function getAccountAuthService() {
           "ACCOUNT_SESSION_SECRET must contain at least 16 characters",
         );
       }
-      const database = await getDb();
-      const legacyFilePath =
-        process.env.ACCOUNT_DATA_FILE ||
-        path.join(process.cwd(), "data", "accounts.json");
-      await migrateLegacyAccountAuth(database, legacyFilePath);
-      const service = new AccountAuthService(
-        new SqliteAccountAuthRepository(database),
-        sessionSecret,
-      );
+      let repository: AccountAuthRepository;
+      if (getDatabaseProvider() === "mysql") {
+        repository = new MysqlAccountAuthRepository();
+      } else {
+        const database = await getDb();
+        const legacyFilePath =
+          process.env.ACCOUNT_DATA_FILE ||
+          path.join(process.cwd(), "data", "accounts.json");
+        await migrateLegacyAccountAuth(database, legacyFilePath);
+        const sqlite = new SqliteAccountAuthRepository(database);
+        repository = {
+          read: () => sqlite.read(),
+          async write(data, options) {
+            await sqlite.write(data, options);
+            if (options?.deletedUserIds?.length) {
+              await flushSyncDeletions().catch(() =>
+                console.error("[AccountSync] MySQL deletion queued for retry"),
+              );
+            }
+          },
+        };
+      }
+      const service = new AccountAuthService(repository, sessionSecret);
       const adminUsername = process.env.ACCOUNT_ADMIN_USERNAME;
       const adminPassword = process.env.ACCOUNT_ADMIN_PASSWORD;
       if (adminUsername && adminPassword) {
@@ -52,7 +70,10 @@ export async function getAccountAuthService() {
         await service.createInvitation(initialInvitation, maxUses);
       }
       return service;
-    })();
+    })().catch((error) => {
+      servicePromise = undefined;
+      throw error;
+    });
   }
   return servicePromise;
 }

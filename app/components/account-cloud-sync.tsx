@@ -1,6 +1,14 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import { usePluginStore } from "../store/plugin";
+import { useSdStore } from "../store/sd";
+import { useDraftStore } from "../store/draft";
+import {
+  switchExtraWorkspace,
+  persistExtraWorkspace,
+  extraWorkspaceOwner,
+} from "../utils/extra-workspace";
 import { useAppConfig, useChatStore } from "../store";
 import {
   startAccountCloudSync,
@@ -20,6 +28,44 @@ export function AccountCloudSync() {
   const configHydrated = useAppConfig((state) => state._hasHydrated);
   const workspaceSwitching = useChatStore((state) => state.workspaceSwitching);
   const workspaceOwner = useChatStore((state) => state.workspaceOwner);
+  const pluginsReady = usePluginStore((state) => state._hasHydrated);
+  const drawingsReady = useSdStore((state) => state._hasHydrated);
+  const draftsReady = useDraftStore((state) => state._hasHydrated);
+  const [extraOwner, setExtraOwner] = useState<string | null>(null);
+  const accountUserId = user?.id;
+
+  useEffect(() => {
+    if (loading || !pluginsReady || !drawingsReady || !draftsReady) return;
+    let cancelled = false;
+    const target =
+      accountUserId && !loggingOut ? `user:${accountUserId}` : "guest";
+    setExtraOwner(null);
+    void switchExtraWorkspace(target)
+      .then(() => {
+        if (!cancelled && extraWorkspaceOwner() === target)
+          setExtraOwner(target);
+      })
+      .catch(() => console.error("[Workspace] extra data restoration failed"));
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    loading,
+    loggingOut,
+    accountUserId,
+    pluginsReady,
+    drawingsReady,
+    draftsReady,
+  ]);
+
+  useEffect(() => {
+    const unsubscribers = [
+      usePluginStore.subscribe(persistExtraWorkspace),
+      useSdStore.subscribe(persistExtraWorkspace),
+      useDraftStore.subscribe(persistExtraWorkspace),
+    ];
+    return () => unsubscribers.forEach((unsubscribe) => unsubscribe());
+  }, []);
 
   useEffect(() => {
     const userId = user?.id?.trim();
@@ -31,6 +77,7 @@ export function AccountCloudSync() {
       modelWorkspaceReady &&
       chatHydrated &&
       configHydrated &&
+      extraOwner === `user:${userId}` &&
       !workspaceSwitching &&
       typeof workspaceOwner === "string" &&
       workspaceOwner.startsWith("user:");
@@ -48,6 +95,7 @@ export function AccountCloudSync() {
   }, [
     chatHydrated,
     configHydrated,
+    extraOwner,
     enabled,
     loading,
     loggingOut,

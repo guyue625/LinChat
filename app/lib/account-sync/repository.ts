@@ -15,6 +15,15 @@ export type AccountSyncSnapshot = {
   updatedAt: string;
 };
 
+export interface AccountSyncStorage {
+  readWithLegacyMigration(userId: string): Promise<AccountSyncSnapshot | null>;
+  write(
+    userId: string,
+    state: SyncState,
+    expectedRevision: number,
+  ): AccountSyncSnapshot | Promise<AccountSyncSnapshot>;
+}
+
 export class SyncConflictError extends Error {
   constructor(readonly current: AccountSyncSnapshot | null) {
     super("SYNC_CONFLICT");

@@ -20,3 +20,7 @@ global.fetch = jest.fn(() =>
     text: () => Promise.resolve(""),
   } as Response),
 );
+// Unit tests must never connect to a developer's configured database.
+process.env.ACCOUNT_DB_PROVIDER = "sqlite";
+process.env.ACCOUNT_CHAT_STORAGE = "sqlite";
+delete process.env.ACCOUNT_MYSQL_URL;

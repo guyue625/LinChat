@@ -1,3 +1,4 @@
+import { useDraftStore } from "../store/draft";
 import { useDebouncedCallback } from "use-debounce";
 import React, {
   Fragment,
@@ -587,6 +588,9 @@ function _Chat(props: ChatProps) {
       setPromptHints([]);
       // Clear draft when submitting
       localStorage.removeItem(UNFINISHED_INPUT(session.id));
+      useDraftStore
+        .getState()
+        .setDraft(useDraftStore.getState().owner, session.id, "");
       matchCommand.invoke();
       return;
     }
@@ -604,6 +608,9 @@ function _Chat(props: ChatProps) {
         setPromptHints([]);
         // Clear draft when submitting
         localStorage.removeItem(UNFINISHED_INPUT(session.id));
+        useDraftStore
+          .getState()
+          .setDraft(useDraftStore.getState().owner, session.id, "");
         if (!isMobileScreen) inputRef.current?.focus();
         setAutoScroll(true);
       } catch (error) {

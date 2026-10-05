@@ -13,6 +13,9 @@ const OPTIONAL_OBJECT_SLICES = [
   StoreKey.Config,
   StoreKey.Mask,
   StoreKey.Prompt,
+  StoreKey.Plugin,
+  StoreKey.SdList,
+  "account-drafts",
 ] as const;
 
 function isRecord(value: unknown): value is Record<string, unknown> {

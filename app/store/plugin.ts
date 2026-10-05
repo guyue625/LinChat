@@ -5,6 +5,7 @@ import { createPersistStore } from "../utils/store";
 import { getClientConfig } from "../config/client";
 import yaml from "js-yaml";
 import { adapter, getOperationId } from "../utils";
+import { useDraftStore } from "./draft";
 import { useAccessStore } from "./access";
 
 const isApp = getClientConfig()?.isApp !== false;
@@ -236,36 +237,31 @@ export const usePluginStore = createPersistStore(
         return;
       }
 
-      fetch("./plugins.json")
-        .then((res) => res.json())
-        .then((res) => {
-          Promise.all(
-            res.map((item: any) =>
-              // skip get schema
-              state.get(item.id)
-                ? item
-                : fetch(item.schema)
-                    .then((res) => res.text())
-                    .then((content) => ({
-                      ...item,
-                      content,
-                    }))
-                    .catch((e) => item),
-            ),
-          ).then((builtinPlugins: any) => {
-            builtinPlugins
-              .filter((item: any) => item?.content)
-              .forEach((item: any) => {
-                const plugin = state.create(item);
-                state.updatePlugin(plugin.id, (plugin) => {
-                  const tool = FunctionToolService.add(plugin, true);
-                  plugin.title = tool.api.definition.info.title;
-                  plugin.version = tool.api.definition.info.version;
-                  plugin.builtin = true;
-                });
-              });
-          });
-        });
+      const owner = useDraftStore.getState().owner;
+      void ensureBuiltinPlugins(() => useDraftStore.getState().owner === owner);
     },
   },
 );
+
+export async function ensureBuiltinPlugins(isCurrent: () => boolean) {
+  try {
+    const response = await fetch("./plugins.json");
+    const items = await response.json();
+    for (const item of items) {
+      if (!isCurrent()) return;
+      if (usePluginStore.getState().get(item.id)) continue;
+      const content = await (await fetch(item.schema)).text();
+      if (!isCurrent()) return;
+      const store = usePluginStore.getState();
+      const plugin = store.create({ ...item, content });
+      store.updatePlugin(plugin.id, (plugin) => {
+        const tool = FunctionToolService.add(plugin, true);
+        plugin.title = tool.api.definition.info.title;
+        plugin.version = tool.api.definition.info.version;
+        plugin.builtin = true;
+      });
+    }
+  } catch {
+    console.error("[Plugins] builtin catalogue unavailable");
+  }
+}

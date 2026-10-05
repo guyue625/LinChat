@@ -2,8 +2,16 @@ import path from "node:path";
 import { getDb } from "../db/connection";
 import { getSyncEncryptionKey } from "./crypto";
 import { AccountSyncRepository } from "./repository";
+import type { AccountSyncStorage } from "./repository";
+import {
+  getChatStorageProvider,
+  getDatabaseProvider,
+  getMysqlPool,
+} from "../db/mysql";
+import { MysqlAccountSyncRepository } from "./mysql-repository";
+import { flushSyncDeletions } from "./deletions";
 
-let repositoryPromise: Promise<AccountSyncRepository> | null = null;
+let repositoryPromise: Promise<AccountSyncStorage> | null = null;
 
 export function getLegacySyncDirectory() {
   return (
@@ -12,15 +20,29 @@ export function getLegacySyncDirectory() {
 }
 
 export async function getAccountSyncRepository() {
+  if (getDatabaseProvider() !== "mysql") await flushSyncDeletions();
   if (!repositoryPromise) {
     repositoryPromise = (async () => {
+      if (getDatabaseProvider() === "mysql") {
+        return new MysqlAccountSyncRepository(
+          await getMysqlPool(),
+          getSyncEncryptionKey(),
+        );
+      }
       const database = await getDb();
-      return new AccountSyncRepository(
+      const key = getSyncEncryptionKey();
+      const sqlite = new AccountSyncRepository(
         database,
-        getSyncEncryptionKey(),
+        key,
         getLegacySyncDirectory(),
       );
-    })();
+      return getChatStorageProvider() === "mysql"
+        ? new MysqlAccountSyncRepository(await getMysqlPool(), key, sqlite)
+        : sqlite;
+    })().catch((error) => {
+      repositoryPromise = null;
+      throw error;
+    });
   }
   return repositoryPromise;
 }

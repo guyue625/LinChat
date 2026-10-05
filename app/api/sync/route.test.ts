@@ -78,6 +78,17 @@ describe("/api/sync", () => {
     expect(response.status).toBe(401);
   });
 
+  it("rejects a delayed upload from an account that has been switched", async () => {
+    const incoming = request("POST", state(), "0");
+    incoming.headers.set("x-sync-user", "previous-user");
+    const response = await POST(incoming);
+    expect(response.status).toBe(409);
+    await expect(response.json()).resolves.toMatchObject({
+      code: "ACCOUNT_CHANGED",
+    });
+    expect(mockRepository.write).not.toHaveBeenCalled();
+  });
+
   it("returns an empty revisioned envelope with no-store caching", async () => {
     mockRepository.readWithLegacyMigration.mockResolvedValue(null);
     const response = await GET(request("GET"));
@@ -87,6 +98,7 @@ describe("/api/sync", () => {
       state: null,
       revision: 0,
       updatedAt: null,
+      storage: "sqlite",
     });
     expect(response.headers.get("cache-control")).toBe("private, no-store");
   });
@@ -103,6 +115,7 @@ describe("/api/sync", () => {
       state: state("remote"),
       revision: 3,
       updatedAt: "2026-08-07T00:00:00.000Z",
+      storage: "sqlite",
     });
   });
 
@@ -122,7 +135,7 @@ describe("/api/sync", () => {
   });
 
   it("writes with compare-and-swap revision", async () => {
-    mockRepository.write.mockReturnValue({
+    mockRepository.write.mockResolvedValue({
       state: state(),
       revision: 2,
       updatedAt: "2026-08-07T00:00:00.000Z",

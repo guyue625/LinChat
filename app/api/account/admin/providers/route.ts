@@ -10,7 +10,7 @@ export async function GET(request: NextRequest) {
     await requireAdmin(request);
     const repository = await getProviderConfigRepository();
     const records = new Map(
-      repository.list().map((record) => [record.id, record]),
+      (await repository.list()).map((record) => [record.id, record]),
     );
     const runtime = await getRuntimeServerSideConfig();
     const runtimeValues = runtime as unknown as Record<string, unknown>;

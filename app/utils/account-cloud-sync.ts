@@ -1,4 +1,9 @@
 import { StoreKey } from "../constant";
+import { mergeServerChat } from "./merge-server-chat";
+import { materializeAccountMedia } from "./account-media";
+import { usePluginStore } from "../store/plugin";
+import { useSdStore } from "../store/sd";
+import { useDraftStore, DRAFT_STORE_KEY } from "../store/draft";
 import { useAccessStore, useAppConfig, useChatStore } from "../store";
 import { sanitizeModelCatalogue } from "../store/config";
 import { useMaskStore } from "../store/mask";
@@ -27,6 +32,7 @@ type SyncEnvelope = {
   state: AppState | null;
   revision: number;
   updatedAt: string | null;
+  storage?: "sqlite" | "mysql";
 };
 
 type SyncPushResponse = {
@@ -53,6 +59,8 @@ type CapturedPush = {
   owner: WorkspaceOwner;
   revision: number;
   state: AppState;
+  storage: "sqlite" | "mysql";
+  baseState: AppState | null;
 };
 
 let applyingRemote = false;
@@ -66,6 +74,8 @@ let pollTimer: ReturnType<typeof setInterval> | null = null;
 let activeUserId: string | null = null;
 let activeRevision = 0;
 let activeRevisionKnown = false;
+let activeStorage: "sqlite" | "mysql" = "sqlite";
+let baseState: AppState | null = null;
 let stopFns: Array<() => void> = [];
 
 function isDataUrl(value: unknown): value is string {
@@ -160,6 +170,7 @@ async function fetchRemoteEnvelope(): Promise<SyncEnvelope> {
           : 0,
       updatedAt:
         typeof envelope.updatedAt === "string" ? envelope.updatedAt : null,
+      storage: envelope.storage === "mysql" ? "mysql" : "sqlite",
     };
   }
   // Defensive: treat a bare AppState as the snapshot body.
@@ -170,8 +181,13 @@ async function postLocalState(
   state: AppState,
   revision: number,
   keepalive = false,
+  storage = activeStorage,
+  userId = activeUserId,
 ): Promise<SyncPushResponse> {
-  const stripped = stripMediaFromAppState(state);
+  const stripped =
+    storage === "mysql"
+      ? await materializeAccountMedia(state)
+      : stripMediaFromAppState(state);
   const body = JSON.stringify(stripped);
   const response = await fetch(ACCOUNT_CLOUD_SYNC_PATH, {
     method: "POST",
@@ -179,6 +195,7 @@ async function postLocalState(
     headers: {
       "content-type": "application/json",
       "x-sync-revision": String(revision),
+      "x-sync-user": userId ?? "",
     },
     body,
     keepalive,
@@ -187,7 +204,12 @@ async function postLocalState(
     throw new Error("UNAUTHORIZED");
   }
   if (response.status === 409) {
-    throw new CloudSyncConflictError((await response.json()) as SyncEnvelope);
+    const conflict = (await response.json()) as SyncEnvelope & {
+      code?: string;
+    };
+    if (conflict.code !== "SYNC_CONFLICT")
+      throw new Error(conflict.code ?? "SYNC_PUSH_FAILED:409");
+    throw new CloudSyncConflictError(conflict);
   }
   if (!response.ok) {
     const text = await response.text().catch(() => "");
@@ -222,6 +244,29 @@ async function mirrorChatWorkspace() {
   });
 }
 
+function mergeExtraSlices(
+  base: AppState | null,
+  local: AppState,
+  remote: AppState,
+): Partial<AppState> {
+  const result: Partial<AppState> = {};
+  for (const key of [
+    StoreKey.Plugin,
+    StoreKey.SdList,
+    DRAFT_STORE_KEY,
+  ] as const) {
+    if (remote[key])
+      Object.assign(result, {
+        [key]: JSON.parse(
+          JSON.stringify(
+            mergeServerChat(base?.[key] ?? local[key], local[key], remote[key]),
+          ),
+        ),
+      });
+  }
+  return result;
+}
+
 async function applyRemoteState(state: AppState, userId: string) {
   if (activeUserId !== userId || currentChatOwner() !== `user:${userId}`) {
     return false;
@@ -230,8 +275,35 @@ async function applyRemoteState(state: AppState, userId: string) {
   applyingRemote = true;
   try {
     const localOwner = currentChatOwner();
-    const localState = getLocalAppState();
+    let localState = getLocalAppState();
+    const remoteChat = state[StoreKey.Chat];
+    const mergedChat =
+      activeStorage === "mysql"
+        ? (JSON.parse(
+            JSON.stringify(
+              mergeServerChat(
+                baseState?.[StoreKey.Chat] ?? localState[StoreKey.Chat],
+                localState[StoreKey.Chat],
+                remoteChat,
+              ),
+            ),
+          ) as AppState[StoreKey.Chat])
+        : null;
+    const extras = mergeExtraSlices(baseState, localState, state);
     mergeAppState(localState, state);
+    if (activeStorage === "mysql") Object.assign(localState, extras);
+    if (mergedChat) {
+      localState = { ...localState, [StoreKey.Chat]: mergedChat };
+      const chat = localState[StoreKey.Chat];
+      chat.currentSessionIndex = Math.max(
+        0,
+        Math.min(chat.currentSessionIndex, chat.sessions.length - 1),
+      );
+      baseState = {
+        ...JSON.parse(JSON.stringify(localState)),
+        ...JSON.parse(JSON.stringify(state)),
+      };
+    }
     const accessState = localState[StoreKey.Access] as {
       customModels?: string;
       useCustomConfig?: boolean;
@@ -262,6 +334,7 @@ export async function pullAndMergeAccountCloud(
 ): Promise<"empty" | "merged" | "stale" | "unchanged"> {
   const envelope = await fetchRemoteEnvelope();
   if (!userId || !isCurrent() || activeUserId !== userId) return "stale";
+  activeStorage = envelope.storage ?? "sqlite";
   if (activeRevisionKnown && envelope.revision <= activeRevision) {
     return "unchanged";
   }
@@ -278,20 +351,23 @@ export async function pushAccountCloud(options?: { keepalive?: boolean }) {
   if (useChatStore.getState().workspaceSwitching) return;
   const userId = activeUserId;
   if (!userId) return;
+  if (!activeRevisionKnown) return;
   const owner = currentChatOwner();
   if (owner !== `user:${userId}`) return;
 
   for (let attempt = 0; attempt < 2; attempt += 1) {
     const revision = activeRevision;
+    const state = JSON.parse(JSON.stringify(getLocalAppState())) as AppState;
     try {
       const result = await postLocalState(
-        getLocalAppState(),
+        state,
         revision,
         options?.keepalive === true,
       );
       if (activeUserId === userId && currentChatOwner() === `user:${userId}`) {
         activeRevision = result.revision;
         activeRevisionKnown = true;
+        baseState = state;
       }
       return;
     } catch (error) {
@@ -354,29 +430,42 @@ function captureActivePush(): CapturedPush | null {
   if (applyingRemote || useChatStore.getState().workspaceSwitching) return null;
   const userId = activeUserId;
   if (!userId) return null;
+  if (!activeRevisionKnown) return null;
   const owner = currentChatOwner();
   if (owner !== `user:${userId}`) return null;
   return {
     userId,
     owner,
     revision: activeRevision,
-    state: stripMediaFromAppState(getLocalAppState()),
+    state:
+      activeStorage === "mysql"
+        ? JSON.parse(JSON.stringify(getLocalAppState()))
+        : stripMediaFromAppState(getLocalAppState()),
+    storage: activeStorage,
+    baseState: baseState ? JSON.parse(JSON.stringify(baseState)) : null,
   };
 }
 
 async function pushCapturedAccountCloud(capture: CapturedPush) {
   let revision = capture.revision;
-  const state = capture.state;
+  let state = capture.state;
 
   for (let attempt = 0; attempt < 2; attempt += 1) {
     try {
-      const result = await postLocalState(state, revision, true);
+      const result = await postLocalState(
+        state,
+        revision,
+        true,
+        capture.storage,
+        capture.userId,
+      );
       if (
         activeUserId === capture.userId &&
         currentChatOwner() === capture.owner
       ) {
         activeRevision = result.revision;
         activeRevisionKnown = true;
+        baseState = JSON.parse(JSON.stringify(state));
       }
       return;
     } catch (error) {
@@ -385,7 +474,27 @@ async function pushCapturedAccountCloud(capture: CapturedPush) {
       }
       revision = error.envelope.revision;
       if (error.envelope.state) {
+        const remoteChat = error.envelope.state[StoreKey.Chat];
+        const mergedChat =
+          capture.storage === "mysql"
+            ? (JSON.parse(
+                JSON.stringify(
+                  mergeServerChat(
+                    capture.baseState?.[StoreKey.Chat] ?? state[StoreKey.Chat],
+                    state[StoreKey.Chat],
+                    remoteChat,
+                  ),
+                ),
+              ) as AppState[StoreKey.Chat])
+            : null;
+        const extras = mergeExtraSlices(
+          capture.baseState,
+          state,
+          error.envelope.state,
+        );
         mergeAppState(state, error.envelope.state);
+        if (capture.storage === "mysql") Object.assign(state, extras);
+        if (mergedChat) state = { ...state, [StoreKey.Chat]: mergedChat };
         if (
           activeUserId === capture.userId &&
           currentChatOwner() === capture.owner
@@ -434,6 +543,9 @@ function subscribeStores(onChange: () => void) {
     useAccessStore.subscribe(onChange),
     useMaskStore.subscribe(onChange),
     usePromptStore.subscribe(onChange),
+    usePluginStore.subscribe(onChange),
+    useSdStore.subscribe(onChange),
+    useDraftStore.subscribe(onChange),
   ];
   return () => unsubs.forEach((u) => u());
 }
@@ -448,6 +560,8 @@ export function startAccountCloudSync(options: StartOptions): () => void {
   activeUserId = options.userId;
   activeRevision = 0;
   activeRevisionKnown = false;
+  activeStorage = "sqlite";
+  baseState = JSON.parse(JSON.stringify(getLocalAppState()));
 
   let cancelled = false;
   const generation = activeUserId;
@@ -549,6 +663,8 @@ export function stopAccountCloudSync(options?: { flush?: boolean }) {
   activeUserId = null;
   activeRevision = 0;
   activeRevisionKnown = false;
+  activeStorage = "sqlite";
+  baseState = null;
   queuedPull = null;
   if (debounceTimer) {
     clearTimeout(debounceTimer);

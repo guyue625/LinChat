@@ -10,6 +10,7 @@ import { nanoid } from "nanoid";
 import { uploadImage, base64Image2Blob } from "@/app/utils/chat";
 import { models, getModelParamBasicData } from "@/app/components/sd/sd-panel";
 import { useAccessStore } from "./access";
+import { useDraftStore } from "./draft";
 
 const defaultModel = {
   name: models[0].name,
@@ -18,7 +19,7 @@ const defaultModel = {
 
 const defaultParams = getModelParamBasicData(models[0].params({}), {});
 
-const DEFAULT_SD_STATE = {
+export const DEFAULT_SD_STATE = {
   currentId: 0,
   draw: [],
   currentModel: defaultModel,
@@ -56,7 +57,12 @@ export const useSdStore = createPersistStore<
         return id;
       },
       sendTask(data: any, okCall?: Function) {
-        data = { ...data, id: nanoid(), status: "running" };
+        data = {
+          ...data,
+          id: nanoid(),
+          status: "running",
+          owner: useDraftStore.getState().owner,
+        };
         set({ draw: [data, ..._get().draw] });
         this.getNextId();
         this.stabilityRequestCall(data);
@@ -135,6 +141,8 @@ export const useSdStore = createPersistStore<
           });
       },
       updateDraw(_draw: any) {
+        if (_draw.owner && _draw.owner !== useDraftStore.getState().owner)
+          return;
         const draw = _get().draw || [];
         draw.some((item, index) => {
           if (item.id === _draw.id) {

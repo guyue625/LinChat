@@ -7,6 +7,8 @@ import { collectModelTable } from "../../utils/model";
 import { PROVIDER_DEFINITIONS, type ProviderDefinition } from "./registry";
 import { getRuntimeProviderConfigRepository } from "./server";
 import type { ProviderId, ProviderModel, ProviderRecord } from "./types";
+import { getDatabaseProvider } from "../db/mysql";
+import { withMysqlTransaction } from "../db/mysql-transaction";
 
 export type RuntimeProviderRecord = ProviderRecord & {
   apiKey?: string;
@@ -109,19 +111,27 @@ export function resolveProviderRuntimeConfig(
   return result;
 }
 
-export async function getRuntimeServerSideConfig(): Promise<RuntimeServerSideConfig> {
+async function readRuntimeServerSideConfig(): Promise<RuntimeServerSideConfig> {
   const repository = await getRuntimeProviderConfigRepository();
   if (!repository) {
     return resolveProviderRuntimeConfig(getServerSideConfig(), []);
   }
-  const records = repository.list().map((record) => ({
-    ...record,
-    apiKey: record.hasApiKey
-      ? repository.getSecret(record.id, "apiKey")
-      : undefined,
-    apiSecret: record.hasApiSecret
-      ? repository.getSecret(record.id, "apiSecret")
-      : undefined,
-  }));
+  const records = await Promise.all(
+    (await repository.list()).map(async (record) => ({
+      ...record,
+      apiKey: record.hasApiKey
+        ? await repository.getSecret(record.id, "apiKey")
+        : undefined,
+      apiSecret: record.hasApiSecret
+        ? await repository.getSecret(record.id, "apiSecret")
+        : undefined,
+    })),
+  );
   return resolveProviderRuntimeConfig(getServerSideConfig(), records);
+}
+
+export async function getRuntimeServerSideConfig(): Promise<RuntimeServerSideConfig> {
+  return getDatabaseProvider() === "mysql"
+    ? withMysqlTransaction(readRuntimeServerSideConfig, "providers")
+    : readRuntimeServerSideConfig();
 }
